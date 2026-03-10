@@ -1,11 +1,11 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import Anthropic from '@anthropic-ai/sdk';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PlanilhaIAService {
   private readonly logger = new Logger(PlanilhaIAService.name);
-  private abacusApiKey = process.env.ABACUSAI_API_KEY;
-  private abacusApiUrl = 'https://apps.abacus.ai/v1/chat/completions';
+  private readonly client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   constructor(private prisma: PrismaService) {}
 
@@ -36,7 +36,6 @@ export class PlanilhaIAService {
   // ── Analisar planilha ─────────────────────────────────────
   async analisar(userId: string, dados: string, nomeArquivo: string) {
     try {
-      // Análises ilimitadas para usuários premium
       const analisesRestantes = 999; // Ilimitado
 
       const prompt = `Você é o Excelino, um especialista em análise de dados e Excel com uma personalidade amigável e didática.
@@ -59,39 +58,18 @@ Faça uma análise completa e forneça:
 
 Seja direto, use emojis para facilitar a leitura e explique de forma que qualquer pessoa entenda.`;
 
-      const response = await fetch(this.abacusApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.abacusApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: 'Você é o Excelino, especialista em Excel e análise de dados.',
-            },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: 1500,
-          temperature: 0.7,
-          stream: false,
-        }),
+      const response = await this.client.messages.create({
+        model: 'claude-sonnet-4-6',
+        system: 'Você é o Excelino, especialista em Excel e análise de dados.',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1500,
+        temperature: 0.7,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.error(`API error: ${response.status} - ${errorText}`);
-        throw new Error(`API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Não precisa mais registrar uso (análises ilimitadas)
-      // await this.registrarUso(userId);
-
-      const insights = data?.choices?.[0]?.message?.content ?? 'Análise não disponível.';
+      const insights =
+        response.content[0]?.type === 'text'
+          ? response.content[0].text
+          : 'Análise não disponível.';
 
       this.logger.log(`✅ Planilha analisada para usuário ${userId}`);
       return { insights, analisesRestantes };
@@ -104,39 +82,28 @@ Seja direto, use emojis para facilitar a leitura e explique de forma que qualque
   // ── Chat sobre a planilha ─────────────────────────────────
   async chat(userId: string, dados: string, mensagens: { role: string; content: string }[]) {
     try {
-      const systemPrompt = `Você é o Excelino, especialista em Excel e análise de dados. 
+      const systemPrompt = `Você é o Excelino, especialista em Excel e análise de dados.
 O usuário está perguntando sobre a seguinte planilha:
 
 ${dados.substring(0, 6000)}
 
 Responda de forma clara, objetiva e didática. Use emojis quando apropriado.`;
 
-      const response = await fetch(this.abacusApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.abacusApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...mensagens,
-          ],
-          max_tokens: 800,
-          temperature: 0.7,
-          stream: false,
-        }),
+      const response = await this.client.messages.create({
+        model: 'claude-sonnet-4-6',
+        system: systemPrompt,
+        messages: mensagens.map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        })),
+        max_tokens: 800,
+        temperature: 0.7,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.error(`API error: ${response.status} - ${errorText}`);
-        throw new Error(`API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      const resposta = data?.choices?.[0]?.message?.content ?? 'Resposta não disponível.';
+      const resposta =
+        response.content[0]?.type === 'text'
+          ? response.content[0].text
+          : 'Resposta não disponível.';
 
       return { resposta };
     } catch (error) {
@@ -148,44 +115,32 @@ Responda de forma clara, objetiva e didática. Use emojis quando apropriado.`;
   // ── Extrair texto de imagem ───────────────────────────────
   async extrairDaImagem(userId: string, base64: string) {
     try {
-      const response = await fetch(this.abacusApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.abacusApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Extraia todos os dados desta planilha/tabela em formato CSV (separado por ponto e vírgula). Inclua cabeçalhos. Retorne apenas os dados, sem explicação.',
+      const response = await this.client.messages.create({
+        model: 'claude-sonnet-4-6',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: 'image/jpeg',
+                  data: base64,
                 },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${base64}`,
-                  },
-                },
-              ],
-            },
-          ],
-          max_tokens: 2000,
-          stream: false,
-        }),
+              },
+              {
+                type: 'text',
+                text: 'Extraia todos os dados desta planilha/tabela em formato CSV (separado por ponto e vírgula). Inclua cabeçalhos. Retorne apenas os dados, sem explicação.',
+              },
+            ],
+          },
+        ],
+        max_tokens: 2000,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.error(`API error: ${response.status} - ${errorText}`);
-        throw new Error(`API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      const texto = data?.choices?.[0]?.message?.content ?? '';
+      const texto =
+        response.content[0]?.type === 'text' ? response.content[0].text : '';
 
       return { texto };
     } catch (error) {

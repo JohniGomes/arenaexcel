@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Arena Excel",
-    "slug": "abacusai-mobile-apps",
+    "slug": "arena-v3",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.abacusai.app.t1771126748",
+      "bundleIdentifier": "com.johni.arenaexcel",
       "buildNumber": "1"
     },
     "android": {
@@ -24,7 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.abacusai.app.t1771126748",
+      "package": "com.johni.arenaexcel",
       "versionCode": 1,
       "intentFilters": [
         {
@@ -32,7 +32,7 @@
           "autoVerify": true,
           "data": [
             {
-              "scheme": "abacusai1771126748",
+              "scheme": "arenaexcel",
               "host": "*"
             }
           ],
@@ -48,12 +48,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "a52132e3-7b24-4c1b-9315-46625e580b8a"
+        "projectId": "da5d7d19-2572-475a-8544-0050d93771ce"
       },
       "EXPO_PUBLIC_API_URL": "https://arenaexcel.excelcomjohni.com.br/"
     },
-    "owner": "abacus.ai",
-    "scheme": "abacusai1771126748",
+    "owner": "excelcomjohni",
+    "scheme": "arenaexcel",
     "plugins": [
       "expo-web-browser",
       [
