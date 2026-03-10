@@ -1,0 +1,591 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Alert,
+  Platform,
+} from 'react-native';
+import { Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import { captureRef } from 'react-native-view-shot';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePremium } from '../../hooks/usePremium';
+import ApiService from '../../services/api.service';
+import Button from '../../components/Button';
+import PaywallModal from '../../components/PaywallModal';
+import { theme } from '../../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { MainTabParamList, LearnStackParamList } from '../../navigation/types';
+
+type NavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Certificate'>,
+  NativeStackNavigationProp<LearnStackParamList>
+>;
+
+const CertificateScreen = () => {
+  const navigation = useNavigation<NavigationProp>();
+  const { user } = useAuth();
+  const { isPremium } = usePremium();
+  const [progress, setProgress] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const certificateRef = React.useRef<View>(null);
+
+  useEffect(() => {
+    loadProgress();
+  }, []);
+
+  const loadProgress = async () => {
+    setLoading(true);
+    try {
+      const data = await ApiService.getProgress();
+      setProgress(data);
+
+      // Verificar se completou todas as lições
+      const totalCompleted = data?.levels?.reduce(
+        (sum: number, level: any) => sum + (level?.completed ?? 0),
+        0
+      ) ?? 0;
+      const totalLessons = data?.levels?.reduce(
+        (sum: number, level: any) => sum + (level?.total ?? 0),
+        0
+      ) ?? 0;
+
+      setIsCompleted(totalCompleted === totalLessons && totalLessons > 0);
+    } catch (error) {
+      console.error('Error loading progress:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      if (!certificateRef?.current) return;
+
+      // Capturar certificado como imagem
+      const uri = await captureRef(certificateRef, {
+        format: 'png',
+        quality: 1,
+      });
+
+      // Verificar se compartilhamento está disponível
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Compartilhar Certificado',
+        });
+      } else {
+        Alert.alert('Aviso', 'Compartilhamento não disponível neste dispositivo');
+      }
+    } catch (error) {
+      console.error('Error sharing certificate:', error);
+      Alert.alert('Erro', 'Não foi possível compartilhar o certificado');
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      if (!certificateRef?.current) return;
+
+      const uri = await captureRef(certificateRef, {
+        format: 'png',
+        quality: 1,
+      });
+
+      // Salvar no dispositivo (apenas Android/iOS)
+      if (Platform.OS !== 'web') {
+        const fileName = `ArenaExcel_Certificado_${user?.name?.replace(/\\s/g, '_')}.png`;
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
+        await FileSystem.copyAsync({ from: uri, to: fileUri });
+
+        Alert.alert(
+          '✅ Certificado salvo!',
+          `O certificado foi salvo em: ${fileUri}`,
+          [{ text: 'OK' }]
+        );
+      } else {
+        // Web: baixar como arquivo
+        const link = document.createElement('a');
+        link.href = uri;
+        link.download = `ArenaExcel_Certificado_${user?.name?.replace(/\\s/g, '_')}.png`;
+        link.click();
+
+        Alert.alert('✅ Download iniciado!', 'O certificado foi baixado com sucesso.');
+      }
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      Alert.alert('Erro', 'Não foi possível salvar o certificado');
+    }
+  };
+
+  if (!isPremium) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.lockedContainer}>
+          <LinearGradient
+            colors={['#0A3A40', '#107361']}
+            style={styles.lockedGradient}
+          >
+            <Image 
+              source={require('../../../assets/excelino_certificado.png')}
+              style={styles.excelinoCertificado}
+              resizeMode="contain"
+            />
+            <Text style={styles.lockedTitulo}>Certificado Premium</Text>
+            <Text style={styles.lockedSubtitulo}>
+              Complete todas as lições e seja Premium para receber seu certificado oficial do Arena Excel!
+            </Text>
+            
+            <View style={styles.benefitsList}>
+              <View style={styles.benefitItem}>
+                <Text style={styles.benefitIcon}>✓</Text>
+                <Text style={styles.benefitText}>Certificado oficial de conclusão</Text>
+              </View>
+              <View style={styles.benefitItem}>
+                <Text style={styles.benefitIcon}>✓</Text>
+                <Text style={styles.benefitText}>Compartilhe no LinkedIn</Text>
+              </View>
+              <View style={styles.benefitItem}>
+                <Text style={styles.benefitIcon}>✓</Text>
+                <Text style={styles.benefitText}>Valide suas habilidades em Excel</Text>
+              </View>
+            </View>
+
+            <Button
+              title="⭐ Desbloquear Premium"
+              onPress={() => setShowPaywall(true)}
+              style={styles.unlockBtn}
+            />
+          </LinearGradient>
+        </View>
+
+        <PaywallModal
+          visivel={showPaywall}
+          onFechar={() => setShowPaywall(false)}
+          onSuccess={() => setShowPaywall(false)}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (!isCompleted) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.incompleteContainer}>
+          <Image 
+            source={require('../../../assets/excelino_certificado.png')}
+            style={styles.excelinoCertificado}
+            resizeMode="contain"
+          />
+          <Text style={styles.incompleteTitulo}>Continue estudando!</Text>
+          <Text style={styles.incompleteSubtitulo}>
+            Complete todas as lições do Arena Excel para receber seu certificado de conclusão.
+          </Text>
+
+          <View style={styles.progressCard}>
+            <Text style={styles.progressLabel}>Seu progresso:</Text>
+            {progress?.levels?.map((level: any, index: number) => (
+              <View key={index} style={styles.levelProgress}>
+                <Text style={styles.levelName}>{level?.name ?? ''}</Text>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${((level?.completed ?? 0) / (level?.total ?? 1)) * 100}%`,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {level?.completed ?? 0}/{level?.total ?? 0}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <Button
+            title="Continuar estudando"
+            onPress={() => navigation.navigate('Learn')}
+            style={styles.continueBtn}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Certificado completo
+  const hoje = new Date().toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitulo}>🎓 Seu Certificado</Text>
+          <Text style={styles.headerSubtitulo}>
+            Parabéns por concluir o Arena Excel!
+          </Text>
+        </View>
+
+        {/* Certificado */}
+        <View ref={certificateRef} style={styles.certificateContainer}>
+          <LinearGradient
+            colors={['#FFFFFF', '#F9FAFB']}
+            style={styles.certificate}
+          >
+            {/* Borda decorativa */}
+            <View style={styles.certificateBorder} />
+
+            {/* Header */}
+            <View style={styles.certificateHeader}>
+              <Image
+                source={require('../../../assets/excelino-welcome.gif')}
+                style={styles.certificateLogo}
+                resizeMode="contain"
+              />
+              <Text style={styles.certificateTituloApp}>Arena Excel</Text>
+            </View>
+
+            {/* Título */}
+            <Text style={styles.certificateTitulo}>Certificado de Conclusão</Text>
+
+            {/* Texto */}
+            <Text style={styles.certificateTexto}>Certificamos que</Text>
+            <Text style={styles.certificateNome}>{user?.name ?? 'Aluno'}</Text>
+            <Text style={styles.certificateTexto}>
+              concluiu com êxito todos os níveis do curso Arena Excel,
+              demonstrando excelência no aprendizado de Microsoft Excel.
+            </Text>
+
+            {/* Detalhes */}
+            <View style={styles.certificateDetails}>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Lições concluídas:</Text>
+                <Text style={styles.detailValue}>
+                  {progress?.levels?.reduce(
+                    (sum: number, level: any) => sum + (level?.total ?? 0),
+                    0
+                  ) ?? 0}
+                </Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>XP conquistado:</Text>
+                <Text style={styles.detailValue}>{user?.xp ?? 0}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Data de conclusão:</Text>
+                <Text style={styles.detailValue}>{hoje}</Text>
+              </View>
+            </View>
+
+            {/* Assinatura */}
+            <View style={styles.signature}>
+              <View style={styles.signatureLine} />
+              <Text style={styles.signatureName}>Arena Excel</Text>
+              <Text style={styles.signatureRole}>Plataforma de Ensino</Text>
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Botões */}
+        <View style={styles.actions}>
+          <Button
+            title="📤 Compartilhar"
+            onPress={handleShare}
+            style={styles.actionBtn}
+          />
+          <Button
+            title="💾 Download"
+            onPress={handleDownload}
+            style={styles.actionBtn}
+          />
+        </View>
+
+        <Text style={styles.footer}>
+          ✨ Compartilhe seu certificado no LinkedIn e mostre suas habilidades!
+        </Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    padding: 20,
+  },
+  header: {
+    marginBottom: 24,
+  },
+  headerTitulo: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  headerSubtitulo: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+  },
+  certificateContainer: {
+    marginBottom: 24,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  certificate: {
+    padding: 32,
+    borderRadius: 16,
+    position: 'relative',
+  },
+  certificateBorder: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    bottom: 12,
+    borderWidth: 2,
+    borderColor: '#7C3AED',
+    borderRadius: 12,
+    borderStyle: 'dashed',
+  },
+  certificateHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  certificateLogo: {
+    width: 80,
+    height: 80,
+    marginBottom: 8,
+  },
+  certificateTituloApp: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#7C3AED',
+  },
+  certificateTitulo: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  certificateTexto: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  certificateNome: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#7C3AED',
+    textAlign: 'center',
+    marginVertical: 12,
+  },
+  certificateDetails: {
+    marginTop: 32,
+    marginBottom: 32,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  detailItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 6,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  signature: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  signatureLine: {
+    width: 200,
+    height: 1,
+    backgroundColor: '#D1D5DB',
+    marginBottom: 8,
+  },
+  signatureName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  signatureRole: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  actionBtn: {
+    flex: 1,
+  },
+  footer: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  lockedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  lockedGradient: {
+    width: '100%',
+    padding: 32,
+    borderRadius: 24,
+    alignItems: 'center',
+  },
+  excelinoCertificado: {
+    width: 120,
+    height: 120,
+    marginBottom: 16,
+  },
+  lockEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  lockedTitulo: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  lockedSubtitulo: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  benefitsList: {
+    width: '100%',
+    marginBottom: 32,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  benefitIcon: {
+    fontSize: 20,
+    color: '#10B981',
+    marginRight: 12,
+    fontWeight: '700',
+  },
+  benefitText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  unlockBtn: {
+    width: '100%',
+  },
+  incompleteContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  incompleteEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  incompleteTitulo: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: theme.colors.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  incompleteSubtitulo: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  progressCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 24,
+  },
+  progressLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 16,
+  },
+  levelProgress: {
+    marginBottom: 16,
+  },
+  levelName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#7C3AED',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    textAlign: 'right',
+  },
+  continueBtn: {
+    width: '100%',
+  },
+});
+
+export default CertificateScreen;

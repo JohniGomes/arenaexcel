@@ -1,0 +1,719 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('Starting database seed...');
+
+  // Clear existing data
+  await prisma.userexerciseattempts.deleteMany();
+  await prisma.userachievements.deleteMany();
+  await prisma.dailymissions.deleteMany();
+  await prisma.userprogress.deleteMany();
+  await prisma.exercises.deleteMany();
+  await prisma.lessons.deleteMany();
+  await prisma.levels.deleteMany();
+  await prisma.achievements.deleteMany();
+
+  console.log('Cleared existing data');
+
+  // Create Achievements
+  const achievements = [
+    {
+      name: 'Primeira Lição',
+      description: 'Complete sua primeira lição',
+      icon: '🎓',
+      criteria: { type: 'lessons_completed', value: 1 },
+    },
+    {
+      name: 'Dedicado',
+      description: 'Mantenha um streak de 7 dias',
+      icon: '🔥',
+      criteria: { type: 'streak', value: 7 },
+    },
+    {
+      name: 'Persistente',
+      description: 'Mantenha um streak de 30 dias',
+      icon: '🏆',
+      criteria: { type: 'streak', value: 30 },
+    },
+    {
+      name: 'Estudioso',
+      description: 'Alcance 100 XP',
+      icon: '⭐',
+      criteria: { type: 'xp', value: 100 },
+    },
+    {
+      name: 'Expert',
+      description: 'Alcance 1000 XP',
+      icon: '💪',
+      criteria: { type: 'xp', value: 1000 },
+    },
+    {
+      name: 'Perfeccionista',
+      description: 'Complete uma lição sem erros',
+      icon: '🎯',
+      criteria: { type: 'perfect_lesson', value: 1 },
+    },
+    {
+      name: 'Maratonista',
+      description: 'Complete 10 lições em um dia',
+      icon: '🏃',
+      criteria: { type: 'daily_lessons', value: 10 },
+    },
+    {
+      name: 'Fundamentos Completo',
+      description: 'Complete todas as lições de Fundamentos',
+      icon: '🏛️',
+      criteria: { type: 'level_complete', value: 1 },
+    },
+    {
+      name: 'Básico Completo',
+      description: 'Complete todas as lições de Básico',
+      icon: '📊',
+      criteria: { type: 'level_complete', value: 2 },
+    },
+    {
+      name: 'Intermediário Completo',
+      description: 'Complete todas as lições de Intermediário',
+      icon: '📈',
+      criteria: { type: 'level_complete', value: 3 },
+    },
+  ];
+
+  for (const achievement of achievements) {
+    await prisma.achievements.create({ data: achievement });
+  }
+
+  console.log('Created achievements');
+
+  // Create Levels and Lessons
+  const levelsData = [
+    {
+      name: 'Fundamentos',
+      description: 'Aprenda os conceitos básicos do Excel',
+      order: 1,
+      lessons: [
+        { title: 'Interface do Excel', description: 'Conheça a interface e componentes principais' },
+        { title: 'Células e Dados', description: 'Como trabalhar com células e tipos de dados' },
+        { title: 'Atalhos Essenciais', description: 'Atalhos que aumentam sua produtividade' },
+        { title: 'Salvando Arquivos', description: 'Formatos e opções de salvamento' },
+        { title: 'Navegação Rápida', description: 'Técnicas para navegar rapidamente' },
+        { title: 'Seleção de Células', description: 'Métodos avançados de seleção' },
+        { title: 'Copiar e Colar', description: 'Opções de colar e cole especial' },
+        { title: 'Desfazer e Refazer', description: 'Gerenciando alterações' },
+        { title: 'Zoom e Visualização', description: 'Ajustando a visualização da planilha' },
+        { title: 'Imprimir Planilhas', description: 'Configurações de impressão' },
+      ],
+    },
+    {
+      name: 'Básico',
+      description: 'Domine fórmulas e formatações básicas',
+      order: 2,
+      lessons: [
+        { title: 'Função SOMA', description: 'Somando valores em células' },
+        { title: 'Função MÉDIA', description: 'Calculando médias' },
+        { title: 'Funções MÁXIMO e MÍNIMO', description: 'Encontrando valores extremos' },
+        { title: 'Função CONT.NÚM', description: 'Contando valores numéricos' },
+        { title: 'Formatação de Células', description: 'Formatando números, textos e datas' },
+        { title: 'Filtros Básicos', description: 'Filtrando dados em tabelas' },
+        { title: 'Classificação de Dados', description: 'Ordenando informações' },
+        { title: 'Gráficos Simples', description: 'Criando gráficos de colunas e linhas' },
+        { title: 'Largura e Altura', description: 'Ajustando tamanho de linhas e colunas' },
+        { title: 'Mesclando Células', description: 'Quando e como mesclar células' },
+      ],
+    },
+    {
+      name: 'Intermediário',
+      description: 'Aprofunde-se em fórmulas avançadas',
+      order: 3,
+      lessons: [
+        { title: 'Função PROCV', description: 'Procurando valores verticalmente' },
+        { title: 'Função PROCX', description: 'Procura avançada de valores' },
+        { title: 'Função SE', description: 'Lógica condicional no Excel' },
+        { title: 'Funções SE.ERRO e É.ERRO', description: 'Tratamento de erros' },
+        { title: 'Tabelas Dinâmicas', description: 'Criando análises dinâmicas' },
+        { title: 'Validação de Dados', description: 'Controlando entrada de dados' },
+        { title: 'Formatação Condicional', description: 'Formatando com base em condições' },
+        { title: 'Referências Absolutas', description: 'Usando $ nas fórmulas' },
+        { title: 'Funções de TEXTO', description: 'Manipulando strings' },
+        { title: 'Funções de DATA', description: 'Trabalhando com datas' },
+      ],
+    },
+    {
+      name: 'Avançado',
+      description: 'Técnicas profissionais de Excel',
+      order: 4,
+      lessons: [
+        { title: 'Power Query Básico', description: 'Importando e transformando dados' },
+        { title: 'ÍNDICE e CORRESP', description: 'Procura bidimensional' },
+        { title: 'Dashboards Profissionais', description: 'Criando painéis interativos' },
+        { title: 'Introdução ao VBA', description: 'Automatizando tarefas com macros' },
+        { title: 'Fórmulas Matriciais', description: 'Cálculos em arrays' },
+        { title: 'Função SOMASES', description: 'Soma com múltiplos critérios' },
+        { title: 'Função CONT.SES', description: 'Contagem condicional avançada' },
+        { title: 'Gráficos Avançados', description: 'Gráficos combinados e personalizados' },
+        { title: 'Segmentar Dados', description: 'Usando segmentação de dados' },
+        { title: 'Linhas de Tendência', description: 'Análise de tendências' },
+      ],
+    },
+    {
+      name: 'Especialista',
+      description: 'Projetos reais e casos de uso',
+      order: 5,
+      lessons: [
+        { title: 'Projeto: Controle Financeiro', description: 'Orçamento pessoal completo' },
+        { title: 'Projeto: Controle de Estoque', description: 'Sistema de inventário' },
+        { title: 'Projeto: Gestão de RH', description: 'Controle de funcionários' },
+        { title: 'Projeto: Análise de Vendas', description: 'Dashboard de vendas' },
+        { title: 'Projeto: Cronograma', description: 'Gerenciamento de projetos' },
+        { title: 'Power Pivot', description: 'Modelo de dados avançado' },
+        { title: 'DAX Básico', description: 'Linguagem de fórmulas do Power Pivot' },
+        { title: 'Automação Avançada', description: 'VBA para tarefas complexas' },
+        { title: 'Integração com APIs', description: 'Conectando Excel com web services' },
+        { title: 'Otimização de Performance', description: 'Planilhas mais rápidas' },
+      ],
+    },
+  ];
+
+  let exerciseId = 1;
+  for (const levelData of levelsData) {
+    const level = await prisma.levels.create({
+      data: {
+        name: levelData.name,
+        description: levelData.description,
+        order: levelData.order,
+      },
+    });
+
+    console.log(`Created level: ${level.name}`);
+
+    for (let i = 0; i < levelData.lessons.length; i++) {
+      const lessonData = levelData.lessons[i];
+      const lesson = await prisma.lessons.create({
+        data: {
+          levelid: level.id,
+          title: lessonData.title,
+          description: lessonData.description,
+          order: i + 1,
+          exercisescount: 1, // 1 exercise per lesson for simplicity
+        },
+      });
+
+      // Create 1 exercise per lesson (total 50 exercises)
+      const exercise = await createExercise(lesson.id, exerciseId, level.order, i + 1);
+      await prisma.exercises.create({ data: exercise });
+      exerciseId++;
+
+      console.log(`  Created lesson: ${lesson.title}`);
+    }
+  }
+
+  console.log('\n✅ Database seeded successfully!');
+}
+
+function createExercise(lessonId: number, exerciseId: number, levelOrder: number, lessonOrder: number) {
+  const exercises: any = {
+    // Fundamentos (Level 1)
+    1: {
+      1: {
+        type: 'multiple_choice',
+        question: 'Qual é o nome da barra onde você digita fórmulas no Excel?',
+        options: ['Barra de Fórmulas', 'Barra de Ferramentas', 'Barra de Status', 'Barra de Título'],
+        correctAnswer: 'Barra de Fórmulas',
+        explanation: 'A Barra de Fórmulas é onde digitamos e editamos o conteúdo das células e fórmulas.',
+        hint: 'Fica logo acima da planilha',
+        imageUrl: '/exercise-images/excel-interface.png',
+      },
+      2: {
+        type: 'multiple_choice',
+        question: 'Qual tipo de dado o Excel reconhece quando você digita 15/03/2024?',
+        options: ['Data', 'Texto', 'Número', 'Fórmula'],
+        correctAnswer: 'Data',
+        explanation: 'O Excel reconhece automaticamente formatos de data e converte para o tipo Data.',
+        hint: 'Formato de data brasileiro',
+        imageUrl: '/exercise-images/exercicio2.png',
+      },
+      3: {
+        type: 'multiple_choice',
+        question: 'Qual atalho seleciona toda a planilha?',
+        options: ['Ctrl+A', 'Ctrl+T', 'Ctrl+S', 'Ctrl+E'],
+        correctAnswer: 'Ctrl+A',
+        explanation: 'Ctrl+A (ou Ctrl+T no Excel em português) seleciona todas as células da planilha.',
+        hint: 'A de All (tudo)',
+        imageUrl: '/exercise-images/exercicio3.png',
+      },
+      4: {
+        type: 'multiple_choice',
+        question: 'Qual extensão de arquivo é usada para planilhas do Excel com suporte a macros?',
+        options: ['XLSM', 'XLSX', 'XLS', 'CSV'],
+        correctAnswer: 'XLSM',
+        explanation: 'XLSM é o formato que permite salvar macros (código VBA) no arquivo.',
+        hint: 'M de Macro',
+        imageUrl: '/exercise-images/exercicio4.png',
+      },
+      5: {
+        type: 'multiple_choice',
+        question: 'Qual tecla move o cursor para a última célula preenchida da coluna?',
+        options: ['Ctrl+Seta Baixo', 'End', 'Page Down', 'Ctrl+End'],
+        correctAnswer: 'Ctrl+Seta Baixo',
+        explanation: 'Ctrl+Seta navega rapidamente até a última célula preenchida na direção da seta.',
+        hint: 'Combina Ctrl com direção',
+        imageUrl: '/exercise-images/exercicio5.png',
+      },
+      6: {
+        type: 'multiple_choice',
+        question: 'Como selecionar células não adjacentes no Excel?',
+        options: ['Ctrl+Clique', 'Shift+Clique', 'Alt+Clique', 'Tab+Clique'],
+        correctAnswer: 'Ctrl+Clique',
+        explanation: 'Segurar Ctrl e clicar permite selecionar múltiplas células não contíguas.',
+        hint: 'Use a tecla Ctrl',
+        imageUrl: '/exercise-images/exercicio6.png',
+      },
+      7: {
+        type: 'multiple_choice',
+        question: 'Qual atalho cola apenas os valores (sem formatação)?',
+        options: ['Ctrl+Alt+V', 'Ctrl+V', 'Ctrl+Shift+V', 'Alt+V'],
+        correctAnswer: 'Ctrl+Alt+V',
+        explanation: 'Ctrl+Alt+V abre o menu Colar Especial, onde você pode escolher colar apenas valores.',
+        hint: 'Colar Especial',
+        imageUrl: '/exercise-images/exercicio7.png',
+      },
+      8: {
+        type: 'multiple_choice',
+        question: 'Quantos níveis de desfazer o Excel permite por padrão?',
+        options: ['100', '50', '10', 'Ilimitado'],
+        correctAnswer: '100',
+        explanation: 'O Excel permite desfazer até 100 ações anteriores.',
+        hint: 'Mais de 50',
+        imageUrl: '/exercise-images/exercicio8.png',
+      },
+      9: {
+        type: 'multiple_choice',
+        question: 'Qual zoom é recomendado para trabalho normal no Excel?',
+        options: ['100%', '75%', '125%', '150%'],
+        correctAnswer: '100%',
+        explanation: '100% é o zoom padrão e mais confortável para a maioria dos usuários.',
+        hint: 'Tamanho padrão',
+        imageUrl: '/exercise-images/exercicio9.png',
+      },
+      10: {
+        type: 'multiple_choice',
+        question: 'O que é a área de impressão no Excel?',
+        options: ['Intervalo de células a imprimir', 'Tamanho do papel', 'Margens da página', 'Orientação'],
+        correctAnswer: 'Intervalo de células a imprimir',
+        explanation: 'A área de impressão define quais células serão impressas.',
+        hint: 'Define o que imprimir',
+        imageUrl: '/exercise-images/exercicio10.png',
+      },
+    },
+    // Básico (Level 2)
+    2: {
+      1: {
+        type: 'formula',
+        question: 'Escreva a fórmula para somar os valores de A1 até A10',
+        options: null,
+        correctAnswer: '=SOMA(A1:A10)',
+        explanation: 'A função SOMA com intervalo A1:A10 soma todos os valores dessas células.',
+        hint: 'Use =SOMA(intervalo)',
+        imageUrl: '/exercise-images/exercicio11.png',
+      },
+      2: {
+        type: 'formula',
+        question: 'Escreva a fórmula para calcular a média de B1 até B5',
+        options: null,
+        correctAnswer: '=MÉDIA(B1:B5)',
+        explanation: 'A função MÉDIA calcula a média aritmética dos valores.',
+        hint: 'Use =MÉDIA(intervalo)',
+        imageUrl: '/exercise-images/exercicio12.png',
+      },
+      3: {
+        type: 'formula',
+        question: 'Escreva a fórmula para encontrar o maior valor entre C1 e C8',
+        options: null,
+        correctAnswer: '=MÁXIMO(C1:C8)',
+        explanation: 'MÁXIMO retorna o maior valor em um intervalo.',
+        hint: 'Use =MÁXIMO(intervalo)',
+        imageUrl: '/exercise-images/exercicio13.png',
+      },
+      4: {
+        type: 'formula',
+        question: 'Escreva a fórmula para contar quantos números existem em D1:D10',
+        options: null,
+        correctAnswer: '=CONT.NÚM(D1:D10)',
+        explanation: 'CONT.NÚM conta apenas células que contêm números.',
+        hint: 'Use =CONT.NÚM(intervalo)',
+        imageUrl: '/exercise-images/exercicio14.png',
+      },
+      5: {
+        type: 'multiple_choice',
+        question: 'Qual formato numérico mostra valores monetários?',
+        options: ['Moeda', 'Número', 'Porcentagem', 'Data'],
+        correctAnswer: 'Moeda',
+        explanation: 'O formato Moeda adiciona o símbolo da moeda e duas casas decimais.',
+        hint: 'Para dinheiro',
+        imageUrl: '/exercise-images/exercicio15.png',
+      },
+      6: {
+        type: 'multiple_choice',
+        question: 'O que o AutoFiltro permite fazer?',
+        options: ['Filtrar dados por critérios', 'Ordenar automaticamente', 'Somar valores', 'Criar gráficos'],
+        correctAnswer: 'Filtrar dados por critérios',
+        explanation: 'AutoFiltro adiciona botões de filtro aos cabeçalhos para filtrar dados.',
+        hint: 'Mostra apenas dados específicos',
+        imageUrl: '/exercise-images/exercicio16.png',
+      },
+      7: {
+        type: 'multiple_choice',
+        question: 'Em qual ordem a classificação crescente organiza números?',
+        options: ['Menor para maior', 'Maior para menor', 'Aleatória', 'Alfabética'],
+        correctAnswer: 'Menor para maior',
+        explanation: 'Classificação crescente ordena do menor para o maior valor.',
+        hint: 'Do pequeno ao grande',
+        imageUrl: '/exercise-images/exercicio17.png',
+      },
+      8: {
+        type: 'multiple_choice',
+        question: 'Qual tipo de gráfico é melhor para mostrar tendências ao longo do tempo?',
+        options: ['Linhas', 'Pizza', 'Barras', 'Dispersão'],
+        correctAnswer: 'Linhas',
+        explanation: 'Gráficos de linhas são ideais para visualizar tendências temporais.',
+        hint: 'Conecta pontos no tempo',
+        imageUrl: '/exercise-images/exercicio18.png',
+      },
+      9: {
+        type: 'multiple_choice',
+        question: 'Como ajustar automaticamente a largura de uma coluna?',
+        options: ['Duplo clique na borda', 'Arrastar a borda', 'Clicar com botão direito', 'Ctrl+L'],
+        correctAnswer: 'Duplo clique na borda',
+        explanation: 'Duplo clique na borda entre colunas ajusta automaticamente ao conteúdo.',
+        hint: 'Duplo clique',
+        imageUrl: '/exercise-images/exercicio19.png',
+      },
+      10: {
+        type: 'multiple_choice',
+        question: 'Quando é apropriado mesclar células?',
+        options: ['Títulos centralizados', 'Tabelas de dados', 'Cálculos', 'Filtros'],
+        correctAnswer: 'Títulos centralizados',
+        explanation: 'Mesclar células é ideal para títulos, mas pode causar problemas em dados.',
+        hint: 'Para estética, não dados',
+        imageUrl: '/exercise-images/exercicio20.png',
+      },
+    },
+    // Intermediário (Level 3)
+    3: {
+      1: {
+        type: 'formula',
+        question: 'Escreva a fórmula PROCV para buscar um valor na coluna B da tabela A1:B10',
+        options: null,
+        correctAnswer: '=PROCV("valor";A1:B10;2;FALSO)',
+        explanation: 'PROCV busca na primeira coluna e retorna valor da coluna especificada.',
+        hint: '=PROCV(buscar;tabela;coluna;falso)',
+        imageUrl: '/exercise-images/exercicio21.png',
+      },
+      2: {
+        type: 'formula',
+        question: 'Escreva a fórmula PROCX para buscar o nome Johni coluna A e retornar o valor da coluna B',
+        options: null,
+        correctAnswer: '=PROCX("Johni";A:A;B:B)',
+        explanation: 'PROCX é mais flexível que PROCV e pode buscar em qualquer direção.',
+        hint: '=PROCX(buscar;onde_buscar;onde_retornar)',
+        imageUrl: '/exercise-images/exercicio22.png',
+      },
+      3: {
+        type: 'formula',
+        question: 'Escreva uma fórmula SE que retorne "Aprovado" se A1>=7, senão "Reprovado"',
+        options: null,
+        correctAnswer: '=SE(A1>=7;"Aprovado";"Reprovado")',
+        explanation: 'A função SE testa uma condição e retorna valores diferentes.',
+        hint: '=SE(teste;se_verdadeiro;se_falso)',
+        imageUrl: '/exercise-images/exercicio23.png',
+      },
+      4: {
+        type: 'formula',
+        question: 'Escreva a fórmula para tratar erro na divisão A1/B1 e retornar 0',
+        options: null,
+        correctAnswer: '=SEERRO(A1/B1;0)',
+        explanation: 'SEERRO captura erros e retorna um valor alternativo.',
+        hint: '=SEERRO(fórmula;valor_se_erro)',
+        imageUrl: '/exercise-images/exercicio24.png',
+      },
+      5: {
+        type: 'multiple_choice',
+        question: 'O que são tabelas dinâmicas?',
+        options: ['Ferramenta de análise de dados', 'Tipo de gráfico', 'Função do Excel', 'Macro'],
+        correctAnswer: 'Ferramenta de análise de dados',
+        explanation: 'Tabelas dinâmicas resumem, analisam e apresentam dados de forma interativa.',
+        hint: 'Analisa grandes volumes',
+        imageUrl: '/exercise-images/exercicio25.png',
+      },
+      6: {
+        type: 'multiple_choice',
+        question: 'O que a validação de dados faz?',
+        options: ['Restringe entrada de dados', 'Valida fórmulas', 'Verifica erros', 'Formata células'],
+        correctAnswer: 'Restringe entrada de dados',
+        explanation: 'Validação de dados controla que tipo de dado pode ser inserido em uma célula.',
+        hint: 'Controla o que pode ser digitado',
+        imageUrl: '/exercise-images/exercicio26.png',
+      },
+      7: {
+        type: 'multiple_choice',
+        question: 'Formatação condicional pode fazer o quê?',
+        options: ['Mudar cor baseado em valor', 'Criar fórmulas', 'Validar dados', 'Filtrar'],
+        correctAnswer: 'Mudar cor baseado em valor',
+        explanation: 'Formatação condicional altera aparência de células com base em regras.',
+        hint: 'Visual baseado em condições',
+        imageUrl: '/exercise-images/exercicio27.png',
+      },
+      8: {
+        type: 'multiple_choice',
+        question: 'O que o $ faz em $A$1?',
+        options: ['Torna referência absoluta', 'Indica moeda', 'Marca erro', 'Formata número'],
+        correctAnswer: 'Torna referência absoluta',
+        explanation: 'O $ fixa a referência de célula ao copiar fórmulas.',
+        hint: 'Fixa a referência',
+        imageUrl: '/exercise-images/exercicio28.png',
+      },
+      9: {
+        type: 'formula',
+        question: 'Escreva a fórmula para unir texto de A1 e B1 com espaço',
+        options: null,
+        correctAnswer: '=CONCATENAR(A1;" ";B1)',
+        explanation: 'CONCATENAR ou & junta textos de várias células.',
+        hint: 'Use CONCATENAR ou &',
+        imageUrl: '/exercise-images/exercicio29.png',
+      },
+      10: {
+        type: 'formula',
+        question: 'Escreva a fórmula para obter o ano de uma data em A1',
+        options: null,
+        correctAnswer: '=ANO(A1)',
+        explanation: 'A função ANO extrai o ano de uma data.',
+        hint: 'Use =ANO(data)',
+        imageUrl: '/exercise-images/exercicio30.png',
+      },
+    },
+    // Avançado (Level 4)
+    4: {
+      1: {
+        type: 'multiple_choice',
+        question: 'O que o Power Query faz?',
+        options: ['Importa e transforma dados', 'Cria gráficos', 'Valida dados', 'Executa macros'],
+        correctAnswer: 'Importa e transforma dados',
+        explanation: 'Power Query é uma ferramenta ETL para extrair, transformar e carregar dados.',
+        hint: 'ETL - Extração, Transformação, Carregamento',
+        imageUrl: '/exercise-images/exercicio31.png',
+      },
+      2: {
+        type: 'formula',
+        question: 'Escreva a combinação ÍNDICE+CORRESP para retornar o salário do João',
+        options: null,
+        correctAnswer: '=ÍNDICE(B:B;CORRESP("João";A:A;0))',
+        explanation: 'ÍNDICE+CORRESP é mais flexível que PROCV para buscas complexas.',
+        hint: '=ÍNDICE(matriz;CORRESP(...))',
+        imageUrl: '/exercise-images/exercicio32.png',
+      },
+      3: {
+        type: 'multiple_choice',
+        question: 'O que é essencial em um dashboard profissional?',
+        options: ['Visualização clara de KPIs', 'Muitas cores', 'Dados brutos', 'Fórmulas visíveis'],
+        correctAnswer: 'Visualização clara de KPIs',
+        explanation: 'Dashboards devem apresentar indicadores chave de forma clara e objetiva.',
+        hint: 'Foco em métricas importantes',
+        imageUrl: '/exercise-images/exercicio33.png',
+      },
+      4: {
+        type: 'multiple_choice',
+        question: 'O que é VBA?',
+        options: ['Linguagem de programação do Excel', 'Tipo de gráfico', 'Função', 'Formato de arquivo'],
+        correctAnswer: 'Linguagem de programação do Excel',
+        explanation: 'VBA (Visual Basic for Applications) permite criar macros e automatizar tarefas.',
+        hint: 'Visual Basic',
+        imageUrl: '/exercise-images/exercicio34.png',
+      },
+      5: {
+        type: 'multiple_choice',
+        question: 'O que são fórmulas matriciais?',
+        options: ['Fórmulas que processam arrays', 'Fórmulas complexas', 'Fórmulas com erros', 'Fórmulas longas'],
+        correctAnswer: 'Fórmulas que processam arrays',
+        explanation: 'Fórmulas matriciais executam cálculos em múltiplos valores simultaneamente.',
+        hint: 'Operam em matrizes de dados',
+        imageUrl: '/exercise-images/exercicio35.png',
+      },
+      6: {
+        type: 'formula',
+        question: 'Escreva a fórmula SOMASES para somar B:B onde A:A="Vendas" e C:C>100',
+        options: null,
+        correctAnswer: '=SOMASES(B:B;A:A;"Vendas";C:C;">100")',
+        explanation: 'SOMASES permite somar com múltiplos critérios.',
+        hint: '=SOMASES(somar;crit1_intervalo;crit1;crit2_intervalo;crit2)',
+        imageUrl: '/exercise-images/exercicio36.png',
+      },
+      7: {
+        type: 'formula',
+        question: 'Escreva a fórmula CONT.SES para contar A:A onde B:B>50',
+        options: null,
+        correctAnswer: '=CONT.SES(B:B;">50")',
+        explanation: 'CONT.SES conta células que atendem a critérios específicos.',
+        hint: '=CONT.SES(intervalo;critério)',
+        imageUrl: '/exercise-images/exercicio37.png',
+      },
+      8: {
+        type: 'multiple_choice',
+        question: 'Qual gráfico mostra correlação entre duas variáveis?',
+        options: ['Dispersão', 'Pizza', 'Colunas', 'Linhas'],
+        correctAnswer: 'Dispersão',
+        explanation: 'Gráficos de dispersão (scatter) mostram relações entre duas variáveis.',
+        hint: 'Mostra pontos no plano XY',
+        imageUrl: '/exercise-images/exercicio38.png',
+      },
+      9: {
+        type: 'multiple_choice',
+        question: 'Para que servem segmentações de dados?',
+        options: ['Filtrar tabelas dinâmicas visualmente', 'Dividir dados', 'Criar categorias', 'Formatar'],
+        correctAnswer: 'Filtrar tabelas dinâmicas visualmente',
+        explanation: 'Segmentações são filtros visuais interativos para tabelas dinâmicas.',
+        hint: 'Botões de filtro visuais',
+        imageUrl: '/exercise-images/exercicio39.png',
+      },
+      10: {
+        type: 'multiple_choice',
+        question: 'O que linhas de tendência mostram?',
+        options: ['Padrão de dados ao longo do tempo', 'Valores exatos', 'Médias', 'Totais'],
+        correctAnswer: 'Padrão de dados ao longo do tempo',
+        explanation: 'Linhas de tendência revelam padrões e projeções em dados históricos.',
+        hint: 'Mostra direção dos dados',
+        imageUrl: '/exercise-images/exercicio40.png',
+      },
+    },
+    // Especialista (Level 5)
+    5: {
+      1: {
+        type: 'multiple_choice',
+        question: 'Qual fórmula retorna apenas as vendas acima de 1000 da coluna B, junto com os nomes da coluna A?',
+        options: ['=PROCV(>1000;A:B;2;0)', '=SE(B:B>1000;A:B;"")', '=FILTRAR(A:B;B:B>1000)', '=SOMASES(A:B;B:B;">1000")'],
+        correctAnswer: '=FILTRAR(A:B;B:B>1000)',
+        explanation: 'FILTRAR é uma função de matriz dinâmica que retorna apenas os registros que atendem à condição especificada, mantendo a estrutura de múltiplas colunas.',
+        hint: 'Utilize funções de matriz dinâmica disponíveis nas versões mais recentes do Excel',
+        imageUrl: '/exercise-images/exercicio41.png',
+      },
+      2: {
+        type: 'multiple_choice',
+        question: 'Qual fórmula retorna corretamente o valor na interseção do produto "Mouse" e do mês "Março"?',
+        options: ['=PROCV("Mouse";A:D;CORRESP("Março";A1:D1;0);0)', '=ÍNDICE(B2:D10;CORRESP("Mouse";A2:A10;0);CORRESP("Março";B1:D1;0))', '=XLOOKUP("Mouse";A2:A10;B2:D10)', '=CORRESP("Mouse";A2:D10;0)'],
+        correctAnswer: '=ÍNDICE(B2:D10;CORRESP("Mouse";A2:A10;0);CORRESP("Março";B1:D1;0))',
+        explanation: 'A combinação ÍNDICE+CORRESP permite busca bidimensional, encontrando a linha com CORRESP na primeira dimensão e a coluna com CORRESP na segunda dimensão.',
+        hint: 'Combine duas funções CORRESP dentro de ÍNDICE para busca em linhas e colunas',
+        imageUrl: '/exercise-images/exercicio42.png',
+      },
+      3: {
+        type: 'multiple_choice',
+        question: 'Qual prática melhora significativamente a performance em planilhas com mais de 500 mil linhas?',
+        options: ['Usar PROCV em colunas inteiras', 'Utilizar fórmulas voláteis como AGORA()', 'Transformar intervalos em Tabelas e usar Power Query', 'Inserir fórmulas matriciais em todas as colunas'],
+        correctAnswer: 'Transformar intervalos em Tabelas e usar Power Query',
+        explanation: 'Power Query processa dados de forma mais eficiente que fórmulas tradicionais, especialmente em grandes volumes. Tabelas estruturadas melhoram a organização e referências.',
+        hint: 'Pense em ferramentas de ETL (Extract, Transform, Load) ao invés de fórmulas em células',
+        imageUrl: '/exercise-images/exercicio43.png',
+      },
+      4: {
+        type: 'multiple_choice',
+        question: 'Qual dessas ações NÃO é típica do Power Query?',
+        options: ['Mesclar tabelas', 'Normalizar dados', 'Criar dashboards interativos', 'Remover duplicatas'],
+        correctAnswer: 'Criar dashboards interativos',
+        explanation: 'Power Query é focado em transformação de dados (ETL). Dashboards interativos são criados com tabelas dinâmicas, gráficos e segmentações de dados.',
+        hint: 'Power Query trabalha com preparação de dados, não com visualização',
+        imageUrl: '/exercise-images/exercicio44.png',
+      },
+      5: {
+        type: 'multiple_choice',
+        question: 'Qual sintaxe cria corretamente uma função personalizada que soma dois números?',
+        options: ['=LAMBDA(x+y)', '=LAMBDA(x;y;x+y)', '=FUNÇÃO(x;y;x+y)', '=LAMBDA(x;y)'],
+        correctAnswer: '=LAMBDA(x;y;x+y)',
+        explanation: 'LAMBDA cria funções personalizadas. A sintaxe correta é =LAMBDA(parâmetro1;parâmetro2;...;expressão), onde a expressão usa os parâmetros definidos.',
+        hint: 'LAMBDA define parâmetros separados por ponto-e-vírgula, seguidos pela expressão que os utiliza',
+        imageUrl: '/exercise-images/exercicio45.png',
+      },
+      6: {
+        type: 'multiple_choice',
+        question: 'O que é Power Pivot?',
+        options: ['Motor de análise de dados', 'Função do Excel', 'Tipo de gráfico', 'Macro'],
+        correctAnswer: 'Motor de análise de dados',
+        explanation: 'Power Pivot permite criar modelos de dados relacionais complexos.',
+        hint: 'Trabalha com grandes volumes',
+        imageUrl: '/exercise-images/exercicio46.png',
+      },
+      7: {
+        type: 'multiple_choice',
+        question: 'DAX é usado para quê?',
+        options: ['Fórmulas no Power Pivot', 'Macros VBA', 'Gráficos', 'Validação'],
+        correctAnswer: 'Fórmulas no Power Pivot',
+        explanation: 'DAX (Data Analysis Expressions) é a linguagem de fórmulas do Power Pivot.',
+        hint: 'Data Analysis Expressions',
+        imageUrl: '/exercise-images/exercicio47.png',
+      },
+      8: {
+        type: 'multiple_choice',
+        question: 'O que VBA pode automatizar?',
+        options: ['Tarefas repetitivas', 'Apenas cálculos', 'Apenas gráficos', 'Apenas formatação'],
+        correctAnswer: 'Tarefas repetitivas',
+        explanation: 'VBA pode automatizar praticamente qualquer ação no Excel.',
+        hint: 'Automatiza tudo',
+        imageUrl: '/exercise-images/exercicio48.png',
+      },
+      9: {
+        type: 'multiple_choice',
+        question: 'Como integrar Excel com APIs externas?',
+        options: ['Power Query ou VBA', 'Fórmulas simples', 'Gráficos', 'Tabelas dinâmicas'],
+        correctAnswer: 'Power Query ou VBA',
+        explanation: 'Power Query e VBA podem fazer requisições HTTP para APIs.',
+        hint: 'Ferramentas avançadas',
+        imageUrl: '/exercise-images/exercicio49.png',
+      },
+      10: {
+        type: 'multiple_choice',
+        question: 'Como otimizar planilhas lentas?',
+        options: ['Reduzir fórmulas voláteis', 'Adicionar mais dados', 'Mais formatação', 'Mais gráficos'],
+        correctAnswer: 'Reduzir fórmulas voláteis',
+        explanation: 'Fórmulas voláteis (AGORA, INDIRETO) recalculam constantemente e deixam lento.',
+        hint: 'Evite recalcular sempre',
+        imageUrl: '/exercise-images/exercicio50.png',
+      },
+    },
+  };
+
+  const exercise = exercises[levelOrder]?.[lessonOrder];
+  if (!exercise) {
+    // Fallback exercise
+    return {
+      lessonid: lessonId,
+      type: 'multiple_choice',
+      question: 'Questão de exemplo',
+      options: ['Opção A', 'Opção B', 'Opção C', 'Opção D'],
+      correctanswer: 'Opção A',
+      explanation: 'Esta é uma questão de exemplo.',
+      hint: 'Dica de exemplo',
+      order: 1,
+    };
+  }
+
+  return {
+    lessonid: lessonId,
+    type: exercise.type,
+    question: exercise.question,
+    options: exercise.options,
+    correctanswer: exercise.correctAnswer,
+    explanation: exercise.explanation,
+    imageUrl: exercise.imageUrl || null,
+    hint: exercise.hint || null,
+    order: 1,
+  };
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

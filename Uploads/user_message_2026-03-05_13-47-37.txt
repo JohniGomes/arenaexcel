@@ -1,0 +1,694 @@
+Implemente a funcionalidade "Análise de Planilha com IA" exclusiva para usuários premium. Envolve frontend (react_native_space) e backend (nodejs_space).
+
+VISÃO GERAL
+Um floating button dourado aparece apenas para usuários premium. Ao tocar, abre uma tela onde o usuário envia sua planilha (Excel, CSV, foto ou texto colado) e recebe insights automáticos + pode fazer perguntas em chat livre sobre os dados. Limite de 3 análises por dia, com opção de comprar análises extras.
+
+FRONTEND — react_native_space
+1. Instalar dependências:
+bashnpx expo install expo-document-picker expo-image-picker expo-file-system
+npm install xlsx
+2. Criar src/screens/main/PlanilhaIAScreen.tsx:
+typescriptimport React, { useState, useRef } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  TextInput, Alert, ActivityIndicator, SafeAreaView,
+  KeyboardAvoidingView, Platform, Image,
+} from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import * as XLSX from 'xlsx';
+import ApiService from '../../services/api.service';
+
+type Mensagem = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+const PlanilhaIAScreen = ({ onClose }: { onClose: () => void }) => {
+  const [etapa, setEtapa] = useState<'upload' | 'chat'>('upload');
+  const [carregando, setCarregando] = useState(false');
+  const [dadosPlanilha, setDadosPlanilha] = useState<string>('');
+  const [nomeArquivo, setNomeArquivo] = useState<string>('');
+  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
+  const [pergunta, setPergunta] = useState('');
+  const [analisesRestantes, setAnalisesRestantes] = useState(3);
+  const scrollRef = useRef<ScrollView>(null);
+
+  // ── Upload Excel/CSV ──────────────────────────────────────
+  const uploadArquivo = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+               'text/csv', 'application/vnd.ms-excel'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+      const file = result.assets[0];
+      setNomeArquivo(file.name);
+      setCarregando(true);
+
+      const base64 = await FileSystem.readAsStringAsync(file.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // Lê o Excel/CSV e converte para texto
+      const workbook = XLSX.read(base64, { type: 'base64' });
+      let textoCompleto = '';
+      workbook.SheetNames.forEach((sheetName) => {
+        const sheet = workbook.Sheets[sheetName];
+        textoCompleto += `\n=== Aba: ${sheetName} ===\n`;
+        textoCompleto += XLSX.utils.sheet_to_csv(sheet);
+      });
+
+      setDadosPlanilha(textoCompleto);
+      await iniciarAnalise(textoCompleto, file.name);
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível ler o arquivo. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // ── Foto da planilha ──────────────────────────────────────
+  const tirarFoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permissão necessária', 'Precisamos acessar a câmera.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      base64: true,
+      quality: 0.8,
+    });
+
+    if (result.canceled) return;
+    setNomeArquivo('Foto da planilha');
+    setCarregando(true);
+
+    try {
+      const base64 = result.assets[0].base64 ?? '';
+      // Envia imagem para o backend extrair o texto via IA
+      const texto = await ApiService.extrairTextoDaImagem(base64);
+      setDadosPlanilha(texto);
+      await iniciarAnalise(texto, 'Foto da planilha');
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível processar a imagem.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // ── Colar dados manualmente ───────────────────────────────
+  const [mostrarTextInput, setMostrarTextInput] = useState(false);
+  const [textoColar, setTextoColar] = useState('');
+
+  const confirmarTextoColar = async () => {
+    if (!textoColar.trim()) return;
+    setNomeArquivo('Dados colados');
+    setCarregando(true);
+    setMostrarTextInput(false);
+    setDadosPlanilha(textoColar);
+    await iniciarAnalise(textoColar, 'Dados colados');
+    setCarregando(false);
+  };
+
+  // ── Iniciar análise automática ────────────────────────────
+  const iniciarAnalise = async (dados: string, nome: string) => {
+    try {
+      const resposta = await ApiService.analisarPlanilha(dados, nome);
+      setAnalisesRestantes(resposta.analisesRestantes);
+      setMensagens([
+        {
+          role: 'assistant',
+          content: resposta.insights,
+        },
+      ]);
+      setEtapa('chat');
+    } catch (error: any) {
+      if (error?.response?.status === 429) {
+        Alert.alert(
+          '⚠️ Limite diário atingido',
+          'Você usou suas 3 análises de hoje. Deseja comprar mais análises?',
+          [
+            { text: 'Agora não', style: 'cancel' },
+            { text: 'Comprar', onPress: () => {} }, // TODO: integrar compra
+          ]
+        );
+      } else {
+        Alert.alert('Erro', 'Não foi possível analisar. Tente novamente.');
+      }
+    }
+  };
+
+  // ── Chat livre sobre os dados ─────────────────────────────
+  const enviarPergunta = async () => {
+    if (!pergunta.trim()) return;
+    const novaMensagem: Mensagem = { role: 'user', content: pergunta };
+    const novasMensagens = [...mensagens, novaMensagem];
+    setMensagens(novasMensagens);
+    setPergunta('');
+    setCarregando(true);
+
+    try {
+      const resposta = await ApiService.chatSobrePlanilha(dadosPlanilha, novasMensagens);
+      setMensagens([...novasMensagens, { role: 'assistant', content: resposta.resposta }]);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível responder. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // ── TELA DE UPLOAD ────────────────────────────────────────
+  if (etapa === 'upload') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.fechar}>
+            <Text style={styles.fecharTexto}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitulo}>🤖 Análise com IA</Text>
+          <View style={styles.badgePremium}>
+            <Text style={styles.badgePremiumTexto}>⭐ PREMIUM</Text>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.uploadContent}>
+          <Text style={styles.uploadEmoji}>📊</Text>
+          <Text style={styles.uploadTitulo}>Envie sua planilha</Text>
+          <Text style={styles.uploadSubtitulo}>
+            A IA vai analisar seus dados e te dar insights poderosos
+          </Text>
+
+          <View style={styles.limiteBadge}>
+            <Text style={styles.limiteTexto}>
+              🔄 {analisesRestantes} análises restantes hoje
+            </Text>
+          </View>
+
+          {carregando ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#F59E0B" />
+              <Text style={styles.loadingTexto}>Analisando sua planilha...</Text>
+              <Text style={styles.loadingSubTexto}>Isso pode levar alguns segundos</Text>
+            </View>
+          ) : (
+            <View style={styles.opcoes}>
+              <TouchableOpacity style={styles.opcaoCard} onPress={uploadArquivo} activeOpacity={0.8}>
+                <Text style={styles.opcaoEmoji}>📁</Text>
+                <Text style={styles.opcaoTitulo}>Excel ou CSV</Text>
+                <Text style={styles.opcaoSub}>Selecione um arquivo do dispositivo</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.opcaoCard} onPress={tirarFoto} activeOpacity={0.8}>
+                <Text style={styles.opcaoEmoji}>📸</Text>
+                <Text style={styles.opcaoTitulo}>Foto da planilha</Text>
+                <Text style={styles.opcaoSub}>Tire uma foto da tela ou papel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.opcaoCard}
+                onPress={() => setMostrarTextInput(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.opcaoEmoji}>📋</Text>
+                <Text style={styles.opcaoTitulo}>Colar dados</Text>
+                <Text style={styles.opcaoSub}>Cole linhas e colunas de texto</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {mostrarTextInput && (
+            <View style={styles.colarContainer}>
+              <Text style={styles.colarTitulo}>Cole seus dados abaixo:</Text>
+              <TextInput
+                style={styles.colarInput}
+                multiline
+                numberOfLines={8}
+                placeholder={'Nome;Valor;Data\nJoão;1500;Jan\nMaria;2300;Jan'}
+                value={textoColar}
+                onChangeText={setTextoColar}
+                textAlignVertical="top"
+              />
+              <TouchableOpacity style={styles.colarBtn} onPress={confirmarTextoColar}>
+                <Text style={styles.colarBtnTexto}>Analisar dados</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ── TELA DE CHAT ──────────────────────────────────────────
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setEtapa('upload')} style={styles.fechar}>
+          <Text style={styles.fecharTexto}>‹</Text>
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerTitulo}>🤖 {nomeArquivo}</Text>
+          <Text style={styles.headerSub}>{analisesRestantes} análises restantes hoje</Text>
+        </View>
+        <TouchableOpacity onPress={onClose}>
+          <Text style={styles.fecharTexto}>✕</Text>
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.chatContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={90}
+      >
+        <ScrollView
+          ref={scrollRef}
+          style={styles.mensagens}
+          contentContainerStyle={{ padding: 16 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {mensagens.map((msg, index) => (
+            <View
+              key={index}
+              style={[
+                styles.mensagem,
+                msg.role === 'user' ? styles.mensagemUsuario : styles.mensagemIA,
+              ]}
+            >
+              {msg.role === 'assistant' && (
+                <Text style={styles.mensagemIALabel}>🤖 Excelino IA</Text>
+              )}
+              <Text style={[
+                styles.mensagemTexto,
+                msg.role === 'user' ? styles.mensagemTextoUsuario : styles.mensagemTextoIA,
+              ]}>
+                {msg.content}
+              </Text>
+            </View>
+          ))}
+          {carregando && (
+            <View style={styles.mensagemIA}>
+              <Text style={styles.mensagemIALabel}>🤖 Excelino IA</Text>
+              <ActivityIndicator size="small" color="#F59E0B" style={{ marginTop: 8 }} />
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Sugestões de perguntas */}
+        {mensagens.length === 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.sugestoes}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+          >
+            {[
+              'Quais são os maiores problemas?',
+              'Que gráfico usar aqui?',
+              'Tem algum dado inconsistente?',
+              'Como posso melhorar esses números?',
+              'Qual a tendência dos dados?',
+            ].map((sugestao, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.sugestaoChip}
+                onPress={() => { setPergunta(sugestao); }}
+              >
+                <Text style={styles.sugestaoTexto}>{sugestao}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* Input de pergunta */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Pergunte algo sobre seus dados..."
+            value={pergunta}
+            onChangeText={setPergunta}
+            multiline
+            maxLength={500}
+            placeholderTextColor="#999"
+          />
+          <TouchableOpacity
+            style={[styles.enviarBtn, !pergunta.trim() && styles.enviarBtnDisabled]}
+            onPress={enviarPergunta}
+            disabled={!pergunta.trim() || carregando}
+          >
+            <Text style={styles.enviarBtnTexto}>▶</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#1A1A2E', paddingHorizontal: 16, paddingVertical: 14,
+  },
+  fechar: { padding: 4 },
+  fecharTexto: { color: '#FFF', fontSize: 22, fontWeight: '300' },
+  headerTitulo: { color: '#FFF', fontSize: 16, fontWeight: '700', flex: 1, textAlign: 'center' },
+  headerInfo: { flex: 1, alignItems: 'center' },
+  headerSub: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 2 },
+  badgePremium: { backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  badgePremiumTexto: { color: '#FFF', fontSize: 10, fontWeight: '800' },
+
+  uploadContent: { padding: 24, alignItems: 'center' },
+  uploadEmoji: { fontSize: 64, marginBottom: 16 },
+  uploadTitulo: { fontSize: 24, fontWeight: '800', color: '#222', textAlign: 'center', marginBottom: 8 },
+  uploadSubtitulo: { fontSize: 14, color: '#777', textAlign: 'center', lineHeight: 21, marginBottom: 20 },
+
+  limiteBadge: {
+    backgroundColor: '#FFF3CD', borderRadius: 20, paddingHorizontal: 16,
+    paddingVertical: 8, marginBottom: 32, borderWidth: 1, borderColor: '#F59E0B',
+  },
+  limiteTexto: { color: '#92600A', fontSize: 13, fontWeight: '600' },
+
+  loadingContainer: { alignItems: 'center', marginTop: 40 },
+  loadingTexto: { fontSize: 16, fontWeight: '600', color: '#333', marginTop: 16 },
+  loadingSubTexto: { fontSize: 13, color: '#999', marginTop: 6 },
+
+  opcoes: { width: '100%', gap: 12 },
+  opcaoCard: {
+    backgroundColor: '#FFF', borderRadius: 16, padding: 20,
+    flexDirection: 'row', alignItems: 'center',
+    elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+    borderLeftWidth: 4, borderLeftColor: '#F59E0B',
+  },
+  opcaoEmoji: { fontSize: 32, marginRight: 16 },
+  opcaoTitulo: { fontSize: 16, fontWeight: '700', color: '#222' },
+  opcaoSub: { fontSize: 12, color: '#999', marginTop: 2 },
+
+  colarContainer: { width: '100%', marginTop: 20 },
+  colarTitulo: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 10 },
+  colarInput: {
+    backgroundColor: '#FFF', borderRadius: 12, padding: 14,
+    fontSize: 13, color: '#333', borderWidth: 1, borderColor: '#DDD',
+    fontFamily: 'monospace', height: 160,
+  },
+  colarBtn: {
+    backgroundColor: '#F59E0B', borderRadius: 12, padding: 16,
+    alignItems: 'center', marginTop: 12,
+  },
+  colarBtnTexto: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+
+  chatContainer: { flex: 1 },
+  mensagens: { flex: 1 },
+  mensagem: { marginBottom: 16, maxWidth: '88%' },
+  mensagemUsuario: { alignSelf: 'flex-end' },
+  mensagemIA: { alignSelf: 'flex-start' },
+  mensagemIALabel: { fontSize: 11, color: '#F59E0B', fontWeight: '700', marginBottom: 6 },
+  mensagemTexto: { fontSize: 14, lineHeight: 21, borderRadius: 16, padding: 14 },
+  mensagemTextoUsuario: { backgroundColor: '#1E88E5', color: '#FFF', borderBottomRightRadius: 4 },
+  mensagemTextoIA: { backgroundColor: '#FFF', color: '#333', borderBottomLeftRadius: 4, elevation: 1 },
+
+  sugestoes: { maxHeight: 44, marginBottom: 8 },
+  sugestaoChip: {
+    backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: 14,
+    paddingVertical: 8, borderWidth: 1, borderColor: '#F59E0B',
+  },
+  sugestaoTexto: { fontSize: 12, color: '#F59E0B', fontWeight: '600' },
+
+  inputContainer: {
+    flexDirection: 'row', alignItems: 'flex-end',
+    backgroundColor: '#FFF', margin: 12, borderRadius: 16, padding: 8,
+    elevation: 3, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 5, shadowOffset: { width: 0, height: 2 },
+  },
+  input: { flex: 1, fontSize: 14, color: '#333', paddingHorizontal: 8, maxHeight: 100, paddingVertical: 6 },
+  enviarBtn: { backgroundColor: '#F59E0B', borderRadius: 12, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  enviarBtnDisabled: { backgroundColor: '#DDD' },
+  enviarBtnTexto: { color: '#FFF', fontSize: 16 },
+});
+
+export default PlanilhaIAScreen;
+3. No api.service.ts, adicionar os métodos:
+typescriptasync analisarPlanilha(dados: string, nomeArquivo: string): Promise<{ insights: string; analisesRestantes: number }> {
+  const response = await this.api.post('api/planilha-ia/analisar', { dados, nomeArquivo });
+  return response?.data ?? { insights: '', analisesRestantes: 0 };
+}
+
+async chatSobrePlanilha(dados: string, mensagens: any[]): Promise<{ resposta: string }> {
+  const response = await this.api.post('api/planilha-ia/chat', { dados, mensagens });
+  return response?.data ?? { resposta: '' };
+}
+
+async extrairTextoDaImagem(base64: string): Promise<string> {
+  const response = await this.api.post('api/planilha-ia/extrair-imagem', { base64 });
+  return response?.data?.texto ?? '';
+}
+4. Criar src/components/PlanilhaIAButton.tsx — o floating button dourado:
+typescriptimport React, { useState } from 'react';
+import { TouchableOpacity, Text, StyleSheet, Modal, View } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
+import PlanilhaIAScreen from '../screens/main/PlanilhaIAScreen';
+
+const PlanilhaIAButton = () => {
+  const { user } = useAuth();
+  const [aberto, setAberto] = useState(false);
+  const isPremium = (user as any)?.isPremium ?? false;
+
+  if (!isPremium) return null;
+
+  return (
+    <>
+      <TouchableOpacity style={styles.fab} onPress={() => setAberto(true)} activeOpacity={0.85}>
+        <Text style={styles.fabEmoji}>🤖</Text>
+      </TouchableOpacity>
+
+      <Modal visible={aberto} animationType="slide" onRequestClose={() => setAberto(false)}>
+        <PlanilhaIAScreen onClose={() => setAberto(false)} />
+      </Modal>
+    </>
+  );
+};
+
+const styles = StyleSheet.create({
+  fab: {
+    position: 'absolute', bottom: 90, right: 20,
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: '#F59E0B',
+    justifyContent: 'center', alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#F59E0B', shadowOpacity: 0.5, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+  },
+  fabEmoji: { fontSize: 26 },
+});
+
+export default PlanilhaIAButton;
+5. No RootNavigator.tsx, adicionar o botão ao lado do FloatingChatButton:
+typescriptimport PlanilhaIAButton from '../components/PlanilhaIAButton';
+
+// Dentro do return, ao lado do FloatingChatButton:
+{showChatButton && (
+  <>
+    <FloatingChatButton />
+    <PlanilhaIAButton />
+    <ChatModal />
+  </>
+)}
+
+BACKEND — nodejs_space
+1. Criar src/planilha-ia/planilha-ia.service.ts:
+typescriptimport { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import Anthropic from '@anthropic-ai/sdk';
+
+@Injectable()
+export class PlanilhaIAService {
+  private readonly logger = new Logger(PlanilhaIAService.name);
+  private anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  constructor(private prisma: PrismaService) {}
+
+  // ── Verificar limite diário ───────────────────────────────
+  private async verificarLimite(userId: string): Promise<number> {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const usos = await (this.prisma as any).planilhaAnalise.count({
+      where: { userId, criadoEm: { gte: hoje } },
+    });
+
+    const limite = 3; // 3 análises por dia
+    if (usos >= limite) {
+      throw new HttpException('Limite diário de análises atingido', HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    return limite - usos - 1;
+  }
+
+  // ── Registrar uso ─────────────────────────────────────────
+  private async registrarUso(userId: string) {
+    await (this.prisma as any).planilhaAnalise.create({
+      data: { userId },
+    });
+  }
+
+  // ── Analisar planilha ─────────────────────────────────────
+  async analisar(userId: string, dados: string, nomeArquivo: string) {
+    const analisesRestantes = await this.verificarLimite(userId);
+
+    const prompt = `Você é o Excelino, um especialista em análise de dados e Excel com uma personalidade amigável e didática.
+
+O usuário enviou uma planilha chamada "${nomeArquivo}" com os seguintes dados:
+
+${dados.substring(0, 8000)}
+
+Faça uma análise completa e forneça:
+
+1. 📊 **RESUMO DOS DADOS** — O que são esses dados, quantas linhas/colunas, período coberto
+
+2. 🔍 **INSIGHTS PRINCIPAIS** — Os 3 a 5 insights mais relevantes que você encontrou
+
+3. ⚠️ **PROBLEMAS ENCONTRADOS** — Dados inconsistentes, valores faltando, outliers, erros
+
+4. 📈 **SUGESTÕES DE GRÁFICOS** — Quais visualizações seriam mais úteis e por quê
+
+5. 💡 **PRÓXIMOS PASSOS** — O que o usuário deveria fazer com esses dados
+
+Seja direto, use emojis para facilitar a leitura e explique de forma que qualquer pessoa entenda.`;
+
+    const response = await this.anthropic.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    await this.registrarUso(userId);
+
+    const insights = response.content
+      .filter((b) => b.type === 'text')
+      .map((b: any) => b.text)
+      .join('\n');
+
+    this.logger.log(`✅ Planilha analisada para usuário ${userId}`);
+    return { insights, analisesRestantes };
+  }
+
+  // ── Chat sobre a planilha ─────────────────────────────────
+  async chat(userId: string, dados: string, mensagens: { role: string; content: string }[]) {
+    const systemPrompt = `Você é o Excelino, especialista em Excel e análise de dados. 
+O usuário está perguntando sobre a seguinte planilha:
+
+${dados.substring(0, 6000)}
+
+Responda de forma clara, objetiva e didática. Use emojis quando apropriado.`;
+
+    const response = await this.anthropic.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 800,
+      system: systemPrompt,
+      messages: mensagens.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+    });
+
+    const resposta = response.content
+      .filter((b) => b.type === 'text')
+      .map((b: any) => b.text)
+      .join('\n');
+
+    return { resposta };
+  }
+
+  // ── Extrair texto de imagem ───────────────────────────────
+  async extrairDaImagem(userId: string, base64: string) {
+    const response = await this.anthropic.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 2000,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: 'image/jpeg', data: base64 },
+          },
+          {
+            type: 'text',
+            text: 'Extraia todos os dados desta planilha/tabela em formato CSV (separado por ponto e vírgula). Inclua cabeçalhos. Retorne apenas os dados, sem explicação.',
+          },
+        ],
+      }],
+    });
+
+    const texto = response.content
+      .filter((b) => b.type === 'text')
+      .map((b: any) => b.text)
+      .join('\n');
+
+    return { texto };
+  }
+}
+2. Criar src/planilha-ia/planilha-ia.controller.ts:
+typescriptimport { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PlanilhaIAService } from './planilha-ia.service';
+
+@Controller('api/planilha-ia')
+@UseGuards(JwtAuthGuard)
+export class PlanilhaIAController {
+  constructor(private readonly service: PlanilhaIAService) {}
+
+  @Post('analisar')
+  async analisar(@Request() req: any, @Body() body: { dados: string; nomeArquivo: string }) {
+    return this.service.analisar(req.user.id, body.dados, body.nomeArquivo);
+  }
+
+  @Post('chat')
+  async chat(@Request() req: any, @Body() body: { dados: string; mensagens: any[] }) {
+    return this.service.chat(req.user.id, body.dados, body.mensagens);
+  }
+
+  @Post('extrair-imagem')
+  async extrairImagem(@Request() req: any, @Body() body: { base64: string }) {
+    return this.service.extrairDaImagem(req.user.id, body.base64);
+  }
+}
+3. Criar src/planilha-ia/planilha-ia.module.ts:
+typescriptimport { Module } from '@nestjs/common';
+import { PlanilhaIAService } from './planilha-ia.service';
+import { PlanilhaIAController } from './planilha-ia.controller';
+import { PrismaModule } from '../prisma/prisma.module';
+
+@Module({
+  imports: [PrismaModule],
+  controllers: [PlanilhaIAController],
+  providers: [PlanilhaIAService],
+})
+export class PlanilhaIAModule {}
+4. No AppModule, importar:
+typescriptimport { PlanilhaIAModule } from './planilha-ia/planilha-ia.module';
+// Adicionar PlanilhaIAModule no array imports
+5. Instalar dependência:
+bashnpm install @anthropic-ai/sdk
+```
+
+**6. Adicionar ao `.env`:**
+```
+ANTHROPIC_API_KEY=sua_chave_aqui
+7. No schema.prisma, adicionar o model de controle de uso:
+prismamodel PlanilhaAnalise {
+  id        String   @id @default(cuid())
+  userId    String
+  criadoEm DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+E no model User, adicionar:
+prismaplanilhaAnalises PlanilhaAnalise[]
+isPremium        Boolean @default(false)
+8. Rodar migration:
+bashnpx prisma migrate dev --name add_planilha_ia
+npx prisma generate
+9. Fazer deploy do backend após todas as alterações.
+
+Não alterar nenhum outro arquivo além dos mencionados. A chave ANTHROPIC_API_KEY deve ser adicionada também nas variáveis de ambiente do painel do Abacus AI.

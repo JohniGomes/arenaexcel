@@ -1,0 +1,685 @@
+Vamos expandir nosso app e deixá-lo mais interativo. O que deverá ser feito:
+
+- **adicionar 100 questões que está no seed em anexo** distribuídas em **10 trilhas temáticas**
+- **5 tipos de questão**: múltipla escolha, input de planilha, construtor de fórmulas, seletor de gráficos, arrastar e soltar
+- **Componente WebView** para renderizar planilhas interativas
+- Atualização do **schema Prisma** para suportar as novas entidades
+
+---
+
+## 1. ALTERAÇÕES NO SCHEMA PRISMA
+
+Adicione ao arquivo `prisma/schema.prisma`:
+
+```prisma
+// ── ENUMS ──────────────────────────────────────────────────────
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  SPREADSHEET_INPUT
+  FORMULA_BUILDER
+  CHART_BUILDER
+  FILL_IN_BLANK
+  DRAG_AND_DROP
+}
+
+enum TrailProfession {
+  GENERAL
+  ANALYST
+  MANAGER
+  HR
+  LOGISTICS
+  FINANCE
+  SALES
+}
+
+// ── MODELO: TRILHA ─────────────────────────────────────────────
+
+model Trail {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  name        String
+  icon        String
+  description String
+  profession  TrailProfession @default(GENERAL)
+  order       Int
+  color       String          @default("#1E88E5")
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  questions   Question[]
+  userProgress UserTrailProgress[]
+
+  @@map("trails")
+}
+
+// ── MODELO: QUESTÃO ────────────────────────────────────────────
+
+model Question {
+  id                  String       @id @default(cuid())
+  trailId             String
+  order               Int
+  type                QuestionType @default(MULTIPLE_CHOICE)
+  title               String
+  description         String       @db.Text
+  hint                String?
+  xpReward            Int          @default(10)
+
+  // Múltipla escolha
+  options             String?      @db.Text  // JSON string[]
+  correctOption       Int?                   // índice 0-based
+
+  // Planilha interativa
+  spreadsheetContext  String?      @db.Text  // JSON SpreadsheetContext
+  expectedValue       String?
+  targetCell          String?
+
+  // Arrastar e soltar
+  correctOrder        String?      @db.Text  // JSON string[]
+
+  explanation         String       @db.Text
+  isActive            Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  trail               Trail        @relation(fields: [trailId], references: [id], onDelete: Cascade)
+  userAnswers         UserAnswer[]
+
+  @@unique([trailId, order])
+  @@map("questions")
+}
+
+// ── MODELO: PROGRESSO DO USUÁRIO NA TRILHA ─────────────────────
+
+model UserTrailProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  trailId         String
+  currentQuestion Int      @default(0)
+  completedAt     DateTime?
+  xpEarned        Int      @default(0)
+  accuracy        Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trail Trail @relation(fields: [trailId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trailId])
+  @@map("user_trail_progress")
+}
+
+// ── MODELO: RESPOSTA DO USUÁRIO ────────────────────────────────
+
+model UserAnswer {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  value      String
+  isCorrect  Boolean
+  timeSpentMs Int     @default(0)
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("user_answers")
+}
+```
+
+Depois rode:
+```bash
+npx prisma migrate dev --name add_trails_and_questions
+npx prisma generate
+```
+
+---
+
+## 2. NOVO MÓDULO: TrailsModule (NestJS)
+
+Crie o arquivo `src/trails/trails.module.ts` e os seguintes arquivos seguindo o padrão dos módulos existentes (ExercisesModule, UserModule):
+
+### `src/trails/trails.controller.ts`
+```typescript
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { TrailsService } from './trails.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+
+@ApiTags('Trails')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('trails')
+export class TrailsController {
+  constructor(private readonly trailsService: TrailsService) {}
+
+  @Get()
+  findAll(@CurrentUser() user: any) {
+    return this.trailsService.findAllWithProgress(user.id);
+  }
+
+  @Get(':slug')
+  findOne(@Param('slug') slug: string, @CurrentUser() user: any) {
+    return this.trailsService.findOneWithQuestions(slug, user.id);
+  }
+
+  @Get(':slug/questions/:order')
+  getQuestion(
+    @Param('slug') slug: string,
+    @Param('order') order: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.trailsService.getQuestion(slug, parseInt(order), user.id);
+  }
+}
+```
+
+### `src/trails/trails.service.ts`
+```typescript
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class TrailsService {
+  constructor(private prisma: PrismaService) {}
+
+  async findAllWithProgress(userId: string) {
+    const trails = await this.prisma.trail.findMany({
+      where: { isActive: true },
+      orderBy: { order: 'asc' },
+      include: {
+        _count: { select: { questions: true } },
+        userProgress: { where: { userId } },
+      },
+    });
+
+    return trails.map(trail => ({
+      ...trail,
+      totalQuestions: trail._count.questions,
+      progress: trail.userProgress[0] ?? null,
+      isUnlocked: trail.order === 1 || this.isTrailUnlocked(trail.order, trails, userId),
+    }));
+  }
+
+  async findOneWithQuestions(slug: string, userId: string) {
+    const trail = await this.prisma.trail.findUnique({
+      where: { slug },
+      include: {
+        questions: { where: { isActive: true }, orderBy: { order: 'asc' } },
+        userProgress: { where: { userId } },
+      },
+    });
+    if (!trail) throw new NotFoundException('Trilha não encontrada');
+    return trail;
+  }
+
+  async getQuestion(slug: string, order: number, userId: string) {
+    const trail = await this.prisma.trail.findUnique({ where: { slug } });
+    if (!trail) throw new NotFoundException('Trilha não encontrada');
+
+    const question = await this.prisma.question.findUnique({
+      where: { trailId_order: { trailId: trail.id, order } },
+    });
+    if (!question) throw new NotFoundException('Questão não encontrada');
+
+    // Deserializa JSON fields
+    return {
+      ...question,
+      options: question.options ? JSON.parse(question.options) : null,
+      spreadsheetContext: question.spreadsheetContext
+        ? JSON.parse(question.spreadsheetContext)
+        : null,
+      correctOrder: question.correctOrder
+        ? JSON.parse(question.correctOrder)
+        : null,
+      // NÃO enviar correctOption nem expectedValue ao frontend (anti-cheat)
+      correctOption: undefined,
+      expectedValue: undefined,
+    };
+  }
+
+  async submitAnswer(
+    userId: string,
+    questionId: string,
+    value: string,
+    timeSpentMs: number,
+  ) {
+    const question = await this.prisma.question.findUnique({
+      where: { id: questionId },
+      include: { trail: true },
+    });
+    if (!question) throw new NotFoundException('Questão não encontrada');
+
+    const isCorrect = this.checkAnswer(question, value);
+
+    await this.prisma.userAnswer.create({
+      data: { userId, questionId, value, isCorrect, timeSpentMs },
+    });
+
+    if (isCorrect) {
+      // Atualiza XP do usuário
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { xp: { increment: question.xpReward } },
+      });
+
+      // Atualiza progresso na trilha
+      await this.prisma.userTrailProgress.upsert({
+        where: { userId_trailId: { userId, trailId: question.trailId } },
+        create: { userId, trailId: question.trailId, currentQuestion: question.order, xpEarned: question.xpReward },
+        update: { currentQuestion: { set: Math.max(question.order, 0) }, xpEarned: { increment: question.xpReward } },
+      });
+    }
+
+    return {
+      isCorrect,
+      explanation: question.explanation,
+      xpEarned: isCorrect ? question.xpReward : 0,
+    };
+  }
+
+  private checkAnswer(question: any, value: string): boolean {
+    const normalize = (s: string) => s.trim().toUpperCase().replace(/\s+/g, '');
+    switch (question.type) {
+      case 'MULTIPLE_CHOICE':
+        return parseInt(value) === question.correctOption;
+      case 'SPREADSHEET_INPUT':
+      case 'FORMULA_BUILDER':
+        return normalize(value) === normalize(question.expectedValue ?? '');
+      case 'CHART_BUILDER':
+        return normalize(value) === normalize(question.expectedValue ?? '');
+      default:
+        return false;
+    }
+  }
+
+  private isTrailUnlocked(order: number, trails: any[], userId: string): boolean {
+    const prev = trails.find(t => t.order === order - 1);
+    if (!prev) return true;
+    return prev.userProgress?.[0]?.completedAt != null;
+  }
+}
+```
+
+Adicione `TrailsModule` ao `app.module.ts`.
+
+---
+
+## 3. ARQUIVO: SpreadsheetWebView.tsx
+
+Crie o arquivo `src/components/SpreadsheetWebView.tsx` com o conteúdo abaixo.
+Este componente renderiza planilhas interativas via WebView com comunicação bidirecional.
+
+```
+[COLE AQUI O CONTEÚDO COMPLETO DO ARQUIVO SpreadsheetWebView.tsx]
+```
+
+> **Nota:** O arquivo SpreadsheetWebView.tsx completo está em anexo nesta mensagem.
+
+---
+
+## 4. TELA DE TRILHAS — TrailsScreen.tsx
+
+Crie `src/screens/TrailsScreen.tsx`:
+
+```typescript
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, ActivityIndicator, Dimensions,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import { API_URL } from '../config';
+
+const { width } = Dimensions.get('window');
+
+export default function TrailsScreen() {
+  const [trails, setTrails] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    axios.get(`${API_URL}/trails`).then(r => {
+      setTrails(r.data);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#1E88E5" />;
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Trilhas de Aprendizado</Text>
+        <Text style={styles.headerSub}>Escolha sua jornada no Excel</Text>
+      </View>
+
+      {trails.map((trail: any) => (
+        <TouchableOpacity
+          key={trail.id}
+          style={[styles.card, !trail.isUnlocked && styles.cardLocked]}
+          onPress={() => trail.isUnlocked && navigation.navigate('Trail', { slug: trail.slug })}
+          activeOpacity={trail.isUnlocked ? 0.8 : 1}
+        >
+          <LinearGradient
+            colors={trail.isUnlocked ? [trail.color, trail.color + 'CC'] : ['#9E9E9E', '#757575']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.cardGradient}
+          >
+            <View style={styles.cardLeft}>
+              <Text style={styles.cardIcon}>{trail.isUnlocked ? trail.icon : '🔒'}</Text>
+              <View>
+                <Text style={styles.cardName}>{trail.name}</Text>
+                <Text style={styles.cardDesc} numberOfLines={2}>{trail.description}</Text>
+              </View>
+            </View>
+
+            <View style={styles.cardRight}>
+              <Text style={styles.cardQuestions}>{trail.totalQuestions}</Text>
+              <Text style={styles.cardQLabel}>questões</Text>
+              {trail.progress && (
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${(trail.progress.currentQuestion / trail.totalQuestions) * 100}%` }
+                    ]}
+                  />
+                </View>
+              )}
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      ))}
+
+      <View style={{ height: 32 }} />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  header: { padding: 24, paddingTop: 48 },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: '#1A1A2E' },
+  headerSub: { fontSize: 15, color: '#666', marginTop: 4 },
+  card: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12,
+    shadowRadius: 8, elevation: 4 },
+  cardLocked: { opacity: 0.65 },
+  cardGradient: { flexDirection: 'row', padding: 16, alignItems: 'center', justifyContent: 'space-between' },
+  cardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  cardIcon: { fontSize: 32 },
+  cardName: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 2 },
+  cardDesc: { fontSize: 12, color: 'rgba(255,255,255,0.85)', maxWidth: width * 0.5 },
+  cardRight: { alignItems: 'center', minWidth: 60 },
+  cardQuestions: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  cardQLabel: { fontSize: 10, color: 'rgba(255,255,255,0.8)', marginTop: -2 },
+  progressBar: { width: 50, height: 4, backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2, marginTop: 6, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
+});
+```
+
+---
+
+## 5. TELA DE QUESTÃO — QuestionScreen.tsx
+
+Crie `src/screens/QuestionScreen.tsx`:
+
+```typescript
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View, Text, TouchableOpacity, StyleSheet,
+  SafeAreaView, ActivityIndicator, Animated,
+} from 'react-native';
+import axios from 'axios';
+import { SpreadsheetWebView } from '../components/SpreadsheetWebView';
+import { API_URL } from '../config';
+
+export default function QuestionScreen({ route, navigation }: any) {
+  const { slug, order } = route.params;
+  const [question, setQuestion] = useState<any>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [answered, setAnswered] = useState(false);
+  const [result, setResult] = useState<{ isCorrect: boolean; explanation: string; xpEarned: number } | null>(null);
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    setQuestion(null); setSelected(null); setAnswered(false); setResult(null);
+    axios.get(`${API_URL}/trails/${slug}/questions/${order}`)
+      .then(r => {
+        setQuestion(r.data);
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      });
+  }, [slug, order]);
+
+  const submitAnswer = useCallback(async (value: string) => {
+    if (answered) return;
+    setAnswered(true);
+    const res = await axios.post(`${API_URL}/trails/answer`, {
+      questionId: question.id, value, timeSpentMs: 0,
+    });
+    setResult(res.data);
+  }, [answered, question]);
+
+  const handleMultipleChoice = (idx: number) => {
+    if (answered) return;
+    setSelected(idx);
+    submitAnswer(String(idx));
+  };
+
+  const goNext = () => {
+    navigation.replace('Question', { slug, order: order + 1 });
+  };
+
+  if (!question) return <ActivityIndicator style={{ flex: 1 }} color="#1E88E5" />;
+
+  const isInteractive = ['SPREADSHEET_INPUT', 'FORMULA_BUILDER', 'CHART_BUILDER', 'DRAG_AND_DROP'].includes(question.type);
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.xpBadge}>
+            <Text style={styles.xpText}>+{question.xpReward} XP</Text>
+          </View>
+        </View>
+
+        {/* Título e descrição */}
+        <Text style={styles.title}>{question.title}</Text>
+        <Text style={styles.description}>{question.description}</Text>
+
+        {/* Conteúdo por tipo */}
+        {question.type === 'MULTIPLE_CHOICE' && (
+          <View style={styles.options}>
+            {question.options?.map((opt: string, i: number) => {
+              const isCorrect = answered && result?.isCorrect && selected === i;
+              const isWrong = answered && !result?.isCorrect && selected === i;
+              return (
+                <TouchableOpacity
+                  key={i}
+                  style={[
+                    styles.option,
+                    selected === i && styles.optionSelected,
+                    isCorrect && styles.optionCorrect,
+                    isWrong && styles.optionWrong,
+                  ]}
+                  onPress={() => handleMultipleChoice(i)}
+                  disabled={answered}
+                >
+                  <View style={styles.optionLetter}>
+                    <Text style={styles.optionLetterText}>
+                      {['A','B','C','D'][i]}
+                    </Text>
+                  </View>
+                  <Text style={styles.optionText}>{opt}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {isInteractive && (
+          <View style={styles.webviewContainer}>
+            <SpreadsheetWebView
+              questionType={question.type}
+              spreadsheetContext={question.spreadsheetContext ?? {}}
+              expectedValue=""
+              targetCell={question.targetCell}
+              onCorrect={(val) => submitAnswer(val)}
+              onWrong={() => {}}
+            />
+          </View>
+        )}
+
+        {/* Feedback */}
+        {result && (
+          <View style={[styles.feedback, result.isCorrect ? styles.feedbackOk : styles.feedbackFail]}>
+            <Text style={styles.feedbackIcon}>{result.isCorrect ? '🎉' : '💡'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.feedbackTitle}>
+                {result.isCorrect ? `+${result.xpEarned} XP ganhos!` : 'Quase lá!'}
+              </Text>
+              <Text style={styles.feedbackText}>{result.explanation}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Próxima questão */}
+        {answered && (
+          <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
+            <Text style={styles.nextBtnText}>Próxima Questão →</Text>
+          </TouchableOpacity>
+        )}
+      </Animated.View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, padding: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  backBtn: { padding: 8 },
+  backIcon: { fontSize: 22, color: '#333' },
+  xpBadge: { backgroundColor: '#FFF8E1', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20,
+    borderWidth: 1.5, borderColor: '#FDD835' },
+  xpText: { fontSize: 13, fontWeight: '700', color: '#F57F17' },
+  title: { fontSize: 20, fontWeight: '800', color: '#1A1A2E', marginBottom: 8, lineHeight: 26 },
+  description: { fontSize: 15, color: '#555', marginBottom: 20, lineHeight: 22 },
+  options: { gap: 10 },
+  option: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff',
+    borderRadius: 12, padding: 14, borderWidth: 2, borderColor: '#E9ECEF',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, elevation: 2 },
+  optionSelected: { borderColor: '#1E88E5', backgroundColor: '#EEF6FF' },
+  optionCorrect: { borderColor: '#43A047', backgroundColor: '#E8F5E9' },
+  optionWrong: { borderColor: '#E53935', backgroundColor: '#FFEBEE' },
+  optionLetter: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0F4F8',
+    justifyContent: 'center', alignItems: 'center' },
+  optionLetterText: { fontSize: 14, fontWeight: '700', color: '#333' },
+  optionText: { flex: 1, fontSize: 14, color: '#333', lineHeight: 20 },
+  webviewContainer: { flex: 1, minHeight: 320, marginBottom: 12 },
+  feedback: { borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'flex-start',
+    gap: 10, marginTop: 12 },
+  feedbackOk: { backgroundColor: '#E8F5E9', borderWidth: 1.5, borderColor: '#43A047' },
+  feedbackFail: { backgroundColor: '#FFF8E1', borderWidth: 1.5, borderColor: '#FDD835' },
+  feedbackIcon: { fontSize: 24 },
+  feedbackTitle: { fontSize: 15, fontWeight: '700', color: '#1A1A2E', marginBottom: 2 },
+  feedbackText: { fontSize: 13, color: '#555', lineHeight: 18 },
+  nextBtn: { backgroundColor: '#1E88E5', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 12,
+    shadowColor: '#1E88E5', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, elevation: 6 },
+  nextBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+});
+```
+
+---
+
+## 6. SEED DAS 100 QUESTÕES
+
+Substitua o arquivo `prisma/seed.ts` pelo arquivo `seed_100_questions.ts` fornecido em anexo.
+
+Depois rode:
+```bash
+npx ts-node prisma/seed.ts
+```
+
+---
+
+## 7. ENDPOINT DE SUBMISSÃO DE RESPOSTA
+
+Adicione ao `TrailsController`:
+
+```typescript
+@Post('answer')
+@UseGuards(JwtAuthGuard)
+submitAnswer(@CurrentUser() user: any, @Body() dto: SubmitAnswerDto) {
+  return this.trailsService.submitAnswer(user.id, dto.questionId, dto.value, dto.timeSpentMs);
+}
+```
+
+Crie `src/trails/dto/submit-answer.dto.ts`:
+```typescript
+import { IsString, IsNumber, IsOptional } from 'class-validator';
+export class SubmitAnswerDto {
+  @IsString() questionId: string;
+  @IsString() value: string;
+  @IsNumber() @IsOptional() timeSpentMs: number = 0;
+}
+```
+
+---
+
+## 8. NAVEGAÇÃO — Adicionar rotas no Navigator
+
+No arquivo de navegação principal, adicione:
+
+```typescript
+// Stack Navigator
+<Stack.Screen name="Trails"   component={TrailsScreen}   />
+<Stack.Screen name="Trail"    component={TrailDetailScreen} />
+<Stack.Screen name="Question" component={QuestionScreen}  />
+```
+
+E adicione "Trilhas" na Bottom Tab Navigation com ícone de `book-open`.
+
+---
+
+## 9. CHECKLIST FINAL DE IMPLEMENTAÇÃO
+
+- [ ] `prisma/schema.prisma` — adicionar Trail, Question, UserTrailProgress, UserAnswer
+- [ ] Rodar `prisma migrate dev`
+- [ ] Criar `src/trails/` (module, controller, service, DTOs)
+- [ ] Adicionar TrailsModule ao AppModule
+- [ ] Criar `src/components/SpreadsheetWebView.tsx`
+- [ ] Criar `src/screens/TrailsScreen.tsx`
+- [ ] Criar `src/screens/QuestionScreen.tsx`
+- [ ] Substituir `prisma/seed.ts` e rodar o seed
+- [ ] Adicionar rotas de navegação
+- [ ] Testar todas as trilhas no emulador
+
+---
+
+## ARQUIVOS EM ANEXO
+
+Envie junto com este prompt:
+1. `SpreadsheetWebView.tsx` — componente WebView interativo
+2. `seed_100_questions.ts` — seed com as 100 questões
+
+---
+
+## OBSERVAÇÕES IMPORTANTES
+
+1. O componente `SpreadsheetWebView` usa `react-native-webview` que já está no `package.json`
+2. O HTML da WebView é **inline** (não precisa de arquivo externo) — funciona offline
+3. A validação de respostas acontece **no backend** (anti-cheat): o `expectedValue` não é enviado ao frontend
+4. Para questões do tipo `DRAG_AND_DROP`, o backend precisa de lógica de comparação de arrays
+5. O sistema de XP e progresso se integra com os módulos existentes: `UserModule` e `ProgressModule`
+6. As trilhas são desbloqueadas sequencialmente: complete a trilha anterior para desbloquear a próxima

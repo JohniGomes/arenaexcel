@@ -1,0 +1,270 @@
+Converter o certificado HTML para página Next.js em pages/certificado/validar/[id].tsx.
+O certificado deve ser renderizado exatamente igual ao HTML original — tamanho fixo A4 landscape (1122×794px), com ondas verdes, bordas douradas, cantos ornamentais, medalha por nível, Excelino, assinatura e QR Code.
+Passo 1 — Copiar a imagem do Excelino para o projeto:
+Salvar o arquivo certificado-arena-excel.html que foi gerado localmente. Abrir o arquivo, localizar a tag:
+html<img class="excelino-img" src="data:image/png;base64,....
+Copiar o valor inteiro do src (incluindo o prefixo data:image/png;base64,) e salvar em public/excelino-certificado.png usando o seguinte script Node.js:
+js// scripts/extract-excelino.js
+const fs = require('fs');
+const html = fs.readFileSync('./certificado-arena-excel.html', 'utf8');
+const match = html.match(/class="excelino-img" src="(data:image\/png;base64,[^"]+)"/);
+if (match) {
+  const base64 = match[1].replace('data:image/png;base64,', '');
+  fs.writeFileSync('./public/excelino-certificado.png', Buffer.from(base64, 'base64'));
+  console.log('✅ Excelino extraído para public/excelino-certificado.png');
+}
+Executar com: node scripts/extract-excelino.js
+
+Passo 2 — Criar pages/certificado/validar/[id].tsx:
+tsximport { GetServerSideProps } from 'next';
+import Head from 'next/head';
+import { useEffect } from 'react';
+
+const NIVEIS_CONFIG: Record<string, { medalha: string; cor: string; descricao: string }> = {
+  nivel_fundamentos: {
+    medalha: '🥉', cor: '#cd7f32',
+    descricao: 'demonstrando domínio dos conceitos fundamentais do Excel, incluindo navegação, formatação e fórmulas básicas.',
+  },
+  nivel_basico: {
+    medalha: '🥈', cor: '#aaa9ad',
+    descricao: 'demonstrando proficiência em funções essenciais, gráficos e organização de dados no Excel.',
+  },
+  nivel_intermediario: {
+    medalha: '🥇', cor: '#d4af37',
+    descricao: 'demonstrando domínio de funções avançadas, tabelas dinâmicas e análise de dados profissional.',
+  },
+  nivel_avancado: {
+    medalha: '🏆', cor: '#2ECC71',
+    descricao: 'demonstrando expertise em automações, fórmulas complexas e soluções avançadas no Excel.',
+  },
+  nivel_especialista: {
+    medalha: '👑', cor: '#c8a84b',
+    descricao: 'atingindo o mais alto nível de domínio do Excel, com capacidade de resolver desafios profissionais complexos.',
+  },
+};
+
+interface Props {
+  id: string;
+  nomeAluno: string;
+  curso: string;
+  nivel: string;
+  dataConquista: string;
+  valido: boolean;
+}
+
+export default function CertificadoValidar({ id, nomeAluno, curso, nivel, dataConquista, valido }: Props) {
+  const cfg = NIVEIS_CONFIG[nivel] ?? NIVEIS_CONFIG['nivel_fundamentos'];
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=152x152&data=${encodeURIComponent(`https://arenaexcel.excelcomjohni.com.br/certificado/validar/${id}`)}&margin=4`;
+
+  if (!valido) {
+    return (
+      <div style={{ fontFamily: 'sans-serif', textAlign: 'center', padding: '80px 20px', background: '#fff', minHeight: '100vh' }}>
+        <div style={{ fontSize: 64 }}>❌</div>
+        <h1 style={{ color: '#e74c3c', marginTop: 16 }}>Certificado não encontrado</h1>
+        <p style={{ color: '#666', marginTop: 8 }}>Este certificado não existe ou foi removido.</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Head>
+        <title>Certificado — {nomeAluno} — Arena Excel</title>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@400;600;700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet"/>
+        <style>{`
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            background: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 30px 20px;
+            font-family: 'Montserrat', sans-serif;
+          }
+          .no-print { margin-bottom: 24px; }
+          .btn-salvar {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #2ECC71, #27AE60);
+            color: #fff; border: none; border-radius: 10px;
+            font-family: 'Montserrat', sans-serif; font-weight: 700;
+            font-size: 14px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(46,204,113,0.3);
+          }
+          .cert {
+            width: 1122px; height: 794px;
+            background: #ffffff;
+            position: relative; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+            border: 2px solid ${cfg.cor};
+          }
+          .cert-border { position: absolute; inset: 18px; border: 1.5px solid #c8a84b; z-index: 10; pointer-events: none; }
+          .cert-border-inner { position: absolute; inset: 24px; border: 0.5px solid rgba(200,168,75,0.3); z-index: 10; pointer-events: none; }
+          .corner { position: absolute; width: 56px; height: 56px; z-index: 11; pointer-events: none; }
+          .corner-tl { top: 10px; left: 10px; }
+          .corner-tr { top: 10px; right: 10px; transform: scaleX(-1); }
+          .corner-bl { bottom: 10px; left: 10px; transform: scaleY(-1); }
+          .corner-br { bottom: 10px; right: 10px; transform: scale(-1,-1); }
+          .medal-box { position: absolute; top: 36px; right: 76px; z-index: 12; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+          .medal-emoji { font-size: 80px; line-height: 1; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2)); }
+          .medal-ribbons { display: flex; gap: 6px; margin-top: -4px; }
+          .ribbon-l { width: 17px; height: 36px; background: linear-gradient(180deg,#1a7a3c,#2ECC71); clip-path: polygon(0 0,100% 0,100% 80%,50% 100%,0 80%); }
+          .ribbon-r { width: 17px; height: 36px; background: linear-gradient(180deg,#27AE60,#1a7a3c); clip-path: polygon(0 0,100% 0,100% 80%,50% 100%,0 80%); }
+          .cert-inner { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; padding: 52px 110px 36px; }
+          .cert-title { font-family: 'Playfair Display', serif; font-size: 72px; font-weight: 900; color: #1a3a5c; letter-spacing: 5px; line-height: 1; }
+          .cert-subtitle { font-size: 15px; font-weight: 600; letter-spacing: 9px; color: #1a3a5c; margin-top: 6px; text-transform: uppercase; }
+          .cert-presented { font-size: 12px; font-weight: 700; letter-spacing: 5px; color: #8B4513; text-transform: uppercase; margin-top: 28px; }
+          .cert-name { font-family: 'Playfair Display', serif; font-size: 62px; font-weight: 700; color: #1a3a5c; text-align: center; line-height: 1.1; margin-top: 8px; min-height: 74px; }
+          .cert-divider { width: 52%; height: 1px; background: linear-gradient(90deg, transparent, #c8a84b 20%, #c8a84b 80%, transparent); margin: 14px 0 16px; }
+          .cert-desc { font-size: 15px; color: #333; text-align: center; line-height: 1.85; max-width: 620px; }
+          .cert-desc strong { color: #1a3a5c; font-weight: 700; }
+          .cert-footer { display: flex; align-items: flex-end; justify-content: space-between; width: 100%; margin-top: auto; }
+          .excelino-box { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+          .excelino-img { width: 90px; height: 90px; object-fit: contain; }
+          .excelino-label { font-size: 9px; color: #1a7a3c; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+          .cert-sign { display: flex; flex-direction: column; align-items: center; }
+          .sign-cursive { font-family: 'Dancing Script', cursive; font-size: 40px; color: #1a3a5c; font-weight: 700; line-height: 1.2; }
+          .sign-line { width: 220px; height: 1.5px; background: #222; margin: 3px 0 6px; }
+          .sign-name { font-size: 12px; font-weight: 800; color: #1a3a5c; letter-spacing: 2.5px; text-transform: uppercase; }
+          .sign-role { font-size: 12px; color: #c8a84b; font-weight: 500; }
+          .cert-qr-data { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+          .date-label { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: #888; margin-bottom: 3px; }
+          .date-value { font-size: 14px; font-weight: 700; color: #1a3a5c; text-align: right; }
+          .cert-num { font-size: 9px; color: #666; letter-spacing: 1px; margin-top: 4px; font-weight: 600; text-align: right; }
+          .qr-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+          .qr-img { width: 76px; height: 76px; border: 1.5px solid #1a3a5c; border-radius: 4px; display: block; background: #fff; }
+          .qr-label { font-size: 8px; color: #ffffff; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; }
+          @media print {
+            body { background: #fff; padding: 0; margin: 0; }
+            .no-print { display: none; }
+            .cert { box-shadow: none; width: 297mm; height: 210mm; }
+            @page { size: A4 landscape; margin: 0; }
+          }
+        `}</style>
+      </Head>
+
+      <div className="no-print">
+        <button className="btn-salvar" onClick={() => window.print()}>🖨️ Salvar como PDF</button>
+      </div>
+
+      <div className="cert">
+
+        {/* ONDA SUPERIOR ESQUERDA */}
+        <svg style={{position:'absolute',top:0,left:0,width:380,height:310,zIndex:2}} viewBox="0 0 380 310" fill="none">
+          <path d="M0 0 L380 0 L380 48 C332 72 262 66 202 107 C142 148 107 202 71 250 C45 285 16 310 0 320 Z" fill="#145a2e"/>
+          <path d="M0 0 L300 0 L300 24 C257 53 195 50 152 93 C107 134 80 188 54 235 C33 271 11 300 0 312 Z" fill="#1e8449"/>
+          <path d="M0 0 L224 0 L224 12 C190 42 138 40 102 79 C66 116 47 166 28 212 C14 248 4 278 0 295 Z" fill="#2ECC71"/>
+          <path d="M0 208 C19 190 50 181 81 188 C118 196 147 218 175 238 C202 257 221 273 233 290 L209 312 C194 292 173 275 144 255 C113 234 80 213 44 207 C21 202 3 211 0 221 Z" fill="#c8a84b" opacity="0.5"/>
+        </svg>
+
+        {/* ONDA INFERIOR DIREITA */}
+        <svg style={{position:'absolute',bottom:0,right:0,width:380,height:310,zIndex:2}} viewBox="0 0 380 310" fill="none">
+          <path d="M0 274 C16 264 50 248 83 238 C132 225 190 233 235 216 C284 198 322 160 356 118 C370 99 380 77 380 53 L380 310 L0 310 Z" fill="#145a2e"/>
+          <path d="M77 300 C100 286 138 272 176 262 C220 250 265 253 304 236 C342 220 370 188 380 150 L380 310 L65 310 Z" fill="#1e8449"/>
+          <path d="M160 310 C187 296 220 284 254 274 C292 263 325 261 356 245 C374 235 380 214 380 196 L380 310 L148 310 Z" fill="#2ECC71"/>
+          <path d="M380 89 C360 109 329 119 297 113 C258 105 230 83 202 62 C176 43 157 26 145 12 L168 0 C183 16 203 34 230 54 C260 75 292 96 328 103 C354 108 374 97 380 86 Z" fill="#c8a84b" opacity="0.5"/>
+        </svg>
+
+        <div className="cert-border"/>
+        <div className="cert-border-inner"/>
+
+        {/* CANTOS */}
+        {(['corner-tl','corner-tr','corner-bl','corner-br'] as const).map(c => (
+          <svg key={c} className={`corner ${c}`} viewBox="0 0 56 56" fill="none">
+            <path d="M5 51 L5 5 L51 5" stroke="#c8a84b" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+            <path d="M11 45 L11 11 L45 11" stroke="#c8a84b" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.45"/>
+            <circle cx="5" cy="5" r="3" fill="#c8a84b"/>
+            <circle cx="22" cy="5" r="1.5" fill="#c8a84b" opacity="0.5"/>
+            <circle cx="5" cy="22" r="1.5" fill="#c8a84b" opacity="0.5"/>
+          </svg>
+        ))}
+
+        {/* MEDALHA */}
+        <div className="medal-box">
+          <div className="medal-emoji">{cfg.medalha}</div>
+          <div className="medal-ribbons">
+            <div className="ribbon-l"/>
+            <div className="ribbon-r"/>
+          </div>
+        </div>
+
+        {/* CONTEÚDO */}
+        <div className="cert-inner">
+          <div className="cert-title">CERTIFICADO</div>
+          <div className="cert-subtitle">De Conclusão</div>
+          <div className="cert-presented">Este certificado é apresentado a</div>
+          <div className="cert-name">{nomeAluno}</div>
+          <div className="cert-divider"/>
+          <div className="cert-desc">
+            Por ter concluído com êxito o módulo{' '}
+            <strong>{curso}</strong>{' '}
+            no aplicativo <strong>Arena Excel</strong>,{' '}
+            {cfg.descricao}
+          </div>
+
+          {/* RODAPÉ */}
+          <div className="cert-footer">
+            <div className="excelino-box">
+              <img className="excelino-img" src="/excelino-certificado.png" alt="Excelino"/>
+              <span className="excelino-label">Arena Excel</span>
+            </div>
+
+            <div className="cert-sign">
+              <span className="sign-cursive">Johni Michael</span>
+              <div className="sign-line"/>
+              <span className="sign-name">Johni Michael</span>
+              <span className="sign-role">Founder · Arena Excel</span>
+            </div>
+
+            <div className="cert-qr-data">
+              <div>
+                <div className="date-label">Data de Conclusão</div>
+                <div className="date-value">{dataConquista}</div>
+                <div className="cert-num">Nº {id}</div>
+              </div>
+              <div className="qr-block">
+                <img className="qr-img" src={qrUrl} alt="QR Code"/>
+                <span className="qr-label">Verificar Certificado</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </>
+  );
+}
+
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  try {
+    const res = await fetch(
+      `https://arenaexcel.excelcomjohni.com.br/api/badges/certificado/validar/${params?.id}`
+    );
+    if (!res.ok) return { props: { valido: false, id:'', nomeAluno:'', curso:'', nivel:'', dataConquista:'' } };
+
+    const cert = await res.json();
+    const dataFormatada = new Date(cert.dataConquista).toLocaleDateString('pt-BR', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    });
+
+    return {
+      props: {
+        valido: true,
+        id: cert.id,
+        nomeAluno: cert.nomeAluno,
+        curso: cert.curso,
+        nivel: cert.nivel,
+        dataConquista: dataFormatada,
+      }
+    };
+  } catch {
+    return { props: { valido: false, id:'', nomeAluno:'', curso:'', nivel:'', dataConquista:'' } };
+  }
+};
+
+Passo 3 — Executar o script para extrair o Excelino:
+bashnode scripts/extract-excelino.js
+Passo 4 — Deploy do nextjs_space.
+Após o deploy, a URL https://arenaexcel.excelcomjohni.com.br/certificado/validar/[ID] vai exibir o certificado exatamente igual ao HTML, com Excelino real, medalha por nível e botão "Salvar como PDF". 🚀

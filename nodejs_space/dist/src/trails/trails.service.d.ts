@@ -1,0 +1,121 @@
+import { PrismaService } from '../prisma/prisma.service';
+export declare class TrailsService {
+    private prisma;
+    constructor(prisma: PrismaService);
+    findAllWithProgress(userId: string): Promise<{
+        totalQuestions: number;
+        progress: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            trailId: string;
+            userId: string;
+            currentQuestion: number;
+            completedAt: Date | null;
+            xpEarned: number;
+            accuracy: number;
+        };
+        isUnlocked: boolean;
+        userProgress: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            trailId: string;
+            userId: string;
+            currentQuestion: number;
+            completedAt: Date | null;
+            xpEarned: number;
+            accuracy: number;
+        }[];
+        _count: {
+            questions: number;
+        };
+        slug: string;
+        id: string;
+        name: string;
+        icon: string;
+        description: string;
+        profession: import("@prisma/client").$Enums.TrailProfession;
+        order: number;
+        color: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    }[]>;
+    findOneWithQuestions(slug: string, userId: string): Promise<{
+        questions: {
+            isCompleted: boolean;
+            status: string;
+            unlocksAt: Date | null;
+            id: string;
+            description: string;
+            order: number;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            trailId: string;
+            type: import("@prisma/client").$Enums.QuestionType;
+            title: string;
+            hint: string | null;
+            xpReward: number;
+            options: string | null;
+            correctOption: number | null;
+            spreadsheetContext: string | null;
+            expectedValue: string | null;
+            targetCell: string | null;
+            correctOrder: string | null;
+            explanation: string;
+        }[];
+        userProgress: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            trailId: string;
+            userId: string;
+            currentQuestion: number;
+            completedAt: Date | null;
+            xpEarned: number;
+            accuracy: number;
+        }[];
+        slug: string;
+        id: string;
+        name: string;
+        icon: string;
+        description: string;
+        profession: import("@prisma/client").$Enums.TrailProfession;
+        order: number;
+        color: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    getQuestion(slug: string, order: number, userId: string): Promise<{
+        options: any;
+        spreadsheetContext: any;
+        correctOrder: any[] | null;
+        correctOption: undefined;
+        expectedValue: undefined;
+        id: string;
+        description: string;
+        order: number;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        trailId: string;
+        type: import("@prisma/client").$Enums.QuestionType;
+        title: string;
+        hint: string | null;
+        xpReward: number;
+        targetCell: string | null;
+        explanation: string;
+    }>;
+    private shuffleArray;
+    submitAnswer(userId: string, questionId: string, value: string, timeSpentMs: number): Promise<{
+        isCorrect: boolean;
+        explanation: string;
+        xpEarned: number;
+    }>;
+    private checkAnswer;
+    private checkFormulaEquivalence;
+    private isTrailUnlocked;
+}

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena Excel - Teste no Celular com Expo Go</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 700px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        h1 { color: #667eea; text-align: center; margin-bottom: 10px; font-size: 2.5em; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; font-size: 1.1em; }
+        .qr-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        #qrcode {
+            display: inline-block;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .steps { margin: 30px 0; }
+        .step {
+            display: flex;
+            align-items: start;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .step-number {
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .step-content { flex: 1; }
+        .step-title { font-weight: bold; color: #333; margin-bottom: 5px; }
+        .step-desc { color: #666; font-size: 0.95em; line-height: 1.6; }
+        .platform {
+            display: inline-block;
+            padding: 5px 15px;
+            margin: 5px;
+            background: #667eea;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        .warning strong { display: block; margin-bottom: 10px; font-size: 1.1em; }
+        .url-box {
+            background: #2d3748;
+            color: #68d391;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            background: #5568d3;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 0.9em;
+        }
+        .images-info {
+            background: #e7f3ff;
+            border: 2px solid #2196F3;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .images-info h3 {
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+        .images-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        .images-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        .images-list li:before {
+            content: '✅';
+            position: absolute;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Arena Excel</h1>
+        <p class="subtitle">Teste o app no celular com <strong>Expo Go</strong></p>
+
+        <div class="qr-section">
+            <canvas id="qrcode"></canvas>
+            <p style="margin-top: 15px; color: #666; font-size: 1.1em;">
+                Escaneie com <strong>Expo Go</strong> (Android) ou <strong>Câmera</strong> (iOS)
+            </p>
+        </div>
+
+        <div class="images-info">
+            <h3>🎨 22 Imagens de Exercícios!</h3>
+            
+            <h4 style="color: #667eea; margin-top: 15px;">📘 Nível 1 - Fundamentos (10 lições)</h4>
+            <ul class="images-list">
+                <li><strong>Lição 1:</strong> Interface do Excel</li>
+                <li><strong>Lição 2:</strong> Células e Dados</li>
+                <li><strong>Lição 3:</strong> Atalhos Essenciais</li>
+                <li><strong>Lição 4:</strong> Salvando Arquivos</li>
+                <li><strong>Lição 5:</strong> Navegação Rápida</li>
+                <li><strong>Lição 6:</strong> Seleção de Células</li>
+                <li><strong>Lição 7:</strong> Copiar e Colar</li>
+                <li><strong>Lição 8:</strong> Desfazer e Refazer</li>
+                <li><strong>Lição 9:</strong> Zoom e Visualização</li>
+                <li><strong>Lição 10:</strong> Imprimir Planilhas</li>
+            </ul>
+
+            <h4 style="color: #667eea; margin-top: 15px;">📗 Nível 2 - Básico (10 lições)</h4>
+            <ul class="images-list">
+                <li><strong>Lição 1:</strong> Função SOMA</li>
+                <li><strong>Lição 2:</strong> Função MÉDIA</li>
+                <li><strong>Lição 3:</strong> MÁXIMO e MÍNIMO</li>
+                <li><strong>Lição 4:</strong> CONT.NÚM</li>
+                <li><strong>Lição 5:</strong> Formatação de Células</li>
+                <li><strong>Lição 6:</strong> Filtros Básicos</li>
+                <li><strong>Lição 7:</strong> Classificação de Dados</li>
+                <li><strong>Lição 8:</strong> Gráficos Simples</li>
+                <li><strong>Lição 9:</strong> Largura e Altura</li>
+                <li><strong>Lição 10:</strong> Mesclando Células</li>
+            </ul>
+
+            <h4 style="color: #667eea; margin-top: 15px;">📙 Nível 3 - Intermediário (2 lições)</h4>
+            <ul class="images-list">
+                <li><strong>Lição 1:</strong> Função PROCV</li>
+                <li><strong>Lição 2:</strong> Função PROCX</li>
+            </ul>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Antes de começar:</strong>
+            Instale o app <strong>Expo Go</strong> no seu celular:
+            <br><br>
+            <a href="https://play.google.com/store/apps/details?id=host.exp.exponent" target="_blank" class="button">📥 Android - Google Play</a>
+            <a href="https://apps.apple.com/app/expo-go/id982107779" target="_blank" class="button">📥 iOS - App Store</a>
+        </div>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">📥 Instale o Expo Go</div>
+                    <div class="step-desc">
+                        Baixe e instale o app <strong>Expo Go</strong> na loja do seu celular:<br>
+                        <span class="platform">🤖 Android: Google Play Store</span>
+                        <span class="platform">🍎 iOS: App Store</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">📱 Abra o Expo Go</div>
+                    <div class="step-desc">
+                        <strong>Android:</strong> Abra o Expo Go e clique em "Scan QR Code"<br>
+                        <strong>iOS:</strong> Use o app <strong>Câmera</strong> nativo (não abra o Expo Go primeiro)
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">📸 Escaneie o QR Code</div>
+                    <div class="step-desc">
+                        Aponte a câmera para o QR code acima<br>
+                        <strong>Aguarde carregar:</strong> Primeira vez pode levar 30-60 segundos
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">🎉 Teste as Imagens!</div>
+                    <div class="step-desc">
+                        Faça login → Aprender → Fundamentos → Veja as 10 lições com imagens!<br>
+                        Hot reload está ativo: alterações no código atualizam automaticamente
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="warning">
+            <strong>📡 Importante - Conexão:</strong>
+            Certifique-se de que seu celular e computador estejam na <strong>mesma rede Wi-Fi</strong>.<br>
+            Se não conectar, tente copiar a URL abaixo manualmente no Expo Go.
+        </div>
+
+        <div class="url-box" id="expo-url">Carregando URL...</div>
+
+        <div class="footer">
+            <strong>Arena Excel</strong> &copy; 2026<br>
+            Aprenda Excel de forma gamificada 🎮
+        </div>
+    </div>
+
+    <script>
+        // URL do Expo Tunnel
+        const expoUrl = 'exp://dcc2efc7-5e6e-458f-a7dc-d901a8ecb009-abacusai.tunnel.abacusengine.ai:80';
+        
+        // Gera o QR code
+        const canvas = document.getElementById('qrcode');
+        QRCode.toCanvas(
+            canvas,
+            expoUrl,
+            { 
+                width: 300,
+                margin: 2,
+                color: {
+                    dark: '#667eea',
+                    light: '#ffffff'
+                }
+            },
+            function (error) {
+                if (error) {
+                    console.error('Erro ao gerar QR code:', error);
+                    document.getElementById('expo-url').textContent = 'Erro ao gerar QR code. Use a URL abaixo manualmente.';
+                } else {
+                    console.log('QR code gerado com sucesso!');
+                }
+            }
+        );
+
+        // Mostra a URL
+        document.getElementById('expo-url').textContent = expoUrl;
+        document.getElementById('expo-url').title = 'Clique para copiar';
+        document.getElementById('expo-url').style.cursor = 'pointer';
+        document.getElementById('expo-url').onclick = function() {
+            navigator.clipboard.writeText(expoUrl).then(() => {
+                alert('✅ URL copiada! Cole no Expo Go se não conseguir escanear o QR code.');
+            });
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,565 @@
+// SpreadsheetWebView.tsx
+// Componente React Native que carrega a planilha interativa via WebView
+// Comunicação bidirecional: RN ↔ WebView via postMessage
+
+import React, { useRef, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
+
+// ─── TIPOS ────────────────────────────────────────────────────
+
+export type QuestionType =
+  | 'MULTIPLE_CHOICE'
+  | 'SPREADSHEET_INPUT'
+  | 'FORMULA_BUILDER'
+  | 'CHART_BUILDER'
+  | 'FILL_IN_BLANK'
+  | 'DRAG_AND_DROP';
+
+export interface SpreadsheetContext {
+  cells?: Record<string, string | number>;
+  highlight?: string;
+  chartType?: 'column' | 'bar' | 'line' | 'pie';
+  dataRange?: string;
+}
+
+export interface SpreadsheetWebViewProps {
+  questionType: QuestionType;
+  spreadsheetContext: SpreadsheetContext;
+  expectedValue: string;
+  targetCell?: string;
+  onCorrect: (value: string) => void;
+  onWrong: (value: string) => void;
+  onHintRequest?: () => void;
+}
+
+// ─── COMPONENTE PRINCIPAL ─────────────────────────────────────
+
+export const SpreadsheetWebView: React.FC<SpreadsheetWebViewProps> = ({
+  questionType,
+  spreadsheetContext,
+  expectedValue,
+  targetCell,
+  onCorrect,
+  onWrong,
+}) => {
+  const webViewRef = useRef<WebView>(null);
+
+  const handleMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      try {
+        const data = JSON.parse(event.nativeEvent.data);
+        if (data.type === 'ANSWER_SUBMITTED') {
+          const normalized = (data.value ?? '').trim().toUpperCase();
+          const expected = (expectedValue ?? '').trim().toUpperCase();
+          if (normalized === expected) {
+            onCorrect(data.value);
+          } else {
+            onWrong(data.value);
+            // Envia feedback de erro de volta à WebView
+            webViewRef.current?.injectJavaScript(
+              `window.showError("${data.value}"); true;`
+            );
+          }
+        }
+        if (data.type === 'DRAG_ORDER_SUBMITTED') {
+          onCorrect(JSON.stringify(data.order));
+        }
+      } catch {
+        /* ignora mensagens malformadas */
+      }
+    },
+    [expectedValue, onCorrect, onWrong]
+  );
+
+  const html = generateHTML(questionType, spreadsheetContext, targetCell);
+
+  return (
+    <View style={styles.container}>
+      <WebView
+        ref={webViewRef}
+        source={{ html }}
+        style={styles.webview}
+        onMessage={handleMessage}
+        javaScriptEnabled
+        domStorageEnabled
+        scrollEnabled={false}
+        showsVerticalScrollIndicator={false}
+        startInLoadingState
+        renderLoading={() => (
+          <ActivityIndicator
+            style={StyleSheet.absoluteFill}
+            color="#1E88E5"
+            size="large"
+          />
+        )}
+        // iOS: permite input de teclado dentro da WebView
+        keyboardDisplayRequiresUserAction={false}
+        // Android: suporte a inputs modernos
+        mixedContentMode="compatibility"
+        allowsInlineMediaPlayback
+        originWhitelist={['*']}
+      />
+    </View>
+  );
+};
+
+// ─── GERADOR DE HTML ──────────────────────────────────────────
+
+function generateHTML(
+  type: QuestionType,
+  ctx: SpreadsheetContext,
+  targetCell?: string
+): string {
+  const cells = ctx.cells ?? {};
+  const highlight = targetCell ?? ctx.highlight ?? 'A1';
+
+  return /* html */ `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Arena Excel</title>
+<style>
+  /* ── RESET & BASE ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:    #1E88E5;
+    --green:   #43A047;
+    --red:     #E53935;
+    --yellow:  #FDD835;
+    --gray50:  #F8F9FA;
+    --gray100: #E9ECEF;
+    --gray200: #DEE2E6;
+    --gray400: #8D9298;
+    --gray700: #343A40;
+    --white:   #FFFFFF;
+    --radius:  8px;
+    --shadow:  0 2px 12px rgba(0,0,0,.10);
+    --font:    'Segoe UI', system-ui, sans-serif;
+  }
+  html, body {
+    height: 100%;
+    font-family: var(--font);
+    background: var(--gray50);
+    color: var(--gray700);
+    overflow: hidden;
+  }
+  .app { display: flex; flex-direction: column; height: 100vh; padding: 12px; gap: 10px; }
+
+  /* ── FORMULA BAR ── */
+  .formula-bar {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--white); border: 1.5px solid var(--gray200);
+    border-radius: var(--radius); padding: 8px 12px;
+    box-shadow: var(--shadow);
+  }
+  .cell-ref {
+    font-size: 13px; font-weight: 700; color: var(--blue);
+    min-width: 40px; text-align: center;
+    border-right: 1.5px solid var(--gray200); padding-right: 10px;
+  }
+  .fx-label { font-size: 13px; font-style: italic; color: var(--gray400); }
+  .formula-input {
+    flex: 1; border: none; outline: none;
+    font-size: 14px; font-family: 'Consolas', monospace;
+    color: var(--gray700); background: transparent;
+  }
+
+  /* ── GRID ── */
+  .grid-wrapper {
+    flex: 1; overflow: auto;
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    border: 1.5px solid var(--gray200); background: var(--white);
+  }
+  table { border-collapse: collapse; width: max-content; min-width: 100%; }
+  th, td { border: 1px solid var(--gray200); }
+  /* coluna de índice de linha */
+  .row-idx {
+    background: var(--gray50); color: var(--gray400);
+    font-size: 11px; font-weight: 600; text-align: center;
+    padding: 4px 8px; min-width: 32px; user-select: none;
+  }
+  /* cabeçalho de coluna */
+  .col-hdr {
+    background: var(--gray50); color: var(--gray400);
+    font-size: 11px; font-weight: 700; text-align: center;
+    padding: 6px 12px; min-width: 80px; user-select: none;
+    position: sticky; top: 0; z-index: 2;
+  }
+  /* célula normal */
+  .cell {
+    padding: 6px 10px; font-size: 13px; min-width: 80px;
+    height: 32px; vertical-align: middle; cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cell:hover { background: #EEF6FF; }
+  .cell.selected { background: #DBEEFF; outline: 2px solid var(--blue); outline-offset: -2px; }
+  .cell.highlight {
+    background: #FFF8E1; outline: 2px dashed var(--yellow);
+    outline-offset: -2px; font-weight: 600;
+  }
+  .cell.correct  { background: #E8F5E9; outline: 2px solid var(--green); outline-offset: -2px; }
+  .cell.wrong    { background: #FFEBEE; outline: 2px solid var(--red);   outline-offset: -2px; }
+  .cell.editable { cursor: text; }
+
+  /* ── INPUT INLINE ── */
+  .cell-input {
+    width: 100%; height: 100%; border: none; outline: none;
+    background: transparent; font-size: 13px; font-family: 'Consolas', monospace;
+    color: var(--gray700);
+  }
+
+  /* ── BOTÃO CONFIRMAR ── */
+  .btn-confirm {
+    background: var(--blue); color: #fff;
+    border: none; border-radius: var(--radius);
+    padding: 14px; font-size: 15px; font-weight: 700;
+    cursor: pointer; letter-spacing: .5px;
+    transition: background .2s, transform .1s;
+    box-shadow: 0 3px 8px rgba(30,136,229,.35);
+  }
+  .btn-confirm:active { transform: scale(.97); }
+  .btn-confirm:hover  { background: #1565C0; }
+  .btn-confirm:disabled { background: var(--gray200); color: var(--gray400); box-shadow: none; }
+
+  /* ── FEEDBACK TOAST ── */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    padding: 10px 24px; border-radius: 24px; font-size: 14px; font-weight: 600;
+    opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 99;
+  }
+  .toast.show  { opacity: 1; }
+  .toast.ok    { background: var(--green); color: #fff; }
+  .toast.fail  { background: var(--red);   color: #fff; }
+
+  /* ── DRAG AND DROP ── */
+  .dnd-list { list-style: none; display: flex; flex-direction: column; gap: 8px; padding: 4px; }
+  .dnd-item {
+    background: var(--white); border: 1.5px solid var(--gray200);
+    border-radius: var(--radius); padding: 12px 16px;
+    font-size: 14px; cursor: grab; user-select: none;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: var(--shadow); transition: box-shadow .15s, transform .15s;
+  }
+  .dnd-item:active { cursor: grabbing; box-shadow: 0 6px 20px rgba(0,0,0,.18); transform: scale(1.02); }
+  .dnd-item .drag-icon { color: var(--gray400); font-size: 18px; }
+
+  /* ── CHART SELECTOR ── */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chart-card {
+    border: 2px solid var(--gray200); border-radius: var(--radius);
+    padding: 16px 12px; text-align: center; cursor: pointer;
+    background: var(--white); transition: all .2s;
+  }
+  .chart-card:hover  { border-color: var(--blue); background: #EEF6FF; }
+  .chart-card.active { border-color: var(--blue); background: #DBEEFF; }
+  .chart-card .icon  { font-size: 32px; }
+  .chart-card .label { font-size: 13px; margin-top: 6px; font-weight: 600; }
+
+  /* ── FILL IN BLANK ── */
+  .formula-blank {
+    font-family: 'Consolas', monospace; font-size: 15px; line-height: 2;
+    background: var(--white); border-radius: var(--radius);
+    padding: 14px 16px; box-shadow: var(--shadow);
+    border: 1.5px solid var(--gray200);
+  }
+  .blank-input {
+    display: inline-block; min-width: 80px; border-bottom: 2px solid var(--blue);
+    text-align: center; outline: none; font-family: 'Consolas', monospace;
+    font-size: 15px; color: var(--blue); font-weight: 700;
+    background: transparent;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  ${renderByType(type, cells, highlight, ctx)}
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── UTILITÁRIOS ───────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function postToRN(payload) {
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+  }
+}
+
+function showToast(msg, kind) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + kind;
+  setTimeout(() => t.className = 'toast', 2200);
+}
+
+// ── FEEDBACK DE ERRO (chamado pelo RN via injectJavaScript) ───
+window.showError = function(val) {
+  showToast('❌ Resposta incorreta. Tente novamente!', 'fail');
+  const target = document.querySelector('.cell.highlight');
+  if (target) {
+    target.classList.add('wrong');
+    setTimeout(() => target.classList.remove('wrong'), 1500);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+//  LÓGICA POR TIPO DE QUESTÃO
+// ─────────────────────────────────────────────────────────────
+
+const QUESTION_TYPE = "${type}";
+
+// ── SPREADSHEET / FORMULA INPUT ───────────────────────────────
+if (['SPREADSHEET_INPUT','FORMULA_BUILDER'].includes(QUESTION_TYPE)) {
+  const targetCell = "${highlight}";
+  const formulaInput = $('formula-input');
+  const cellRef = $('cell-ref');
+
+  // Sincroniza barra de fórmula ↔ célula alvo
+  if (formulaInput) {
+    formulaInput.addEventListener('input', () => {
+      const cell = document.querySelector('[data-cell="'+targetCell+'"]');
+      if (cell) cell.textContent = formulaInput.value;
+    });
+
+    formulaInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); }
+    });
+  }
+
+  // Clique em qualquer célula seleciona
+  document.querySelectorAll('.cell').forEach(cell => {
+    cell.addEventListener('click', () => {
+      document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+      cell.classList.add('selected');
+      const ref = cell.dataset.cell;
+      if (cellRef) cellRef.textContent = ref;
+    });
+  });
+
+  window.submitAnswer = function() {
+    const val = (formulaInput?.value ?? '').trim();
+    if (!val) { showToast('⚠️ Digite uma fórmula ou valor', 'fail'); return; }
+    postToRN({ type: 'ANSWER_SUBMITTED', value: val });
+  };
+}
+
+// ── CHART BUILDER ─────────────────────────────────────────────
+if (QUESTION_TYPE === 'CHART_BUILDER') {
+  let selected = null;
+  document.querySelectorAll('.chart-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.chart-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      selected = card.dataset.chart;
+      $('btn-confirm')?.removeAttribute('disabled');
+    });
+  });
+
+  window.submitAnswer = function() {
+    if (!selected) { showToast('⚠️ Selecione um tipo de gráfico', 'fail'); return; }
+    postToRN({ type: 'ANSWER_SUBMITTED', value: selected });
+  };
+}
+
+// ── DRAG AND DROP ─────────────────────────────────────────────
+if (QUESTION_TYPE === 'DRAG_AND_DROP') {
+  let dragSrc = null;
+  const list = $('dnd-list');
+
+  if (list) {
+    list.addEventListener('dragstart', e => {
+      dragSrc = e.target.closest('.dnd-item');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    list.addEventListener('dragover', e => {
+      e.preventDefault();
+      const target = e.target.closest('.dnd-item');
+      if (target && target !== dragSrc) {
+        const rect = target.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        if (e.clientY < mid) list.insertBefore(dragSrc, target);
+        else list.insertBefore(dragSrc, target.nextSibling);
+      }
+    });
+  }
+
+  window.submitAnswer = function() {
+    const order = [...document.querySelectorAll('.dnd-item')].map(i => i.dataset.value);
+    postToRN({ type: 'DRAG_ORDER_SUBMITTED', order });
+  };
+}
+
+// ── FILL IN BLANK ──────────────────────────────────────────────
+if (QUESTION_TYPE === 'FILL_IN_BLANK') {
+  window.submitAnswer = function() {
+    const inputs = [...document.querySelectorAll('.blank-input')];
+    const values = inputs.map(i => i.value.trim());
+    postToRN({ type: 'ANSWER_SUBMITTED', value: values.join('|') });
+  };
+}
+</script>
+</body>
+</html>`;
+}
+
+// ─── RENDERERS POR TIPO ───────────────────────────────────────
+
+function renderByType(
+  type: QuestionType,
+  cells: Record<string, string | number>,
+  highlight: string,
+  ctx: SpreadsheetContext
+): string {
+  switch (type) {
+    case 'SPREADSHEET_INPUT':
+    case 'FORMULA_BUILDER':
+      return renderSpreadsheet(cells, highlight);
+    case 'CHART_BUILDER':
+      return renderChartSelector();
+    case 'DRAG_AND_DROP':
+      return renderDragDrop([]);
+    case 'FILL_IN_BLANK':
+      return renderFillBlank('=SE(___>=7,"Aprovado","___")');
+    default:
+      return renderSpreadsheet(cells, highlight);
+  }
+}
+
+function renderSpreadsheet(
+  cells: Record<string, string | number>,
+  highlight: string
+): string {
+  const COLS = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const ROWS = 8;
+
+  let html = `
+    <div class="formula-bar">
+      <span class="cell-ref" id="cell-ref">${highlight}</span>
+      <span class="fx-label">fx</span>
+      <input class="formula-input" id="formula-input"
+        placeholder="Digite sua fórmula aqui (ex: =SOMA(A1:A5))"
+        autocorrect="off" autocapitalize="none" spellcheck="false"/>
+    </div>
+    <div class="grid-wrapper">
+      <table>
+        <thead><tr>
+          <th class="row-idx"></th>
+          ${COLS.map(c => `<th class="col-hdr">${c}</th>`).join('')}
+        </tr></thead>
+        <tbody>`;
+
+  for (let r = 1; r <= ROWS; r++) {
+    html += `<tr><td class="row-idx">${r}</td>`;
+    for (const c of COLS) {
+      const addr = `${c}${r}`;
+      const val = cells[addr] ?? '';
+      const isHighlight = addr === highlight;
+      const cls = isHighlight ? 'cell highlight editable' : 'cell';
+      html += `<td class="${cls}" data-cell="${addr}">${isHighlight ? '' : val}</td>`;
+    }
+    html += `</tr>`;
+  }
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+    <button class="btn-confirm" onclick="submitAnswer()">✓ Confirmar Resposta</button>`;
+
+  return html;
+}
+
+function renderChartSelector(): string {
+  const charts = [
+    { type: 'column', icon: '📊', label: 'Colunas' },
+    { type: 'bar',    icon: '📉', label: 'Barras'  },
+    { type: 'line',   icon: '📈', label: 'Linhas'  },
+    { type: 'pie',    icon: '🥧', label: 'Pizza'   },
+  ];
+
+  return `
+    <p style="font-size:14px;color:#555;padding:4px 2px;">Selecione o tipo de gráfico mais adequado:</p>
+    <div class="chart-grid">
+      ${charts.map(c => `
+        <div class="chart-card" data-chart="${c.type}">
+          <div class="icon">${c.icon}</div>
+          <div class="label">${c.label}</div>
+        </div>`).join('')}
+    </div>
+    <button class="btn-confirm" id="btn-confirm" disabled onclick="submitAnswer()">
+      ✓ Confirmar Gráfico
+    </button>`;
+}
+
+function renderDragDrop(items: string[]): string {
+  const placeholders = items.length
+    ? items
+    : [
+        'Passo 1 — carregando...',
+        'Passo 2 — carregando...',
+        'Passo 3 — carregando...',
+      ];
+
+  return `
+    <p style="font-size:14px;color:#555;padding:4px 2px;">Arraste para ordenar corretamente:</p>
+    <div style="flex:1;overflow:auto;">
+      <ul class="dnd-list" id="dnd-list">
+        ${placeholders
+          .map(
+            (item, i) => `
+          <li class="dnd-item" draggable="true" data-value="${encodeURIComponent(item)}">
+            <span class="drag-icon">⠿</span>
+            <span>${item}</span>
+          </li>`
+          )
+          .join('')}
+      </ul>
+    </div>
+    <button class="btn-confirm" onclick="submitAnswer()">✓ Confirmar Ordem</button>`;
+}
+
+function renderFillBlank(template: string): string {
+  const filled = template.replace(
+    /___/g,
+    `<input class="blank-input" size="6" autocorrect="off" autocapitalize="none"/>`
+  );
+  return `
+    <p style="font-size:14px;color:#555;padding:4px 2px;">Complete a fórmula:</p>
+    <div class="formula-blank">${filled}</div>
+    <button class="btn-confirm" onclick="submitAnswer()">✓ Confirmar</button>`;
+}
+
+// ─── ESTILOS ──────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F8F9FA',
+    // iOS shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    // Android shadow
+    elevation: 4,
+    marginHorizontal: Platform.OS === 'ios' ? 0 : 2,
+  },
+  webview: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+});
+
+export default SpreadsheetWebView;

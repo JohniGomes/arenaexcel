@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Design System — Excel App</title>
+<style>
+/* ═══════════════════════════════════════════════════
+   DESIGN SYSTEM — EXCEL APP
+   Paleta, componentes e questões
+═══════════════════════════════════════════════════ */
+
+:root {
+  --green-dark:   #217346;
+  --green-mid:    #2E9E5B;
+  --green-light:  #E8F5E9;
+  --green-vivid:  #27AE60;
+  --bg:           #F7F9F7;
+  --surface:      #FFFFFF;
+  --text:         #1A1A2E;
+  --text-sub:     #4A4A6A;
+  --border:       #E0E5E0;
+  --gray:         #B0BEC5;
+  --gray-bg:      #F0F2F0;
+  --amber:        #F59E0B;
+  --amber-light:  #FEF3C7;
+  --red:          #E74C3C;
+  --red-light:    #FEE2E2;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d1f14;
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Page Layout ── */
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+.page-title {
+  text-align: center;
+  color: rgba(255,255,255,0.92);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+.page-sub {
+  text-align: center;
+  color: rgba(255,255,255,0.4);
+  font-size: 13px;
+  margin-bottom: 36px;
+}
+
+/* ── Section ── */
+.section { margin-bottom: 48px; }
+.section-title {
+  color: rgba(255,255,255,0.5);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  padding-left: 2px;
+}
+
+/* ── Card shell ── */
+.card {
+  background: var(--surface);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+/* ── Question Header ── */
+.q-header {
+  background: linear-gradient(135deg, var(--green-dark), var(--green-mid));
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.q-trail {
+  color: rgba(255,255,255,0.65);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.q-title {
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.xp-badge {
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 4px 10px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Question Body ── */
+.q-body {
+  padding: 16px 16px 0;
+}
+
+/* ── Hint bar ── */
+.hint-bar {
+  margin: 0 16px 10px;
+  background: var(--amber-light);
+  border: 1px solid var(--amber);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #92400E;
+  line-height: 1.6;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+/* ── Options ── */
+.options {
+  padding: 0 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.option {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+.option:hover {
+  border-color: var(--green-mid);
+  background: var(--green-light);
+}
+.option.selected {
+  border-color: var(--green-mid);
+  background: var(--green-light);
+  color: var(--green-dark);
+  font-weight: 600;
+}
+.option.correct {
+  border-color: var(--green-mid);
+  background: var(--green-light);
+  color: var(--green-dark);
+  font-weight: 600;
+}
+.option.wrong {
+  border-color: var(--red);
+  background: var(--red-light);
+  color: var(--red);
+  font-weight: 600;
+}
+.option-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+  transition: all 0.15s;
+}
+
+/* ── CTA Button ── */
+.btn-confirm {
+  width: calc(100% - 32px);
+  margin: 0 16px 16px;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--green-mid), var(--green-dark));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(33,115,70,0.3);
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+.btn-confirm:disabled {
+  background: var(--border);
+  color: var(--gray);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ── Feedback ── */
+.feedback {
+  margin: 0 16px 16px;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.feedback.correct {
+  background: var(--green-light);
+  border: 1px solid var(--green-mid);
+}
+.feedback.wrong {
+  background: var(--red-light);
+  border: 1px solid var(--red);
+}
+.feedback-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.feedback.correct .feedback-title { color: var(--green-dark); }
+.feedback.wrong .feedback-title { color: var(--red); }
+.feedback-text {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════════
+   DESIGN SYSTEM DAS QUESTÕES — classes injetadas no
+   campo `description` de cada questão via wrapDescription()
+═══════════════════════════════════════════════════ */
+
+/* ── Grid Excel ── */
+.xl-wrap {
+  overflow-x: auto;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.xl-grid {
+  border-collapse: collapse;
+  font-size: 13px;
+  width: 100%;
+  font-family: monospace;
+}
+.xl-grid th {
+  background: var(--bg);
+  color: var(--text-sub);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  text-align: center;
+  font-size: 12px;
+}
+.xl-grid td {
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  color: var(--text);
+  text-align: right;
+  background: var(--surface);
+  min-width: 44px;
+}
+.xl-grid .rh {
+  background: var(--bg);
+  color: var(--text-sub);
+  font-weight: 600;
+  text-align: center;
+  font-size: 12px;
+}
+.cell-active {
+  background: var(--green-light) !important;
+  border: 2px solid var(--green-mid) !important;
+  color: var(--green-dark) !important;
+  font-weight: 700 !important;
+}
+.cell-result {
+  background: var(--amber-light) !important;
+  border: 2px solid var(--amber) !important;
+  color: #92400E !important;
+  font-weight: 700 !important;
+}
+.cell-error {
+  background: var(--red-light) !important;
+  border: 2px solid var(--red) !important;
+  color: var(--red) !important;
+  font-weight: 700 !important;
+}
+.cell-text { text-align: left !important; }
+
+/* ── Cards de contexto ── */
+.ctx-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.ctx-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-sub);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.ctx-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ── Comparação Antes/Depois ── */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.compare-bad {
+  background: var(--red-light);
+  border: 1px solid #FECACA;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+.compare-good {
+  background: var(--green-light);
+  border: 1px solid #BBF7D0;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+.compare-label-bad {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--red);
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+.compare-label-good {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green-mid);
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+.compare-value      { font-size: 22px; font-weight: 800; }
+.compare-value.bad  { color: var(--red); }
+.compare-value.good { color: var(--green-dark); }
+.compare-sub        { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+
+/* ── Badge de célula ── */
+.cell-badge {
+  display: inline-block;
+  background: var(--green-dark);
+  color: #fff;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 5px;
+  margin: 0 2px;
+}
+
+/* ── Teclas de teclado ── */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  box-shadow: 0 2px 0 #d0d5d0;
+  margin: 0 3px;
+  font-family: monospace;
+}
+.kbd-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* ── Banner Desafio Final ── */
+.challenge-banner {
+  background: linear-gradient(135deg, var(--green-dark), var(--green-mid));
+  color: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.challenge-icon  { font-size: 26px; margin-bottom: 6px; }
+.challenge-title { font-weight: 800; font-size: 15px; }
+.challenge-sub   { opacity: 0.75; font-size: 12px; margin-top: 4px; }
+
+/* ── Step list ── */
+.step-list { display: flex; flex-direction: column; gap: 6px; }
+.step-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+}
+.step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--green-light);
+  color: var(--green-dark);
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Ícone centralizado ── */
+.icon-center        { text-align: center; padding: 12px 0; }
+.icon-center .icon  { font-size: 36px; margin-bottom: 8px; }
+.icon-center .desc  { font-size: 13px; color: var(--text-sub); }
+
+/* ── Grid 2 colunas (stats) ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+.stat-value { font-size: 20px; font-weight: 800; color: var(--text); }
+.stat-label { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+
+/* ── Navegação entre questões ── */
+.nav-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.nav-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.nav-btn:hover, .nav-btn.active {
+  background: var(--green-mid);
+  border-color: var(--green-mid);
+  color: #fff;
+}
+.nav-arrow {
+  padding: 9px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.6);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.nav-arrow.primary {
+  background: linear-gradient(135deg, var(--green-mid), var(--green-dark));
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(33,115,70,0.3);
+}
+.nav-counter {
+  color: rgba(255,255,255,0.25);
+  font-size: 11px;
+  text-align: center;
+  margin-top: 12px;
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="page-title">Design System — Excel App</div>
+  <div class="page-sub">Paleta verde · Questões padronizadas · Identidade coesa</div>
+
+  <!-- Nav buttons -->
+  <div class="nav-row" id="navRow"></div>
+
+  <!-- Question container -->
+  <div id="questionContainer"></div>
+
+  <!-- Nav arrows -->
+  <div style="display:flex;gap:12px;justify-content:center;margin-top:8px;">
+    <button class="nav-arrow" id="btnPrev" onclick="navigate(-1)">← Anterior</button>
+    <button class="nav-arrow primary" id="btnNext" onclick="navigate(1)">Próxima →</button>
+  </div>
+  <div class="nav-counter" id="counter"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  QUESTÕES — cada `description` usa as classes do
+//  design system (sem inline styles com cores avulsas)
+// ═══════════════════════════════════════════════════
+
+const questions = [
+  {
+    trail: "Excel do Zero",
+    xp: 10,
+    title: "O que é uma célula no Excel?",
+    description: `
+      <div class="xl-wrap">
+        <table class="xl-grid">
+          <thead><tr><th></th><th>A</th><th>B</th><th>C</th></tr></thead>
+          <tbody>
+            <tr><td class="rh">1</td><td>10</td><td>20</td><td class="cell-active">30</td></tr>
+            <tr><td class="rh">2</td><td>40</td><td>50</td><td>60</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ctx-card">
+        <div class="ctx-label">Identifique a célula</div>
+        <div class="ctx-body">
+          A célula destacada está na coluna <span class="cell-badge">C</span>
+          e na linha <span class="cell-badge">1</span>. O que ela representa?
+        </div>
+      </div>`,
+    hint: "A célula é onde a coluna (letra) cruza com a linha (número). Ex: C1 está na coluna C, linha 1.",
+    options: [
+      "A área onde você digita o nome do arquivo",
+      "A intersecção de uma linha com uma coluna",
+      "O botão para salvar a planilha",
+      "O menu com as fórmulas disponíveis",
+    ],
+    correct: 1,
+    explanation: "Uma célula é exatamente o cruzamento de uma coluna (letra) com uma linha (número). Ex: A1, B3, C10.",
+  },
+  {
+    trail: "Excel do Zero",
+    xp: 15,
+    title: "Qual é o endereço desta célula?",
+    description: `
+      <div class="xl-wrap">
+        <table class="xl-grid">
+          <thead><tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead>
+          <tbody>
+            <tr><td class="rh">1</td><td></td><td></td><td></td><td></td></tr>
+            <tr><td class="rh">2</td><td></td><td></td><td></td><td></td></tr>
+            <tr><td class="rh">3</td><td></td><td></td><td></td><td></td></tr>
+            <tr><td class="rh">4</td><td></td><td></td><td></td><td></td></tr>
+            <tr><td class="rh">5</td><td></td><td></td><td class="cell-active">✓</td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ctx-card">
+        <div class="ctx-label">Notação padrão</div>
+        <div class="ctx-body">
+          Primeiro vem a letra da <strong>coluna</strong>, depois o número da <strong>linha</strong>.
+          Coluna <span class="cell-badge">C</span> + Linha <span class="cell-badge">5</span> = ?
+        </div>
+      </div>`,
+    hint: "A notação padrão é sempre LETRA (coluna) seguida de NÚMERO (linha).",
+    options: ["5C", "C5", "C-5", "(C,5)"],
+    correct: 1,
+    explanation: "A notação padrão é sempre LETRA (coluna) seguida de NÚMERO (linha): C5.",
+  },
+  {
+    trail: "Excel do Zero",
+    xp: 15,
+    title: "Qual atalho salva a planilha?",
+    description: `
+      <div class="ctx-card">
+        <div class="icon-center">
+          <div class="icon">💾</div>
+          <div class="desc">Qual combinação de teclas salva a planilha instantaneamente?</div>
+        </div>
+        <div class="kbd-row">
+          <span class="kbd">⌃ Ctrl</span>
+          <span class="kbd">⇧ Shift</span>
+          <span class="kbd">⎇ Alt</span>
+          <span class="kbd">S</span>
+        </div>
+      </div>`,
+    hint: "O atalho universal de Save funciona em quase todos os programas!",
+    options: ["Ctrl + S", "Ctrl + V", "Alt + S", "F2"],
+    correct: 0,
+    explanation: "Ctrl + S (Save) é o atalho universal para salvar em praticamente todos os programas.",
+  },
+  {
+    trail: "Excel do Zero",
+    xp: 15,
+    title: "Formatação de números",
+    description: `
+      <div class="compare-grid">
+        <div class="compare-bad">
+          <div class="compare-label-bad">❌ SEM formatação</div>
+          <div class="compare-value bad">1500</div>
+          <div class="compare-sub">número bruto</div>
+        </div>
+        <div class="compare-good">
+          <div class="compare-label-good">✅ COM formatação</div>
+          <div class="compare-value good">R$ 1.500,00</div>
+          <div class="compare-sub">formatado</div>
+        </div>
+      </div>
+      <div class="ctx-card">
+        <div class="ctx-label">Objetivo</div>
+        <div class="ctx-body">Qual formato transforma o número bruto <strong>1500</strong> em um valor monetário legível?</div>
+      </div>`,
+    hint: "O formato Moeda adiciona o símbolo R$, separadores de milhar e duas casas decimais automaticamente!",
+    options: ["Texto", "Moeda", "Data", "Científico"],
+    correct: 1,
+    explanation: "O formato Moeda ou Contábil adiciona o símbolo monetário e os separadores de milhar e decimal.",
+  },
+  {
+    trail: "Fundamentos",
+    xp: 20,
+    title: "Qual função retorna o menor valor?",
+    description: `
+      <div class="xl-wrap">
+        <table class="xl-grid">
+          <thead><tr><th></th><th>A</th></tr></thead>
+          <tbody>
+            <tr><td class="rh">1</td><td>150</td></tr>
+            <tr><td class="rh">2</td><td>50</td></tr>
+            <tr><td class="rh">3</td><td>200</td></tr>
+            <tr><td class="rh">4</td><td class="cell-result">25 ⭐</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ctx-card">
+        <div class="ctx-label">Valor em destaque</div>
+        <div class="ctx-body">O valor <strong>25</strong> (destacado) é o menor da lista. Qual função o encontra automaticamente?</div>
+      </div>`,
+    hint: "=MÍNIMO() ou =MIN() encontra o menor valor em um conjunto de números!",
+    options: ["=MENOR()", "=MÍNIMO()", "=MIN.SE()", "=BAIXO()"],
+    correct: 1,
+    explanation: "=MÍNIMO(intervalo) retorna o menor valor numérico do intervalo especificado.",
+  },
+  {
+    trail: "Análise de Dados",
+    xp: 25,
+    title: "Formatação Condicional — destacar em vermelho",
+    description: `
+      <div class="xl-wrap">
+        <table class="xl-grid">
+          <thead><tr><th></th><th>A</th><th>B</th></tr></thead>
+          <tbody>
+            <tr><td class="rh">1</td><td class="cell-text">Produto</td><td>Vendas</td></tr>
+            <tr><td class="rh">2</td><td class="cell-text">Notebook</td><td>1200</td></tr>
+            <tr><td class="rh">3</td><td class="cell-text">Mouse</td><td class="cell-error">320</td></tr>
+            <tr><td class="rh">4</td><td class="cell-text">Teclado</td><td>890</td></tr>
+            <tr><td class="rh">5</td><td class="cell-text">Monitor</td><td class="cell-error">480</td></tr>
+            <tr><td class="rh">6</td><td class="cell-text">Webcam</td><td class="cell-error">210</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ctx-card">
+        <div class="ctx-label">Regra aplicada</div>
+        <div class="ctx-body">Valores abaixo de <strong>500</strong> foram destacados em vermelho automaticamente. Qual recurso faz isso?</div>
+      </div>`,
+    hint: "Formatação Condicional > Regras de Realce > É Menor que...",
+    options: [
+      "Início > Formatar Células > Vermelho",
+      "Início > Formatação Condicional > Regras de Realce > É Menor que",
+      "Dados > Formatação > Cor",
+      "Exibir > Destacar > Menor que",
+    ],
+    correct: 1,
+    explanation: "Formatação Condicional > Regras de Realce > É Menor que... permite definir a condição e a cor de forma automática.",
+  },
+  {
+    trail: "Fundamentos",
+    xp: 20,
+    title: "Referência relativa vs absoluta",
+    description: `
+      <div class="xl-wrap">
+        <table class="xl-grid">
+          <thead><tr><th></th><th>A</th><th>B</th><th>C</th></tr></thead>
+          <tbody>
+            <tr><td class="rh">1</td><td>10</td><td>2</td><td class="cell-active">=A1*B1</td></tr>
+            <tr><td class="rh">2</td><td>20</td><td>3</td><td class="cell-result">=A2*B2</td></tr>
+            <tr><td class="rh">3</td><td>30</td><td>4</td><td>...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ctx-card">
+        <div class="ctx-label">O que acontece ao copiar?</div>
+        <div class="ctx-body">
+          A fórmula em <span class="cell-badge">C1</span> é <strong>=A1*B1</strong>.
+          Ao copiá-la para <span class="cell-badge">C2</span>, ela se torna:
+        </div>
+      </div>`,
+    hint: "Referências sem $ ajustam automaticamente ao serem copiadas — elas acompanham o movimento!",
+    options: ["=A1*B1", "=A2*B2", "=$A$1*$B$1", "=A1*B2"],
+    correct: 1,
+    explanation: "Referências relativas (sem $) ajustam automaticamente ao serem copiadas. A fórmula desce junto com a célula.",
+  },
+  {
+    trail: "Produtividade",
+    xp: 20,
+    title: "Flash Fill — Preenchimento Relâmpago",
+    description: `
+      <div class="xl-wrap">
+        <table class="xl-grid">
+          <thead><tr><th></th><th>A</th><th>B</th></tr></thead>
+          <tbody>
+            <tr><td class="rh">1</td><td class="cell-text">João Silva</td><td class="cell-active">João</td></tr>
+            <tr><td class="rh">2</td><td class="cell-text">Maria Souza</td><td class="cell-result">Maria?</td></tr>
+            <tr><td class="rh">3</td><td class="cell-text">Pedro Lima</td><td class="cell-result">Pedro?</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ctx-card">
+        <div class="ctx-label">Padrão detectado</div>
+        <div class="ctx-body">
+          Você digitou <strong>João</strong> em B1. O Excel detectou o padrão e pode preencher B2 e B3 automaticamente.
+          Qual atalho faz isso?
+        </div>
+      </div>`,
+    hint: "Flash Fill detecta padrões e preenche automaticamente. É como mágica!",
+    options: [
+      "Ctrl + F (Localizar)",
+      "Ctrl + E (Flash Fill)",
+      "Ctrl + D (Preencher abaixo)",
+      "Alt + Enter",
+    ],
+    correct: 1,
+    explanation: "Ctrl + E ativa o Flash Fill, que detecta o padrão e preenche as células restantes automaticamente.",
+  },
+  {
+    trail: "Fórmulas Essenciais",
+    xp: 40,
+    title: "PROCV na prática",
+    description: `
+      <div class="xl-wrap">
+        <table class="xl-grid">
+          <thead><tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="rh">1</td>
+              <td class="cell-text" style="font-weight:600">Código</td>
+              <td class="cell-text" style="font-weight:600">Nome</td>
+              <td style="font-weight:600">Salário</td>
+              <td></td>
+              <td class="cell-result">102</td>
+              <td class="cell-active">?</td>
+            </tr>
+            <tr><td class="rh">2</td><td>101</td><td class="cell-text">Ana</td><td>3500</td><td></td><td></td><td></td></tr>
+            <tr><td class="rh">3</td><td>102</td><td class="cell-text">Bruno</td><td>4200</td><td></td><td></td><td></td></tr>
+            <tr><td class="rh">4</td><td>103</td><td class="cell-text">Carla</td><td>5100</td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ctx-card">
+        <div class="ctx-label">Objetivo</div>
+        <div class="ctx-body">
+          Busque o salário do funcionário cujo código está em <span class="cell-badge">E1</span>,
+          consultando a tabela <span class="cell-badge">A1:C4</span>.
+          A coluna 3 tem o salário.
+        </div>
+      </div>`,
+    hint: "=PROCV(valor, tabela, coluna, 0) — o 0 no final significa correspondência exata!",
+    options: [
+      "=PROCV(E1,A1:C4,2,0)",
+      "=PROCV(E1,A1:C4,3,0)",
+      "=PROCV(A1:C4,E1,3,0)",
+      "=BUSCAR(E1,A1:C4,3)",
+    ],
+    correct: 1,
+    explanation: "PROCV(valor_procurado, tabela, número_coluna, 0). Coluna 3 = salário. O 0 garante correspondência exata.",
+  },
+  {
+    trail: "Excel do Zero",
+    xp: 30,
+    title: "Desafio Final: Crie uma planilha de despesas",
+    description: `
+      <div class="challenge-banner">
+        <div class="challenge-icon">🏁</div>
+        <div class="challenge-title">Desafio Final</div>
+        <div class="challenge-sub">Planilha de Controle de Despesas</div>
+      </div>
+      <div class="ctx-card">
+        <div class="ctx-label">Sua tarefa</div>
+        <div class="ctx-body">Organize os passos na ordem correta para criar uma planilha profissional do zero.</div>
+      </div>
+      <div class="step-list">
+        <div class="step-item"><div class="step-num">1</div>Abrir o Excel e criar nova pasta de trabalho</div>
+        <div class="step-item"><div class="step-num">2</div>Digitar os cabeçalhos: Data, Descrição, Valor</div>
+        <div class="step-item"><div class="step-num">3</div>Inserir os dados de despesas nas linhas abaixo</div>
+        <div class="step-item"><div class="step-num">4</div>Criar =SOMA() para totalizar os valores</div>
+        <div class="step-item"><div class="step-num">5</div>Formatar a coluna de valores como Moeda</div>
+        <div class="step-item"><div class="step-num">6</div>Salvar o arquivo com Ctrl+S</div>
+      </div>`,
+    hint: "Pense no fluxo lógico: estrutura → dados → cálculos → formatação → salvar.",
+    options: [],
+    correct: -1,
+    explanation: "Esse fluxo garante uma planilha organizada e profissional desde o início.",
+  },
+];
+
+// ═══════════════════════════════════════════════════
+//  RENDER ENGINE
+// ═══════════════════════════════════════════════════
+
+let current = 0;
+let selected = null;
+let revealed = false;
+
+function render() {
+  const q = questions[current];
+  const container = document.getElementById('questionContainer');
+  const hasOptions = q.options.length > 0;
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="q-header">
+        <div>
+          <div class="q-trail">${q.trail}</div>
+          <div class="q-title">${q.title}</div>
+        </div>
+        <div class="xp-badge">+${q.xp} XP</div>
+      </div>
+
+      <div class="q-body">${q.description}</div>
+
+      <div class="hint-bar" id="hintBar" style="display:none">
+        💡 ${q.hint}
+      </div>
+
+      <div style="margin:0 16px 10px">
+        <button onclick="toggleHint()" style="
+          width:100%;padding:8px;background:var(--amber-light);
+          border:1px solid var(--amber);border-radius:9px;cursor:pointer;
+          font-size:12px;color:#92400E;font-weight:600;
+          display:flex;align-items:center;gap:6px;font-family:inherit;
+        " id="hintBtn">
+          <span>💡</span><span>Ver dica</span>
+        </button>
+      </div>
+
+      ${hasOptions ? `
+      <div class="options" id="optionsList">
+        ${q.options.map((opt, i) => `
+          <button class="option" onclick="selectOption(${i})" id="opt${i}">
+            <div class="option-dot" id="dot${i}"></div>
+            ${opt}
+          </button>
+        `).join('')}
+      </div>
+
+      <div id="feedbackArea"></div>
+
+      <button class="btn-confirm" id="btnConfirm" onclick="confirm()" disabled>
+        Confirmar resposta
+      </button>
+      ` : `
+      <div style="padding:0 16px 16px">
+        <div class="feedback correct">
+          <div class="feedback-title">✓ Exercício de ordenação</div>
+          <div class="feedback-text">${q.explanation}</div>
+        </div>
+      </div>
+      `}
+    </div>
+  `;
+
+  // Nav buttons
+  const navRow = document.getElementById('navRow');
+  navRow.innerHTML = questions.map((_, i) => `
+    <button class="nav-btn ${i === current ? 'active' : ''}" onclick="goTo(${i})">Q${i+1}</button>
+  `).join('');
+
+  document.getElementById('counter').textContent = `${current + 1} de ${questions.length} questões`;
+  document.getElementById('btnPrev').disabled = current === 0;
+  document.getElementById('btnNext').disabled = current === questions.length - 1;
+  document.getElementById('btnPrev').style.opacity = current === 0 ? '0.3' : '1';
+  document.getElementById('btnNext').style.opacity = current === questions.length - 1 ? '0.3' : '1';
+
+  selected = null;
+  revealed = false;
+}
+
+function toggleHint() {
+  const bar = document.getElementById('hintBar');
+  const btn = document.getElementById('hintBtn');
+  const showing = bar.style.display !== 'none';
+  bar.style.display = showing ? 'none' : 'flex';
+  btn.querySelector('span:last-child').textContent = showing ? 'Ver dica' : 'Ocultar dica';
+}
+
+function selectOption(i) {
+  if (revealed) return;
+  selected = i;
+  document.querySelectorAll('.option').forEach((el, idx) => {
+    el.className = 'option' + (idx === i ? ' selected' : '');
+    document.getElementById(`dot${idx}`).textContent = '';
+    document.getElementById(`dot${idx}`).style.background = 'transparent';
+  });
+  document.getElementById(`opt${i}`).querySelector('.option-dot').style.background = 'var(--green-mid)';
+  document.getElementById('btnConfirm').disabled = false;
+}
+
+function confirm() {
+  if (selected === null || revealed) return;
+  revealed = true;
+  const q = questions[current];
+  const isCorrect = selected === q.correct;
+
+  document.querySelectorAll('.option').forEach((el, i) => {
+    if (i === q.correct) {
+      el.className = 'option correct';
+      document.getElementById(`dot${i}`).textContent = '✓';
+      document.getElementById(`dot${i}`).style.background = 'var(--green-mid)';
+      document.getElementById(`dot${i}`).style.color = '#fff';
+    } else if (i === selected && !isCorrect) {
+      el.className = 'option wrong';
+      document.getElementById(`dot${i}`).textContent = '✗';
+      document.getElementById(`dot${i}`).style.background = 'transparent';
+      document.getElementById(`dot${i}`).style.color = 'var(--red)';
+    }
+  });
+
+  document.getElementById('feedbackArea').innerHTML = `
+    <div class="feedback ${isCorrect ? 'correct' : 'wrong'}" style="margin:0 16px 10px">
+      <div class="feedback-title">${isCorrect ? '✓ Correto!' : '✗ Não foi dessa vez'}</div>
+      <div class="feedback-text">${q.explanation}</div>
+    </div>
+  `;
+
+  document.getElementById('btnConfirm').style.display = 'none';
+}
+
+function goTo(i) {
+  current = i;
+  render();
+}
+
+function navigate(dir) {
+  const next = current + dir;
+  if (next >= 0 && next < questions.length) {
+    current = next;
+    render();
+  }
+}
+
+render();
+</script>
+</body>
+</html>

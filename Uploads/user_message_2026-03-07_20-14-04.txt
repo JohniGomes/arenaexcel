@@ -1,0 +1,246 @@
+Atualizar a página pages/certificado/validar/[id].tsx com layout visual de certificado bonito, medalha e texto específicos por módulo.
+Substituir todo o conteúdo do arquivo pelo seguinte:
+typescriptimport { GetServerSideProps } from 'next';
+
+interface Certificado {
+  valido: boolean;
+  id: string;
+  nomeAluno: string;
+  curso: string;
+  nivel: string;
+  emoji: string;
+  dataConquista: string;
+  emissor: string;
+}
+
+interface Props {
+  certificado?: Certificado;
+}
+
+const NIVEIS_CONFIG: Record<string, { medalha: string; cor: string; descricao: string }> = {
+  nivel_fundamentos: {
+    medalha: '🥉',
+    cor: '#cd7f32',
+    descricao: 'demonstrando domínio dos conceitos fundamentais do Excel, incluindo navegação, formatação e fórmulas básicas.',
+  },
+  nivel_basico: {
+    medalha: '🥈',
+    cor: '#aaa9ad',
+    descricao: 'demonstrando proficiência em funções essenciais, gráficos e organização de dados no Excel.',
+  },
+  nivel_intermediario: {
+    medalha: '🥇',
+    cor: '#d4af37',
+    descricao: 'demonstrando domínio de funções avançadas, tabelas dinâmicas e análise de dados profissional.',
+  },
+  nivel_avancado: {
+    medalha: '🏆',
+    cor: '#2ECC71',
+    descricao: 'demonstrando expertise em automações, fórmulas complexas e soluções avançadas no Excel.',
+  },
+  nivel_especialista: {
+    medalha: '👑',
+    cor: '#c8a84b',
+    descricao: 'atingindo o mais alto nível de domínio do Excel, com capacidade de resolver desafios profissionais complexos.',
+  },
+};
+
+export default function ValidarCertificado({ certificado }: Props) {
+  if (!certificado?.valido) {
+    return (
+      <div style={{
+        fontFamily: 'sans-serif', textAlign: 'center',
+        padding: '80px 20px', background: '#fff', minHeight: '100vh'
+      }}>
+        <div style={{ fontSize: 64 }}>❌</div>
+        <h1 style={{ color: '#e74c3c', marginTop: 16 }}>Certificado não encontrado</h1>
+        <p style={{ color: '#666', marginTop: 8 }}>Este certificado não existe ou foi removido.</p>
+      </div>
+    );
+  }
+
+  const nivelConfig = NIVEIS_CONFIG[certificado.nivel] ?? {
+    medalha: '🎓',
+    cor: '#2ECC71',
+    descricao: 'demonstrando proficiência e dedicação no aprendizado do Microsoft Excel.',
+  };
+
+  const data = new Date(certificado.dataConquista).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  });
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`https://arenaexcel.excelcomjohni.com.br/certificado/validar/${certificado.id}`)}&margin=4`;
+
+  return (
+    <>
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@400;600;700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet"/>
+        <style>{`
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { background: #1a1a1a; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+          @media print {
+            body { background: #fff; padding: 0; }
+            .no-print { display: none; }
+          }
+        `}</style>
+      </head>
+
+      {/* BOTÃO SALVAR PDF */}
+      <div className="no-print" style={{ position: 'fixed', top: 20, right: 20, zIndex: 100 }}>
+        <button
+          onClick={() => window.print()}
+          style={{
+            padding: '12px 24px',
+            background: 'linear-gradient(135deg, #2ECC71, #27AE60)',
+            color: '#fff', border: 'none', borderRadius: 10,
+            fontFamily: 'Montserrat, sans-serif', fontWeight: 700,
+            fontSize: 14, cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(46,204,113,0.3)',
+          }}
+        >
+          🖨️ Salvar PDF
+        </button>
+      </div>
+
+      {/* CERTIFICADO */}
+      <div style={{
+        width: 900, height: 637,
+        background: '#fff',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+        border: `2px solid ${nivelConfig.cor}`,
+      }}>
+
+        {/* ONDA SUPERIOR ESQUERDA */}
+        <svg style={{ position: 'absolute', top: 0, left: 0, width: 320, height: 260, zIndex: 2 }} viewBox="0 0 320 260" fill="none">
+          <path d="M0 0 L320 0 L320 40 C280 60 220 55 170 90 C120 125 90 170 60 210 C38 240 14 262 0 270 Z" fill="#145a2e"/>
+          <path d="M0 0 L255 0 L255 20 C218 45 165 42 128 78 C90 112 68 158 46 198 C28 228 10 252 0 262 Z" fill="#1e8449"/>
+          <path d="M0 0 L190 0 L190 10 C160 35 116 34 86 66 C56 97 40 140 24 178 C12 208 4 234 0 248 Z" fill="#2ECC71"/>
+          <path d="M0 175 C16 160 42 152 68 158 C100 165 124 183 148 200 C170 216 186 230 196 244 L176 262 C163 246 146 232 122 215 C96 197 68 180 38 174 C18 170 3 178 0 186 Z" fill="#c8a84b" opacity="0.55"/>
+        </svg>
+
+        {/* ONDA INFERIOR DIREITA */}
+        <svg style={{ position: 'absolute', bottom: 0, right: 0, width: 320, height: 260, zIndex: 2 }} viewBox="0 0 320 260" fill="none">
+          <path d="M0 230 C14 222 42 208 70 200 C112 189 160 196 198 182 C240 166 272 134 300 100 C312 83 320 65 320 45 L320 260 L0 260 Z" fill="#145a2e"/>
+          <path d="M65 252 C84 240 116 228 148 220 C186 210 224 212 256 198 C288 185 312 158 320 126 L320 260 L55 260 Z" fill="#1e8449"/>
+          <path d="M135 262 C158 250 186 240 214 232 C246 224 274 222 300 208 C316 198 320 180 320 165 L320 260 L125 260 Z" fill="#2ECC71"/>
+          <path d="M320 75 C303 92 277 100 250 95 C218 88 194 70 170 52 C148 36 132 22 122 10 L142 0 C154 13 170 28 193 45 C218 62 246 80 276 86 C298 91 314 82 320 73 Z" fill="#c8a84b" opacity="0.55"/>
+        </svg>
+
+        {/* BORDA FINA */}
+        <div style={{ position: 'absolute', inset: 16, border: '1px solid #ccc', zIndex: 10, pointerEvents: 'none' }}/>
+
+        {/* CANTOS ORNAMENTAIS */}
+        {[
+          { top: 8, left: 8, transform: 'none' },
+          { top: 8, right: 8, transform: 'scaleX(-1)' },
+          { bottom: 8, left: 8, transform: 'scaleY(-1)' },
+          { bottom: 8, right: 8, transform: 'scale(-1,-1)' },
+        ].map((pos, i) => (
+          <svg key={i} style={{ position: 'absolute', width: 44, height: 44, zIndex: 6, ...pos }} viewBox="0 0 44 44" fill="none">
+            <path d="M4 40 L4 4 L40 4" stroke="#c8a84b" strokeWidth="2" strokeLinecap="round" fill="none"/>
+            <path d="M9 35 L9 9 L35 9" stroke="#c8a84b" strokeWidth="0.8" strokeLinecap="round" fill="none" opacity="0.5"/>
+            <circle cx="4" cy="4" r="2.5" fill="#c8a84b"/>
+          </svg>
+        ))}
+
+        {/* MEDALHA DO MÓDULO */}
+        <div style={{
+          position: 'absolute', top: 28, right: 60, zIndex: 10,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+        }}>
+          <div style={{
+            fontSize: 72,
+            filter: `drop-shadow(0 4px 12px ${nivelConfig.cor}88)`,
+            lineHeight: 1,
+          }}>
+            {nivelConfig.medalha}
+          </div>
+          {/* fitas */}
+          <div style={{ display: 'flex', gap: 5, marginTop: -4 }}>
+            <div style={{ width: 16, height: 30, background: 'linear-gradient(180deg, #1a7a3c, #2ECC71)', clipPath: 'polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%)' }}/>
+            <div style={{ width: 16, height: 30, background: 'linear-gradient(180deg, #27AE60, #1a7a3c)', clipPath: 'polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%)' }}/>
+          </div>
+        </div>
+
+        {/* CONTEÚDO */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 5,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          padding: '42px 90px 28px',
+          fontFamily: 'Montserrat, sans-serif',
+        }}>
+          <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 58, fontWeight: 900, color: '#1a3a5c', letterSpacing: 4, lineHeight: 1 }}>
+            CERTIFICADO
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: 8, color: '#1a3a5c', marginTop: 5, textTransform: 'uppercase' }}>
+            De Conclusão
+          </div>
+
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 4, color: '#8B4513', textTransform: 'uppercase', marginTop: 22 }}>
+            Este certificado é apresentado a
+          </div>
+
+          <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 52, fontWeight: 700, color: '#1a3a5c', textAlign: 'center', lineHeight: 1.1, marginTop: 6 }}>
+            {certificado.nomeAluno}
+          </div>
+
+          <div style={{ width: '55%', height: 1, background: 'linear-gradient(90deg, transparent, #999 20%, #999 80%, transparent)', margin: '12px 0 14px' }}/>
+
+          <div style={{ fontSize: 13, color: '#333', textAlign: 'center', lineHeight: 1.8, maxWidth: 520 }}>
+            Por ter concluído com êxito o módulo{' '}
+            <strong style={{ color: '#1a3a5c' }}>{certificado.curso}</strong>{' '}
+            no aplicativo <strong style={{ color: '#1a3a5c' }}>Arena Excel</strong>,{' '}
+            {nivelConfig.descricao}
+          </div>
+
+          {/* RODAPÉ */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', width: '100%', marginTop: 'auto', padding: '0 4px' }}>
+
+            {/* Excelino */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <div style={{ fontSize: 52 }}>🐯</div>
+              <span style={{ fontSize: 8, color: '#1a7a3c', fontWeight: 700, letterSpacing: 1 }}>ARENA EXCEL</span>
+            </div>
+
+            {/* Assinatura */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'Dancing Script, cursive', fontSize: 34, color: '#1a3a5c', fontWeight: 700 }}>Johni Michael</span>
+              <div style={{ width: 190, height: 1.5, background: '#222', margin: '2px 0 5px' }}/>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#1a3a5c', letterSpacing: 2, textTransform: 'uppercase' }}>Johni Michael</span>
+              <span style={{ fontSize: 11, color: '#c8a84b', fontWeight: 500 }}>Founder · Arena Excel</span>
+            </div>
+
+            {/* QR + Data */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: '#888', marginBottom: 3 }}>Data de Conclusão</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a3a5c' }}>{data}</div>
+                <div style={{ fontSize: 9, color: '#666', letterSpacing: 1, marginTop: 3, fontWeight: 600 }}>Nº {certificado.id}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                <img src={qrUrl} width={70} height={70} style={{ border: '1.5px solid #1a3a5c', borderRadius: 3 }}/>
+                <span style={{ fontSize: 7, color: '#fff', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>Verificar</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  try {
+    const res = await fetch(
+      `https://arenaexcel.excelcomjohni.com.br/api/badges/certificado/validar/${params?.id}`
+    );
+    if (!res.ok) return { props: { certificado: { valido: false } } };
+    const certificado = await res.json();
+    return { props: { certificado } };
+  } catch {
+    return { props: { certificado: { valido: false } } };
+  }
+};

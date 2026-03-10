@@ -1,0 +1,354 @@
+Boa! deu certo, agora vamos fazer mais alguns ajustes. Vou te entregar pronto os ajustes com o contexto:
+
+# PROMPT — Refatoração Visual Completa do App Excel
+
+## Contexto
+Você vai refatorar a identidade visual de um aplicativo mobile de aprendizado de Excel (estilo Duolingo). O objetivo é substituir a paleta de cores inconsistente atual por um sistema coeso baseado em verde, e modernizar o HTML das descrições de questões seguindo um design system padronizado.
+
+---
+
+## PARTE 1 — Nova Paleta de Cores (CSS Variables)
+
+Substitua TODAS as cores hardcoded do projeto pelas variáveis abaixo. Declare-as no `:root` global do CSS (globals.css, theme.ts, tailwind.config, ou onde o projeto centraliza tokens de design):
+
+```css
+:root {
+  /* Primárias */
+  --color-primary:        #217346;  /* Verde Excel — botões principais, headers, CTA */
+  --color-primary-mid:    #2E9E5B;  /* Verde médio — hover, gradientes, progresso */
+  --color-primary-light:  #E8F5E9;  /* Verde suave — fundos de card, highlight ativo */
+  --color-primary-vivid:  #27AE60;  /* Verde vivo — XP ganho, badges de sucesso */
+
+  /* Neutros */
+  --color-bg:             #F7F9F7;  /* Off-white — fundo geral das telas */
+  --color-surface:        #FFFFFF;  /* Branco puro — cards, modais */
+  --color-text-main:      #1A1A2E;  /* Quase preto — texto principal */
+  --color-text-sub:       #4A4A6A;  /* Cinza azulado — texto secundário, labels */
+  --color-border:         #E0E5E0;  /* Cinza claro — bordas, divisores */
+  --color-gray:           #B0BEC5;  /* Cinza médio — estados bloqueados, placeholders */
+  --color-gray-bg:        #F0F2F0;  /* Cinza fundo — cards bloqueados */
+
+  /* Semânticas */
+  --color-amber:          #F59E0B;  /* Âmbar — PRO, premium, avisos */
+  --color-amber-light:    #FEF3C7;  /* Âmbar claro — fundo de dicas/hints */
+  --color-red:            #E74C3C;  /* Vermelho — erros, resposta errada */
+  --color-red-light:      #FEE2E2;  /* Vermelho claro — fundo de erro */
+}
+```
+
+### Regras de uso obrigatórias:
+- **Verde** (`--color-primary`, `--color-primary-mid`): headers, botões de ação, barras de progresso, ícones ativos, navegação ativa
+- **Verde claro** (`--color-primary-light`): fundo de opção selecionada, fundo de resposta correta, highlight de célula Excel
+- **Cinza** (`--color-gray`, `--color-gray-bg`): trilhas bloqueadas, estados inativos, separadores
+- **Âmbar** (`--color-amber`): badge PRO/Premium, streaks, dicas, avisos
+- **Vermelho** (`--color-red`, `--color-red-light`): resposta errada, alertas críticos
+- **PROIBIDO**: roxo, laranja, marrom, rosa, azul e qualquer outra cor decorativa nas trilhas
+
+---
+
+## PARTE 2 — Componentes Globais a Atualizar
+
+### 2.1 Header de Tela
+```
+background: linear-gradient(135deg, #217346, #2E9E5B)
+border-radius: 0 0 24px 24px
+box-shadow: 0 4px 16px rgba(33,115,70,0.25)
+```
+
+### 2.2 Botão Primário (CTA)
+```
+background: linear-gradient(135deg, #2E9E5B, #217346)
+border-radius: 14px
+box-shadow: 0 4px 14px rgba(33,115,70,0.35)
+color: white
+font-weight: 700
+```
+
+### 2.3 Card de Trilha
+- Todas as trilhas devem usar a MESMA cor base: `background: #FFFFFF`, `border: 1px solid #E0E5E0`
+- Diferenciação SOMENTE por ícone (emoji/svg) — REMOVER as cores individuais por trilha (`#9C27B0`, `#FF9800`, `#795548`, `#F44336`, `#673AB7`, etc.)
+- Trilha bloqueada: `background: #F0F2F0`, ícone em cinza, badge "Bloqueado" em `#B0BEC5`
+- Progresso: `background: linear-gradient(90deg, #27AE60, #2E9E5B)`
+
+### 2.4 Barra de Navegação Inferior
+- Ícone ativo: cor `#217346`
+- Indicador de ativo: dot `4x4px`, `background: #217346`
+- Ícone inativo: cor `#B0BEC5`
+
+### 2.5 Badge PRO
+```
+background: #F59E0B
+color: white
+border-radius: 20px
+font-weight: 700
+font-size: 11px
+```
+
+---
+
+## PARTE 3 — Design System das Questões (MODELO EM ANEXO)
+
+### 3.1 CSS Base — injete isso em TODAS as descrições de questão
+
+Crie uma função utilitária `wrapDescription(html: string): string` que envolve o HTML da questão com os estilos abaixo:
+
+```typescript
+export function wrapDescription(html: string): string {
+  return `${QUESTION_BASE_STYLES}${html}`;
+}
+
+export const QUESTION_BASE_STYLES = `
+<style>
+  .q-body { font-family: 'DM Sans', 'Segoe UI', sans-serif; color: #1A1A2E; }
+
+  /* ── Grid Excel ── */
+  .xl-wrap { overflow-x: auto; margin-bottom: 12px; border-radius: 8px; overflow: hidden; border: 1px solid #E0E5E0; }
+  .xl-grid { border-collapse: collapse; font-size: 13px; width: 100%; font-family: monospace; }
+  .xl-grid th { background: #F7F9F7; color: #4A4A6A; font-weight: 600; border: 1px solid #E0E5E0; padding: 5px 12px; text-align: center; font-size: 12px; }
+  .xl-grid td { border: 1px solid #E0E5E0; padding: 5px 12px; color: #1A1A2E; text-align: right; background: #fff; min-width: 44px; }
+  .xl-grid .rh { background: #F7F9F7; color: #4A4A6A; font-weight: 600; text-align: center; font-size: 12px; }
+
+  /* Highlight de célula */
+  .cell-active  { background: #E8F5E9 !important; border: 2px solid #2E9E5B !important; color: #217346 !important; font-weight: 700 !important; }
+  .cell-result  { background: #FEF3C7 !important; border: 2px solid #F59E0B !important; color: #92400E !important; font-weight: 700 !important; }
+  .cell-error   { background: #FEE2E2 !important; border: 2px solid #E74C3C !important; color: #E74C3C !important; font-weight: 700 !important; }
+  .cell-text    { text-align: left !important; }
+
+  /* ── Cards de contexto ── */
+  .ctx-card { background: #fff; border: 1px solid #E0E5E0; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .ctx-label { font-size: 10px; font-weight: 700; color: #4A4A6A; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; }
+  .ctx-body { font-size: 13px; color: #1A1A2E; line-height: 1.6; }
+
+  /* ── Comparação Antes/Depois ── */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .compare-bad  { background: #FEE2E2; border: 1px solid #FECACA; border-radius: 10px; padding: 14px; text-align: center; }
+  .compare-good { background: #E8F5E9; border: 1px solid #BBF7D0; border-radius: 10px; padding: 14px; text-align: center; }
+  .compare-label-bad  { font-size: 10px; font-weight: 700; color: #E74C3C; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .compare-label-good { font-size: 10px; font-weight: 700; color: #2E9E5B; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .compare-value { font-size: 22px; font-weight: 800; }
+  .compare-value.bad  { color: #E74C3C; }
+  .compare-value.good { color: #217346; }
+  .compare-sub { font-size: 11px; color: #4A4A6A; margin-top: 4px; }
+
+  /* ── Badge de célula ── */
+  .cell-badge { display: inline-block; background: #217346; color: white; font-family: monospace; font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 5px; margin: 0 2px; }
+
+  /* ── Teclas de teclado ── */
+  .kbd { display: inline-flex; align-items: center; justify-content: center; background: #fff; border: 1.5px solid #E0E5E0; border-radius: 7px; padding: 4px 10px; font-size: 13px; font-weight: 700; color: #1A1A2E; box-shadow: 0 2px 0 #d0d5d0; margin: 0 3px; font-family: monospace; }
+  .kbd-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+
+  /* ── Banner de desafio final ── */
+  .challenge-banner { background: linear-gradient(135deg, #217346, #2E9E5B); color: white; border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 14px; }
+  .challenge-icon    { font-size: 26px; margin-bottom: 6px; }
+  .challenge-title   { font-weight: 800; font-size: 15px; }
+  .challenge-sub     { opacity: 0.75; font-size: 12px; margin-top: 4px; }
+
+  /* ── Step list (drag & drop) ── */
+  .step-list { display: flex; flex-direction: column; gap: 6px; }
+  .step-item { background: #fff; border: 1px solid #E0E5E0; border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #1A1A2E; }
+  .step-num  { width: 24px; height: 24px; border-radius: 50%; background: #E8F5E9; color: #217346; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* ── Ícone centralizado ── */
+  .icon-center { text-align: center; padding: 16px 0 12px; }
+  .icon-center .icon { font-size: 36px; margin-bottom: 8px; }
+  .icon-center .desc { font-size: 13px; color: #4A4A6A; }
+</style>
+<div class="q-body">
+`;
+```
+
+> **Atenção:** a tag `</div>` de fechamento do `.q-body` deve ser adicionada ao final do HTML de cada questão, ou a função `wrapDescription` deve fechar automaticamente:
+> ```typescript
+> export function wrapDescription(html: string): string {
+>   return `${QUESTION_BASE_STYLES}${html}</div>`;
+> }
+> ```
+
+---
+
+### 3.2 Padrões de HTML por Tipo de Questão
+
+#### TIPO A — Questão com Grid Excel
+Use quando a questão envolve células, endereços, intervalos ou fórmulas visuais.
+
+```html
+<div class="xl-wrap">
+  <table class="xl-grid">
+    <thead>
+      <tr><th></th><th>A</th><th>B</th><th>C</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="rh">1</td>
+        <td>10</td>
+        <td>20</td>
+        <td class="cell-active">30</td>   <!-- célula em foco (verde) -->
+      </tr>
+      <tr>
+        <td class="rh">2</td>
+        <td>40</td>
+        <td>50</td>
+        <td>60</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<div class="ctx-card">
+  <div class="ctx-label">Identifique a célula</div>
+  <div class="ctx-body">
+    A célula destacada está na coluna <span class="cell-badge">C</span>
+    e na linha <span class="cell-badge">1</span>. O que ela representa?
+  </div>
+</div>
+```
+
+#### TIPO B — Comparação Antes/Depois
+Use para questões de formatação, resultado de fórmula, diferença de abordagens.
+
+```html
+<div class="compare-grid">
+  <div class="compare-bad">
+    <div class="compare-label-bad">❌ SEM formatação</div>
+    <div class="compare-value bad">1500</div>
+    <div class="compare-sub">número bruto</div>
+  </div>
+  <div class="compare-good">
+    <div class="compare-label-good">✅ COM formatação</div>
+    <div class="compare-value good">R$ 1.500,00</div>
+    <div class="compare-sub">formatado</div>
+  </div>
+</div>
+<div class="ctx-card">
+  <div class="ctx-label">Objetivo</div>
+  <div class="ctx-body">Qual formato transforma <strong>1500</strong> em um valor monetário legível?</div>
+</div>
+```
+
+#### TIPO C — Atalho de Teclado
+Use para questões de produtividade, atalhos, comandos.
+
+```html
+<div class="ctx-card">
+  <div class="icon-center">
+    <div class="icon">💾</div>
+    <div class="desc">Qual combinação de teclas salva instantaneamente?</div>
+  </div>
+  <div class="kbd-row">
+    <span class="kbd">⌃ Ctrl</span>
+    <span class="kbd">⇧ Shift</span>
+    <span class="kbd">⎇ Alt</span>
+    <span class="kbd">S</span>
+  </div>
+</div>
+```
+
+#### TIPO D — Grid com célula de resultado (âmbar)
+Use quando a questão aponta para um valor calculado ou resultado de fórmula.
+
+```html
+<div class="xl-wrap">
+  <table class="xl-grid">
+    <thead>
+      <tr><th></th><th>A</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="rh">1</td><td>150</td></tr>
+      <tr><td class="rh">2</td><td>50</td></tr>
+      <tr><td class="rh">3</td><td>200</td></tr>
+      <tr><td class="rh">4</td><td class="cell-result">25</td></tr>  <!-- resultado (âmbar) -->
+    </tbody>
+  </table>
+</div>
+<div class="ctx-card">
+  <div class="ctx-label">Valor em destaque</div>
+  <div class="ctx-body">O valor <strong>25</strong> é o menor da lista. Qual função o encontra automaticamente?</div>
+</div>
+```
+
+#### TIPO E — Banner de Desafio Final + Steps
+Use nos `order: 10` de cada trilha.
+
+```html
+<div class="challenge-banner">
+  <div class="challenge-icon">🏁</div>
+  <div class="challenge-title">Desafio Final</div>
+  <div class="challenge-sub">Planilha de Controle de Despesas</div>
+</div>
+<div class="ctx-card">
+  <div class="ctx-label">Sua tarefa</div>
+  <div class="ctx-body">Organize os passos na ordem correta para criar uma planilha profissional.</div>
+</div>
+<div class="step-list">
+  <div class="step-item"><div class="step-num">1</div>Abrir o Excel e criar nova pasta de trabalho</div>
+  <div class="step-item"><div class="step-num">2</div>Digitar os cabeçalhos: Data, Descrição, Valor</div>
+  <div class="step-item"><div class="step-num">3</div>Inserir os dados nas linhas abaixo</div>
+  <div class="step-item"><div class="step-num">4</div>Criar =SOMA() para totalizar os valores</div>
+  <div class="step-item"><div class="step-num">5</div>Formatar coluna de valores como Moeda</div>
+  <div class="step-item"><div class="step-num">6</div>Salvar o arquivo com Ctrl+S</div>
+</div>
+```
+
+#### TIPO F — Ícone centralizado (questão simples / conceitual)
+Use para questões conceituais sem necessidade de grid.
+
+```html
+<div class="ctx-card">
+  <div class="icon-center">
+    <div class="icon">📊</div>
+    <div class="desc">O que acontece ao clicar no botão Σ (AutoSoma) na célula A4?</div>
+  </div>
+</div>
+```
+
+---
+
+## PARTE 4 — Reescrita das Descriptions das Questões
+
+Agora aplique os padrões acima reescrevendo o campo `description` de TODAS as questões do seed (`seed_trails.ts`), seguindo o mapeamento abaixo:
+
+| Questão | Tipo HTML a usar |
+|---|---|
+| Questões com grid Excel (células, endereços, intervalos) | TIPO A |
+| Questões de formatação / antes-depois | TIPO B |
+| Questões de atalho de teclado | TIPO C |
+| Questões com valor de resultado destacado | TIPO D |
+| Questões `order: 10` (Desafio Final) | TIPO E |
+| Questões conceituais sem grid | TIPO F |
+
+### Regras obrigatórias ao reescrever:
+1. **NUNCA** use `style=""` inline com cores fora da paleta (`#2196F3`, `#667eea`, `#764ba2`, `#FF5722`, `#4CAF50` genérico, etc.)
+2. **SEMPRE** use as classes do design system (`.xl-grid`, `.ctx-card`, `.cell-active`, etc.)
+3. **REMOVA** todos os `<div class="excel-header">`, `<div class="excel-row">`, `<div class="cell">` — substitua pela estrutura `<table class="xl-grid">`
+4. **REMOVA** emojis usados como ícones decorativos nos headers de card — use apenas nas `ctx-label` quando reforçar o significado
+5. **MANTENHA** o texto informativo de cada questão, apenas atualize o container visual
+
+---
+
+## PARTE 5 — Remover cores individuais das Trilhas
+
+No modelo/banco de dados, o campo `color` de cada trilha (`#9C27B0`, `#FF9800`, `#795548`, `#00BCD4`, `#F44336`, `#673AB7`, `#FFC107`, `#F44336`) deve ser **substituído por uma única cor** ou **removido**:
+
+```typescript
+// Antes — cada trilha com sua cor
+color: '#9C27B0'  // Análise de Dados — ROXO
+color: '#FF9800'  // Fórmulas — LARANJA
+color: '#795548'  // Logística — MARROM
+
+// Depois — todas usam a paleta verde
+color: '#217346'  // Verde Excel padrão para todas
+// OU remova o campo color e use sempre var(--color-primary) no componente
+```
+
+---
+
+## Resumo do que deve ser alterado
+
+1. ✅ Declarar CSS Variables no root global
+2. ✅ Atualizar componente de Header de tela
+3. ✅ Atualizar componente de Botão primário
+4. ✅ Atualizar componente de Card de Trilha (remover cores individuais)
+5. ✅ Atualizar componente de Barra de Navegação
+6. ✅ Criar função `wrapDescription()` com o CSS base das questões
+7. ✅ Reescrever `description` de todas as questões do seed usando as classes do design system
+8. ✅ Substituir campo `color` das trilhas por `#217346`
+9. ✅ Garantir que NENHUMA cor fora da paleta definida apareça no app

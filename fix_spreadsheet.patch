@@ -1,0 +1,8 @@
+--- Correções para SpreadsheetWebView.tsx ---
+
+1. DRAG_AND_DROP: Adicionar atributo touch-action e melhorar eventos de toque
+2. SPREADSHEET_INPUT: Melhorar normalização de fórmulas
+3. FORMULA_BUILDER: Adicionar feedback visual
+4. CHART_BUILDER: Adicionar mensagem de sucesso
+5. Adicionar funções showSuccess() no JavaScript
+

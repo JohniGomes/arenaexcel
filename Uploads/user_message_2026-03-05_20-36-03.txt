@@ -1,0 +1,256 @@
+Implementar o sistema de bloqueio premium no app Arena Excel. Aplicar restrições para usuários free e liberar tudo para usuários premium.
+
+FRONTEND — react_native_space
+1. Criar src/hooks/usePremium.ts:
+typescriptimport { useAuth } from '../contexts/AuthContext';
+import RevenueCatService from '../services/revenuecat.service';
+import { useState, useEffect } from 'react';
+
+export const usePremium = () => {
+  const { user } = useAuth();
+  const isPremium = (user as any)?.isPremium ?? false;
+
+  const checkAccess = (feature: 'niveis_avancados' | 'vidas_ilimitadas' | 'chat_ilimitado' | 'videos_completos' | 'wiki_completa' | 'planilha_ia' | 'certificado'): boolean => {
+    if (isPremium) return true;
+    // Nenhuma feature bloqueada é acessível no free
+    return false;
+  };
+
+  return { isPremium, checkAccess };
+};
+2. Atualizar WikiExcelScreen.tsx — limitar fórmulas, dicas e vídeos no free:
+typescriptimport { usePremium } from '../../hooks/usePremium';
+import PaywallModal from '../../components/PaywallModal';
+
+const WikiExcelScreen = () => {
+  const { isPremium } = usePremium();
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  // ── Limitar vídeos ──
+  const videosVisiveis = isPremium ? VIDEOS : VIDEOS.slice(0, 5);
+
+  // ── Limitar fórmulas e dicas dentro do modal ──
+  const getFormulas = (area: Area) => isPremium ? area.formulas : area.formulas.slice(0, 3);
+  const getDicas = (area: Area) => isPremium ? area.dicas : area.dicas.slice(0, 3);
+
+  // Na lista de vídeos, após o 5º vídeo mostrar card de bloqueio:
+  // No renderItem da FlatList de vídeos:
+  const renderVideo = ({ item, index }: { item: Video; index: number }) => {
+    const bloqueado = !isPremium && index >= 5;
+    return (
+      <TouchableOpacity
+        style={[styles.videoCard, bloqueado && styles.videoCardBloqueado]}
+        onPress={() => bloqueado ? setShowPaywall(true) : setVideoAtivo(item)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.videoThumb}>
+          {bloqueado && (
+            <View style={styles.lockOverlay}>
+              <Text style={styles.lockEmoji}>🔒</Text>
+            </View>
+          )}
+          <Text style={styles.videoNumero}>{String(index + 1).padStart(2, '0')}</Text>
+          <Text style={styles.videoEmoji}>{item.emoji}</Text>
+          <View style={[styles.playBtn, bloqueado && { backgroundColor: '#999' }]}>
+            <Text style={styles.playBtnText}>{bloqueado ? '🔒' : '▶'}</Text>
+          </View>
+        </View>
+        <View style={styles.videoInfo}>
+          <Text style={[styles.videoTitulo, bloqueado && { color: '#999' }]}>{item.titulo}</Text>
+          <Text style={styles.videoSubtitulo}>{bloqueado ? '⭐ Apenas Premium' : 'Toque para assistir'}</Text>
+        </View>
+        <Text style={styles.videoSeta}>›</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  // No modal de área, usar getFormulas e getDicas em vez de area.formulas e area.dicas
+  // Após a última fórmula/dica free, mostrar card de desbloqueio:
+  const renderBloqueioCard = (quantidadeRestante: number) => (
+    !isPremium && (
+      <TouchableOpacity style={styles.bloqueioCard} onPress={() => setShowPaywall(true)}>
+        <Text style={styles.bloqueioEmoji}>🔒</Text>
+        <Text style={styles.bloqueioTitulo}>+{quantidadeRestante} itens bloqueados</Text>
+        <Text style={styles.bloqueioSub}>Seja Premium para ver tudo</Text>
+        <View style={styles.bloqueioBtn}>
+          <Text style={styles.bloqueioBtnTexto}>⭐ Desbloquear</Text>
+        </View>
+      </TouchableOpacity>
+    )
+  );
+
+  // Adicionar ao final do StyleSheet:
+  // videoCardBloqueado: { opacity: 0.6 }
+  // lockOverlay: { position: 'absolute', ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 0 }
+  // lockEmoji: { fontSize: 24 }
+  // bloqueioCard: { backgroundColor: '#FFF3CD', borderRadius: 14, padding: 20, alignItems: 'center', marginBottom: 14, borderWidth: 2, borderColor: '#F59E0B', borderStyle: 'dashed' }
+  // bloqueioEmoji: { fontSize: 32, marginBottom: 8 }
+  // bloqueioTitulo: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 4 }
+  // bloqueioSub: { fontSize: 13, color: '#777', marginBottom: 12 }
+  // bloqueioBtn: { backgroundColor: '#F59E0B', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 8 }
+  // bloqueioBtnTexto: { color: '#FFF', fontWeight: '700', fontSize: 14 }
+
+  return (
+    // ... código existente com as modificações acima
+    <>
+      {/* resto da tela */}
+      <PaywallModal
+        visivel={showPaywall}
+        onFechar={() => setShowPaywall(false)}
+        onSuccess={() => setShowPaywall(false)}
+      />
+    </>
+  );
+};
+3. Atualizar o chat do Excelino — limitar 10 mensagens/dia no free:
+No arquivo do chat (provavelmente ChatContext.tsx ou ChatScreen.tsx), adicionar controle de limite:
+typescriptimport { usePremium } from '../hooks/usePremium';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Verificar limite diário antes de enviar mensagem:
+const verificarLimiteChat = async (): Promise<boolean> => {
+  if (isPremium) return true;
+
+  const hoje = new Date().toDateString();
+  const chave = `chat_msgs_${hoje}`;
+  const contagem = parseInt(await AsyncStorage.getItem(chave) ?? '0');
+
+  if (contagem >= 10) {
+    Alert.alert(
+      '💬 Limite diário atingido',
+      'Você usou suas 10 mensagens gratuitas de hoje. Seja Premium para chat ilimitado!',
+      [
+        { text: 'Agora não', style: 'cancel' },
+        { text: '⭐ Ver Premium', onPress: () => setShowPaywall(true) },
+      ]
+    );
+    return false;
+  }
+
+  await AsyncStorage.setItem(chave, String(contagem + 1));
+  return true;
+};
+
+// Chamar antes de enviar:
+const handleEnviar = async () => {
+  const permitido = await verificarLimiteChat();
+  if (!permitido) return;
+  // ... lógica de envio existente
+};
+4. Atualizar tela de níveis/aprendizado — bloquear Intermediário e Avançado:
+No arquivo de níveis (provavelmente LearnScreen.tsx ou HomeScreen.tsx), identificar onde os níveis são renderizados e adicionar:
+typescriptimport { usePremium } from '../../hooks/usePremium';
+import PaywallModal from '../../components/PaywallModal';
+
+const { isPremium } = usePremium();
+const [showPaywall, setShowPaywall] = useState(false);
+
+// Níveis bloqueados para free:
+const NIVEIS_PREMIUM = ['intermediario', 'avancado']; // ajustar para os IDs reais dos níveis
+
+// Ao tocar em um nível:
+const handleNivel = (nivel: any) => {
+  const ehBloqueado = NIVEIS_PREMIUM.includes(nivel.id) && !isPremium;
+  if (ehBloqueado) {
+    setShowPaywall(true);
+    return;
+  }
+  // ... navegação normal
+};
+
+// No card do nível bloqueado, exibir cadeado:
+const renderNivel = (nivel: any) => {
+  const bloqueado = NIVEIS_PREMIUM.includes(nivel.id) && !isPremium;
+  return (
+    <TouchableOpacity
+      style={[styles.nivelCard, bloqueado && styles.nivelCardBloqueado]}
+      onPress={() => handleNivel(nivel)}
+    >
+      {bloqueado && (
+        <View style={styles.nivelLock}>
+          <Text style={styles.nivelLockEmoji}>🔒</Text>
+          <Text style={styles.nivelLockTexto}>Premium</Text>
+        </View>
+      )}
+      {/* ... conteúdo normal do card */}
+    </TouchableOpacity>
+  );
+};
+5. Atualizar vidas — 5/dia no free, ilimitadas no premium:
+No arquivo que controla vidas (provavelmente LivesContext.tsx ou similar):
+typescriptimport { usePremium } from '../hooks/usePremium';
+
+// Ao verificar/decrementar vidas:
+const useVida = async (): Promise<boolean> => {
+  if (isPremium) return true; // premium nunca perde vida
+
+  if (vidas <= 0) {
+    Alert.alert(
+      '💔 Sem vidas!',
+      'Você usou todas as suas vidas de hoje. Volte amanhã ou seja Premium para vidas ilimitadas!',
+      [
+        { text: 'Voltar amanhã', style: 'cancel' },
+        { text: '⭐ Ver Premium', onPress: () => setShowPaywall(true) },
+      ]
+    );
+    return false;
+  }
+
+  setVidas(prev => prev - 1);
+  return true;
+};
+
+// Reset diário de vidas (no free = 5, premium = ilimitado):
+const resetarVidas = () => {
+  setVidas(isPremium ? Infinity : 5);
+};
+6. Botão de Análise de Planilha com IA — bloquear completamente no free:
+No PlanilhaIAButton.tsx, já está correto pois só aparece para premium. Confirmar que a verificação é:
+typescriptconst isPremium = (user as any)?.isPremium ?? false;
+if (!isPremium) return null; // não renderiza o botão para free
+7. Certificado — bloquear no free:
+Na tela de certificado (se existir), adicionar verificação:
+typescriptif (!isPremium) {
+  setShowPaywall(true);
+  return;
+}
+
+BACKEND — nodejs_space
+Verificar limite de chat no backend também (validação dupla):
+No chat.service.ts ou similar, adicionar verificação server-side:
+typescriptasync enviarMensagem(userId: string, mensagem: string) {
+  const user = await this.prisma.user.findUnique({ where: { id: userId } }) as any;
+
+  if (!user.isPremium) {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const mensagensHoje = await this.prisma.chatMessage.count({
+      where: { userId, criadoEm: { gte: hoje } },
+    });
+
+    if (mensagensHoje >= 10) {
+      throw new HttpException(
+        'Limite diário de mensagens atingido. Seja Premium para chat ilimitado!',
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    }
+  }
+
+  // ... lógica de envio existente
+}
+
+CHECKLIST FINAL
+Após implementar, verificar:
+
+✅ Usuário free vê níveis Intermediário e Avançado com cadeado 🔒
+✅ Ao tocar em nível bloqueado, abre a tela Premium
+✅ Wiki mostra apenas 3 fórmulas e 3 dicas com card de desbloqueio
+✅ Vídeos mostram apenas 5 com cadeado nos demais
+✅ Chat bloqueia após 10 mensagens com opção de upgrade
+✅ Botão 🤖 não aparece para usuários free
+✅ Vidas limitadas a 5/dia para free
+✅ Testar com isPremium = false no banco para simular usuário free
+✅ Testar com isPremium = true para confirmar que tudo desbloqueia
+
+Não alterar nenhum outro arquivo além dos mencionados.

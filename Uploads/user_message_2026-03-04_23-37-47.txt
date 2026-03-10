@@ -1,0 +1,302 @@
+Implemente notificações push personalizadas usando Expo Push Notifications. A implementação envolve frontend (react_native_space) e backend (nodejs_space).
+
+FRONTEND — react_native_space
+1. Instalar dependências:
+npx expo install expo-notifications expo-device expo-constants
+2. Criar o arquivo src/services/notification.service.ts:
+typescriptimport * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import ApiService from './api.service';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+class NotificationService {
+  async registerForPushNotifications(): Promise<string | null> {
+    if (!Device.isDevice) return null;
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') return null;
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#1E88E5',
+      });
+    }
+
+    const token = (await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.expoConfig?.extra?.eas?.projectId,
+    })).data;
+
+    // Enviar token para o backend
+    await ApiService.savePushToken(token);
+    return token;
+  }
+}
+
+export default new NotificationService();
+3. No api.service.ts, adicionar o método:
+typescriptasync savePushToken(token: string): Promise<void> {
+  await this.api.post('api/notifications/token', { token });
+}
+4. No AuthContext.tsx, chamar o registro após login bem-sucedido:
+typescriptimport NotificationService from '../services/notification.service';
+
+// Dentro de googleSignIn e login, após setIsAuthenticated(true):
+await NotificationService.registerForPushNotifications();
+5. No app.json, adicionar dentro de expo:
+json"plugins": [
+  [
+    "expo-notifications",
+    {
+      "icon": "./assets/notification-icon.png",
+      "color": "#1E88E5",
+      "sounds": []
+    }
+  ]
+]
+```
+
+---
+
+## BACKEND — nodejs_space
+
+**1. Instalar dependência:**
+```
+npm install expo-server-sdk
+2. Criar src/notifications/notification.service.ts:
+typescriptimport { Injectable, Logger } from '@nestjs/common';
+import { Expo, ExpoPushMessage } from 'expo-server-sdk';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class NotificationService {
+  private readonly logger = new Logger(NotificationService.name);
+  private expo = new Expo();
+
+  constructor(private prisma: PrismaService) {}
+
+  // ── Salvar token do usuário ──────────────────────────────
+  async savePushToken(userId: string, token: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { pushToken: token } as any,
+    });
+    this.logger.log(`✅ Push token salvo para usuário: ${userId}`);
+  }
+
+  // ── Enviar notificação para um usuário ───────────────────
+  async sendToUser(userId: string, title: string, body: string, data?: object) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } }) as any;
+    if (!user?.pushToken) return;
+
+    if (!Expo.isExpoPushToken(user.pushToken)) return;
+
+    const message: ExpoPushMessage = {
+      to: user.pushToken,
+      sound: 'default',
+      title,
+      body,
+      data: data ?? {},
+      badge: 1,
+    };
+
+    const chunks = this.expo.chunkPushNotifications([message]);
+    for (const chunk of chunks) {
+      await this.expo.sendPushNotificationsAsync(chunk);
+    }
+    this.logger.log(`📲 Notificação enviada: "${title}" → usuário ${userId}`);
+  }
+
+  // ── Verificar inatividade (sem login há X dias) ──────────
+  async checkInactiveUsers() {
+    const messages = [
+      { title: '🐯 Ei, saudade de você!', body: 'O Excelino tá aqui te esperando. Bora estudar?' },
+      { title: '😢 Faz dias que você sumiu...', body: 'Seu Excel tá ficando enferrujado. 5 minutinhos hoje?' },
+      { title: '🏆 Não deixa o rival te passar!', body: 'Enquanto você some, outros estão acumulando XP. Volta logo!' },
+      { title: '📊 Tá pesquisando PROCV no Google?', body: 'Para isso! Aprende de vez aqui no Arena Excel 😂' },
+      { title: '🔥 Sua sequência esfriou...', body: 'Você tinha um streak incrível. Vem reacender agora!' },
+    ];
+
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const inactiveUsers = await this.prisma.user.findMany({
+      where: { lastLoginAt: { lt: twoDaysAgo } } as any,
+    }) as any[];
+
+    for (const user of inactiveUsers) {
+      const msg = messages[Math.floor(Math.random() * messages.length)];
+      await this.sendToUser(user.id, msg.title, msg.body, { screen: 'Home' });
+    }
+    this.logger.log(`📲 Notificações de inatividade enviadas para ${inactiveUsers.length} usuários`);
+  }
+
+  // ── Verificar streak em risco (não estudou hoje) ─────────
+  async checkStreakAtRisk() {
+    const messages = [
+      { title: '🔥 Seu streak tá em risco!', body: 'Falta pouco para a meia-noite. Não deixa a sequência acabar!' },
+      { title: '⏰ Última chance hoje!', body: 'Complete uma licão agora e salve seu streak. Vai rápido!' },
+      { title: '😰 Quase perdendo tudo!', body: 'Você tem {streak} dias de sequência. Não desperdiça isso!' },
+    ];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const usersAtRisk = await this.prisma.user.findMany({
+      where: { streak: { gt: 0 }, lastStudyAt: { lt: today } } as any,
+    }) as any[];
+
+    for (const user of usersAtRisk) {
+      const msg = messages[Math.floor(Math.random() * messages.length)];
+      const body = msg.body.replace('{streak}', user.streak?.toString() ?? '');
+      await this.sendToUser(user.id, msg.title, body, { screen: 'Learn' });
+    }
+    this.logger.log(`🔥 Alertas de streak enviados para ${usersAtRisk.length} usuários`);
+  }
+
+  // ── Bom dia motivacional (todos os usuários, 8h) ─────────
+  async sendMorningMotivation() {
+    const messages = [
+      { title: '☀️ Bom dia, campeão!', body: 'Uma lição por dia mantece o chefe satisfeito 😎 Vamos?' },
+      { title: '🚀 Hoje é dia de evoluir!', body: 'Quem domina Excel domina o mercado. Bora começar?' },
+      { title: '📈 Sua carreira agradece!', body: 'Mais um dia, mais uma habilidade. Que tal aprender algo novo agora?' },
+      { title: '🏅 Destrave sua conquista!', body: 'Você tá tão perto de subir de nível. Um empurrãozinho hoje?' },
+      { title: '💡 Dica do Excelino:', body: 'Sabia que 73% dos profissionais que dominam Excel ganham mais? Vai lá!' },
+    ];
+
+    const allUsers = await this.prisma.user.findMany() as any[];
+    for (const user of allUsers) {
+      const msg = messages[Math.floor(Math.random() * messages.length)];
+      await this.sendToUser(user.id, msg.title, msg.body, { screen: 'Home' });
+    }
+    this.logger.log(`☀️ Bom dia enviado para ${allUsers.length} usuários`);
+  }
+
+  // ── Dica rápida do dia ───────────────────────────────────
+  async sendDailyTip() {
+    const tips = [
+      { title: '💡 Dica do dia!', body: 'Use Ctrl+T para transformar qualquer tabela em tabela dinâmica na hora!' },
+      { title: '⚡ Atalho poderoso!', body: 'Alt+= insere SOMA automaticamente. Economiza segundos todo dia!' },
+      { title: '🎯 Você sabia?', body: 'PROCX substituiu o PROCV. Mais simples e busca em qualquer direção!' },
+      { title: '🔥 Truque de Excel!', body: 'Ctrl+` mostra todas as fórmulas da planilha de uma vez. Tente agora!' },
+      { title: '📊 Dica de gráfico!', body: 'Selecione seus dados e aperte Alt+F1. Gráfico criado na hora!' },
+      { title: '🧠 Sabia disso?', body: 'SOMASES aceita quantos critérios quiser. Fim do SOMASE limitado!' },
+      { title: '🚀 Produtividade!', body: 'Ctrl+Shift+L ativa filtros em qualquer tabela. Sem precisar de mouse!' },
+    ];
+
+    const allUsers = await this.prisma.user.findMany() as any[];
+    for (const user of allUsers) {
+      const tip = tips[Math.floor(Math.random() * tips.length)];
+      await this.sendToUser(user.id, tip.title, tip.body, { screen: 'Wiki' });
+    }
+    this.logger.log(`💡 Dica do dia enviada para ${allUsers.length} usuários`);
+  }
+}
+3. Criar src/notifications/notification.controller.ts:
+typescriptimport { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { NotificationService } from './notification.service';
+
+@Controller('api/notifications')
+export class NotificationController {
+  constructor(private readonly notificationService: NotificationService) {}
+
+  @Post('token')
+  @UseGuards(JwtAuthGuard)
+  async saveToken(@Request() req: any, @Body() body: { token: string }) {
+    await this.notificationService.savePushToken(req.user.id, body.token);
+    return { success: true };
+  }
+}
+4. Criar src/notifications/notification.module.ts:
+typescriptimport { Module } from '@nestjs/common';
+import { NotificationService } from './notification.service';
+import { NotificationController } from './notification.controller';
+import { PrismaModule } from '../prisma/prisma.module';
+
+@Module({
+  imports: [PrismaModule],
+  controllers: [NotificationController],
+  providers: [NotificationService],
+  exports: [NotificationService],
+})
+export class NotificationModule {}
+5. Criar src/notifications/notification.scheduler.ts para agendar os envios:
+typescriptimport { Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { NotificationService } from './notification.service';
+
+@Injectable()
+export class NotificationScheduler {
+  constructor(private readonly notificationService: NotificationService) {}
+
+  // Bom dia todo dia às 8h
+  @Cron('0 8 * * *')
+  async morningMotivation() {
+    await this.notificationService.sendMorningMotivation();
+  }
+
+  // Streak em risco todo dia às 21h
+  @Cron('0 21 * * *')
+  async streakAlert() {
+    await this.notificationService.checkStreakAtRisk();
+  }
+
+  // Verifica inativos todo dia ao meio-dia
+  @Cron('0 12 * * *')
+  async inactivityCheck() {
+    await this.notificationService.checkInactiveUsers();
+  }
+
+  // Dica do dia às 12h toda quarta-feira
+  @Cron('0 12 * * 3')
+  async dailyTip() {
+    await this.notificationService.sendDailyTip();
+  }
+}
+6. No AppModule, importar os módulos necessários:
+typescriptimport { ScheduleModule } from '@nestjs/schedule';
+import { NotificationModule } from './notifications/notification.module';
+
+// Dentro de imports:
+ScheduleModule.forRoot(),
+NotificationModule,
+```
+
+**7. Instalar dependência do scheduler:**
+```
+npm install @nestjs/schedule
+8. No schema do Prisma (prisma/schema.prisma), adicionar os campos no model User:
+prismapushToken    String?
+lastLoginAt  DateTime?
+lastStudyAt  DateTime?
+Rodar após: npx prisma migrate dev --name add_notification_fields
+9. No AuthService, atualizar lastLoginAt a cada login:
+typescript// Dentro do método de login, após autenticar:
+await this.prisma.user.update({
+  where: { id: user.id },
+  data: { lastLoginAt: new Date() },
+});
+10. No ProgressService, atualizar lastStudyAt após completar lição:
+typescriptawait this.prisma.user.update({
+  where: { id: userId },
+  data: { lastStudyAt: new Date() },
+});
+
+Não alterar nenhum outro arquivo além dos mencionados. Após implementar, fazer deploy do backend e novo build do APK.

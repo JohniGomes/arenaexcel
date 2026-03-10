@@ -1,0 +1,245 @@
+Gerar PDF do certificado direto no app React Native, sem abrir browser.
+1. Instalar dependências:
+bashnpx expo install react-native-html-to-pdf
+npx expo install expo-sharing
+npx expo install expo-file-system
+2. Criar src/services/certificado.pdf.service.ts:
+typescriptimport RNHTMLtoPDF from 'react-native-html-to-pdf';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+
+const NIVEIS_CONFIG: Record<string, { medalha: string; cor: string; descricao: string }> = {
+  nivel_fundamentos: {
+    medalha: '🥉', cor: '#cd7f32',
+    descricao: 'demonstrando domínio dos conceitos fundamentais do Excel, incluindo navegação, formatação e fórmulas básicas.',
+  },
+  nivel_basico: {
+    medalha: '🥈', cor: '#aaa9ad',
+    descricao: 'demonstrando proficiência em funções essenciais, gráficos e organização de dados no Excel.',
+  },
+  nivel_intermediario: {
+    medalha: '🥇', cor: '#d4af37',
+    descricao: 'demonstrando domínio de funções avançadas, tabelas dinâmicas e análise de dados profissional.',
+  },
+  nivel_avancado: {
+    medalha: '🏆', cor: '#2ECC71',
+    descricao: 'demonstrando expertise em automações, fórmulas complexas e soluções avançadas no Excel.',
+  },
+  nivel_especialista: {
+    medalha: '👑', cor: '#c8a84b',
+    descricao: 'atingindo o mais alto nível de domínio do Excel, com capacidade de resolver desafios profissionais complexos.',
+  },
+};
+
+interface CertificadoData {
+  id: string;
+  nomeAluno: string;
+  curso: string;
+  nivel: string;
+  dataConquista: string;
+}
+
+export async function gerarECompartilharPDF(cert: CertificadoData): Promise<void> {
+  const cfg = NIVEIS_CONFIG[cert.nivel] ?? NIVEIS_CONFIG['nivel_fundamentos'];
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=152x152&data=${encodeURIComponent(
+    `https://arenaexcel.excelcomjohni.com.br/certificado/validar/${cert.id}`
+  )}&margin=4`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@400;600;700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1122px; height: 794px;
+    font-family: 'Montserrat', sans-serif;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .cert-border { position: absolute; inset: 18px; border: 1.5px solid #c8a84b; z-index: 10; pointer-events: none; }
+  .cert-border-inner { position: absolute; inset: 24px; border: 0.5px solid rgba(200,168,75,0.3); z-index: 10; pointer-events: none; }
+  .corner { position: absolute; width: 56px; height: 56px; z-index: 11; }
+  .corner-tl { top: 10px; left: 10px; }
+  .corner-tr { top: 10px; right: 10px; transform: scaleX(-1); }
+  .corner-bl { bottom: 10px; left: 10px; transform: scaleY(-1); }
+  .corner-br { bottom: 10px; right: 10px; transform: scale(-1,-1); }
+  .medal-box { position: absolute; top: 36px; right: 76px; z-index: 12; display: flex; flex-direction: column; align-items: center; }
+  .medal-emoji { font-size: 80px; line-height: 1; }
+  .ribbon-l { width: 17px; height: 36px; background: linear-gradient(180deg,#1a7a3c,#2ECC71); clip-path: polygon(0 0,100% 0,100% 80%,50% 100%,0 80%); display: inline-block; }
+  .ribbon-r { width: 17px; height: 36px; background: linear-gradient(180deg,#27AE60,#1a7a3c); clip-path: polygon(0 0,100% 0,100% 80%,50% 100%,0 80%); display: inline-block; margin-left: 6px; }
+  .cert-inner { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; padding: 52px 110px 36px; }
+  .cert-title { font-family: 'Playfair Display', serif; font-size: 72px; font-weight: 900; color: #1a3a5c; letter-spacing: 5px; }
+  .cert-subtitle { font-size: 15px; font-weight: 600; letter-spacing: 9px; color: #1a3a5c; margin-top: 6px; text-transform: uppercase; }
+  .cert-presented { font-size: 12px; font-weight: 700; letter-spacing: 5px; color: #8B4513; text-transform: uppercase; margin-top: 28px; }
+  .cert-name { font-family: 'Playfair Display', serif; font-size: 62px; font-weight: 700; color: #1a3a5c; text-align: center; line-height: 1.1; margin-top: 8px; }
+  .cert-divider { width: 52%; height: 1px; background: linear-gradient(90deg, transparent, #c8a84b 20%, #c8a84b 80%, transparent); margin: 14px 0 16px; }
+  .cert-desc { font-size: 15px; color: #333; text-align: center; line-height: 1.85; max-width: 620px; }
+  .cert-footer { display: flex; align-items: flex-end; justify-content: space-between; width: 100%; margin-top: auto; }
+  .excelino-img { width: 90px; height: 90px; object-fit: contain; }
+  .excelino-label { font-size: 9px; color: #1a7a3c; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; text-align: center; margin-top: 5px; }
+  .sign-cursive { font-family: 'Dancing Script', cursive; font-size: 40px; color: #1a3a5c; font-weight: 700; }
+  .sign-line { width: 220px; height: 1.5px; background: #222; margin: 3px 0 6px; }
+  .sign-name { font-size: 12px; font-weight: 800; color: #1a3a5c; letter-spacing: 2.5px; text-transform: uppercase; }
+  .sign-role { font-size: 12px; color: #c8a84b; }
+  .date-label { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: #888; margin-bottom: 3px; text-align: right; }
+  .date-value { font-size: 14px; font-weight: 700; color: #1a3a5c; text-align: right; }
+  .cert-num { font-size: 9px; color: #666; margin-top: 4px; text-align: right; }
+  .qr-img { width: 76px; height: 76px; border: 1.5px solid #1a3a5c; border-radius: 4px; }
+  .qr-label { font-size: 8px; color: #555; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; text-align: center; margin-top: 4px; }
+</style>
+</head>
+<body style="border: 2px solid ${cfg.cor};">
+
+<!-- ONDA SUPERIOR ESQUERDA -->
+<svg style="position:absolute;top:0;left:0;width:380px;height:310px;z-index:2;" viewBox="0 0 380 310" fill="none">
+  <path d="M0 0 L380 0 L380 48 C332 72 262 66 202 107 C142 148 107 202 71 250 C45 285 16 310 0 320 Z" fill="#145a2e"/>
+  <path d="M0 0 L300 0 L300 24 C257 53 195 50 152 93 C107 134 80 188 54 235 C33 271 11 300 0 312 Z" fill="#1e8449"/>
+  <path d="M0 0 L224 0 L224 12 C190 42 138 40 102 79 C66 116 47 166 28 212 C14 248 4 278 0 295 Z" fill="#2ECC71"/>
+  <path d="M0 208 C19 190 50 181 81 188 C118 196 147 218 175 238 C202 257 221 273 233 290 L209 312 C194 292 173 275 144 255 C113 234 80 213 44 207 C21 202 3 211 0 221 Z" fill="#c8a84b" opacity="0.5"/>
+</svg>
+
+<!-- ONDA INFERIOR DIREITA -->
+<svg style="position:absolute;bottom:0;right:0;width:380px;height:310px;z-index:2;" viewBox="0 0 380 310" fill="none">
+  <path d="M0 274 C16 264 50 248 83 238 C132 225 190 233 235 216 C284 198 322 160 356 118 C370 99 380 77 380 53 L380 310 L0 310 Z" fill="#145a2e"/>
+  <path d="M77 300 C100 286 138 272 176 262 C220 250 265 253 304 236 C342 220 370 188 380 150 L380 310 L65 310 Z" fill="#1e8449"/>
+  <path d="M160 310 C187 296 220 284 254 274 C292 263 325 261 356 245 C374 235 380 214 380 196 L380 310 L148 310 Z" fill="#2ECC71"/>
+  <path d="M380 89 C360 109 329 119 297 113 C258 105 230 83 202 62 C176 43 157 26 145 12 L168 0 C183 16 203 34 230 54 C260 75 292 96 328 103 C354 108 374 97 380 86 Z" fill="#c8a84b" opacity="0.5"/>
+</svg>
+
+<div class="cert-border"></div>
+<div class="cert-border-inner"></div>
+
+<!-- CANTOS -->
+<svg class="corner corner-tl" viewBox="0 0 56 56" fill="none">
+  <path d="M5 51 L5 5 L51 5" stroke="#c8a84b" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <circle cx="5" cy="5" r="3" fill="#c8a84b"/>
+</svg>
+<svg class="corner corner-tr" viewBox="0 0 56 56" fill="none">
+  <path d="M5 51 L5 5 L51 5" stroke="#c8a84b" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <circle cx="5" cy="5" r="3" fill="#c8a84b"/>
+</svg>
+<svg class="corner corner-bl" viewBox="0 0 56 56" fill="none">
+  <path d="M5 51 L5 5 L51 5" stroke="#c8a84b" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <circle cx="5" cy="5" r="3" fill="#c8a84b"/>
+</svg>
+<svg class="corner corner-br" viewBox="0 0 56 56" fill="none">
+  <path d="M5 51 L5 5 L51 5" stroke="#c8a84b" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <circle cx="5" cy="5" r="3" fill="#c8a84b"/>
+</svg>
+
+<!-- MEDALHA -->
+<div class="medal-box">
+  <div class="medal-emoji">${cfg.medalha}</div>
+  <div style="margin-top:-4px;">
+    <span class="ribbon-l"></span><span class="ribbon-r"></span>
+  </div>
+</div>
+
+<!-- CONTEÚDO -->
+<div class="cert-inner">
+  <div class="cert-title">CERTIFICADO</div>
+  <div class="cert-subtitle">De Conclusão</div>
+  <div class="cert-presented">Este certificado é apresentado a</div>
+  <div class="cert-name">${cert.nomeAluno}</div>
+  <div class="cert-divider"></div>
+  <div class="cert-desc">
+    Por ter concluído com êxito o módulo <strong>${cert.curso}</strong>
+    no aplicativo <strong>Arena Excel</strong>, ${cfg.descricao}
+  </div>
+
+  <div class="cert-footer">
+    <div style="display:flex;flex-direction:column;align-items:center;">
+      <img class="excelino-img" src="https://arenaexcel.excelcomjohni.com.br/excelino-certificado.png" alt="Excelino"/>
+      <div class="excelino-label">Arena Excel</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;">
+      <div class="sign-cursive">Johni Michael</div>
+      <div class="sign-line"></div>
+      <div class="sign-name">Johni Michael</div>
+      <div class="sign-role">Founder · Arena Excel</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
+      <div>
+        <div class="date-label">Data de Conclusão</div>
+        <div class="date-value">${cert.dataConquista}</div>
+        <div class="cert-num">Nº ${cert.id}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <img class="qr-img" src="${qrUrl}" alt="QR"/>
+        <div class="qr-label">Verificar</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>`;
+
+  // Gerar PDF
+  const options = {
+    html,
+    fileName: `certificado-arena-excel-${cert.id}`,
+    directory: 'Documents',
+    width: 1122,
+    height: 794,
+  };
+
+  const pdf = await RNHTMLtoPDF.convert(options);
+
+  if (!pdf.filePath) throw new Error('Falha ao gerar PDF');
+
+  // Compartilhar
+  const canShare = await Sharing.isAvailableAsync();
+  if (canShare) {
+    await Sharing.shareAsync(pdf.filePath, {
+      mimeType: 'application/pdf',
+      dialogTitle: 'Compartilhar Certificado Arena Excel',
+      UTI: 'com.adobe.pdf',
+    });
+  }
+}
+3. Usar na tela de conquistas — no botão do certificado:
+typescriptimport { gerarECompartilharPDF } from '../../services/certificado.pdf.service';
+
+// No handleGerarCertificado, após gerar no backend:
+const cert = await ApiService.gerarCertificado(modalCert.id, nomeAluno.trim());
+
+Alert.alert(
+  '🎓 Certificado pronto!',
+  'Deseja baixar e compartilhar seu certificado em PDF?',
+  [
+    {
+      text: '📥 Baixar PDF',
+      onPress: async () => {
+        try {
+          await gerarECompartilharPDF({
+            id: cert.id,
+            nomeAluno: nomeAluno.trim(),
+            curso: modalCert.nome,
+            nivel: modalCert.id,
+            dataConquista: new Date().toLocaleDateString('pt-BR', {
+              day: '2-digit', month: 'long', year: 'numeric'
+            }),
+          });
+        } catch (e) {
+          Alert.alert('Erro', 'Não foi possível gerar o PDF.');
+        }
+      },
+    },
+    { text: 'Agora não' },
+  ]
+);
+4. Adicionar no app.json o plugin necessário:
+json"plugins": [
+  "react-native-html-to-pdf"
+]
+5. Gerar novo build EAS após instalar o plugin:
+basheas build --platform android --profile preview
+Após o build, o botão de certificado vai gerar o PDF direto no celular e abrir o menu de compartilhamento — sem abrir nenhum browser. 🚀

@@ -1,0 +1,137 @@
+Eu olhei questão por questão de todas as trilhas e montei os ajustes necessários para cada uma delas.
+
+Excel do Zero
+
+Q1 - criar uma planilha em HTML, que seja visual e o usuário consiga compreender a questão
+Q2 - criar uma planilha em HTML destacando as colunas
+Q3 - criar uma planilha em HTML com foco na célula C5
+Q4 - criar uma planilha em HTML selecionando A1:D4
+Q5 - criar uma planilha em HTML COM O SIMBOLO DO CURSOR AO POSICIONAR O MOUSE ENTRE DUAS COLUNAS
+Q6 - criar uma planilha em HTML COM UMA DICA
+Q7 - Colocar como opções corretas =SOMA(A1:B1) e =A1+B1, fiz todos os testes aqui e não avançou pra Q8
+Q8 - criar uma planilha em HTML mostrando onde fica o botão Σ (AutoSoma)
+Q9 - transforme em uma questão de interatividade em que o usuário clica no R$ e formata os dados
+
+Fundamentos do Excel
+
+Q1 - Coloco a função =SOMA(A1:A5) e não avança, diz que tá errado
+Q2 - Como não consegui avançar, acredito que a Q2 esteja com o mesmo problema
+Q3 - criar uma planilha em HTML que vá de encontro à questão
+Q4 - criar uma planilha em HTML que vá de encontro à questão
+Q5 - Como não consegui avançar, acredito que a Q5 esteja com o mesmo problema da Q1 e Q2
+Q6 - Como não consegui avançar, acredito que a Q6 esteja com o mesmo problema da Q1 e Q2 e Q5
+Q7 - criar uma planilha em HTML que vá de encontro à questão
+Q8 - criar uma planilha em HTML que vá de encontro à questão
+Q9 - criar uma planilha em HTML que vá de encontro à questão
+Q10 - Como não consegui avançar, acredito que a Q10 esteja com o mesmo problema da Q1 e Q2 e Q5 e Q6
+
+Fórmulas Essenciais
+
+Q1 - Digito =SE(A1>=7,"Aprovado","Reprovado") e dou OK mas não avança e nem diz se tá certo ou errado
+Q2 - Como não consegui avançar, acredito que a Q2 esteja com mesmo erro que Q1
+Q3 - Como não consegui avançar, acredito que a Q3 esteja com mesmo erro que Q1 e Q2
+Q4 - criar uma planilha em HTML que vá de encontro à questão
+Q5 - Como não consegui avançar, acredito que a Q5 esteja com mesmo erro que Q1 e Q2 E Q3
+Q6 - Como não consegui avançar, acredito que a Q6 esteja com mesmo erro que Q1 e Q2 E Q3 E Q5
+Q7 - Como não consegui avançar, acredito que a Q7 esteja com mesmo erro que Q1 e Q2 E Q3 E Q5 E Q6
+Q8 - criar uma planilha em HTML que vá de encontro à questão
+Q9 - criar uma planilha em HTML que vá de encontro à questão
+Q10 - Como não consegui avançar, acredito que a Q10 ESTEJA COM ERRO E NÃO ACEITA A FÓRMULA
+
+
+Análise de Dados
+
+Q1 - criar uma planilha em HTML que vá de encontro à questão
+Q2 - criar uma planilha em HTML que vá de encontro à questão
+Q3 - criar uma planilha em HTML que vá de encontro à questão
+Q4 - COLOCO =SOMASE(A1:A4,"Ana",B1:B4) MAS NÃO AVANÇA E NEM DIZ SE TÁ CERTO OU ERRADO
+Q5 - criar uma planilha em HTML que vá de encontro à questão
+Q6 - criar uma planilha em HTML que vá de encontro à questão
+Q7 - criar uma planilha em HTML que vá de encontro à questão
+Q8 - criar uma planilha em HTML que vá de encontro à questão
+Q9 - criar uma planilha em HTML que vá de encontro à questão
+Q10 - Como não consegui avançar, acredito que a Q10 ESTEJA COM MESMO ERRO QEU Q4
+
+Gráficos Profissionais
+
+Q1 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO E AO SELECIONAR A OPÇÃO CORRETA, O GRÁFICO SEJA GERADO
+Q2 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q3 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q4 - INSERIR UMA PLANILHA EM HTML COM OS DADOS A1:B4 E AO SELECIONAR O GRÁFICO, ELE SEJA GERADO. CLICO EM CONFIRMAR E NADA ACONTECE
+Q5 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q6 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q7 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q8 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q9 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q10 - INSERIR UMA PLANILHA EM HTML COM OS DADOS, E AO SELECIONAR O GRÁFICO, ELE SEJA GERADO. CLICO EM CONFIRMAR E NADA ACONTECE
+
+Excel para Logística
+
+Q1 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q2 - DIGITO =A1*B1 E DÁ RESPOSTA INCORRETA. CORRIJA
+Q3 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q4 - DIGITO =A1/B1 E NADA ACONTECE. CORRIJA
+Q5 - DIGITO =A1+B1-C1 E NADA ACONTECE. CORRIJA
+Q6 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q7 - DIGITO =A1/B1 E NADA ACONTECE. CORRIJA
+Q8 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q9 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q10 - DIGITO =CONT.SE(A1:A5-B1:B5,"<0")/5 E DÁ ERRO. FAVOR CORRIGIR
+
+Excel para Finanças
+
+Q1 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q2 - INSIRO A FÓRMULA =A1-B1 MAS DÁ ERRO
+Q3 - INSIRO A FÓRMULA =A1*B1*C1 MAS DÁ ERRO
+Q4 - INSIRO A FÓRMULA =A1*(1+B1)^C1 MAS DÁ ERRO
+Q5 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q6 - INSIRO A FÓRMULA =PGTO(C1,B1,-A1) MAS DÁ ERRO
+Q7 -  INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q8 - INSIRO A FÓRMULA A1/B1 MAS DÁ ERRO
+Q9 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q10 - INSIRO A FÓRMULA =B1-SOMA(A1:A5) MAS DÁ ERRO
+
+Produtividade no Excel
+
+Q1 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q2 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q3 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q4 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q5 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q6 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q7 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q8 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q9 - NÃO FUNCIONA O ARRASTAR, SÓ APARECE 3 OPÇÕES E FICA COMO "CARREGANDO"
+Q10 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+
+
+Excel Avançado
+
+Q1 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q2 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q3 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q4 - COLOQUEI A RESPOSTA =PROCX(E1,A2:A4,B2:B4) E DEU ERRO
+Q5 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q6 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q7 - COLOQUEI A RESPOSTA =LET(taxa,0.2,A1*taxa) E DEU ERRO
+Q8 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q9 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+Q10 - INSERIR UMA PLANILHA EM HTML QUE SIMULE A QUESTÃO
+
+Excel + IA
+
+Q1 - INSERIR ALGUM COMPONENTE EM HTML QUE SIMULE A QUESTÃO
+Q2 - INSERIR ALGUM COMPONENTE EM HTML QUE SIMULE A QUESTÃO
+Q3 - INSERIR ALGUM COMPONENTE EM HTML QUE SIMULE A QUESTÃO
+Q4 - INSERIR ALGUM COMPONENTE EM HTML QUE SIMULE A QUESTÃO
+Q5 - INSERIR ALGUM COMPONENTE EM HTML QUE SIMULE A QUESTÃO
+Q6 - INSERIR ALGUM COMPONENTE EM HTML QUE SIMULE A QUESTÃO
+Q7 - INSERIR ALGUM COMPONENTE EM HTML QUE SIMULE A QUESTÃO
+Q8 - INSERIR ALGUM COMPONENTE EM HTML QUE SIMULE A QUESTÃO
+Q9 - INSERIR ALGUM COMPONENTE EM HTML QUE SIMULE A QUESTÃO
+Q10 - NÃO FUNCIONA O ARRASTAR, SÓ APARECE 3 OPÇÕES E FICA COMO "CARREGANDO"
+
+
+AO FINALIZAR QUALQUER TRILHA, APARECE UM POP-UP COM UM ERRO E VOLTA PRA QUESTÃO UM, COMO SE NÃO TIVESSE FEITO NENHUMA ATIVIDADE.
+
+PRECISO QUE TODAS ELAS POSSUAM UM BOTÃO DE "Dica" porque tem questões muito complexas e não tem dicas.

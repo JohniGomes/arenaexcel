@@ -1,0 +1,282 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/arena_excel/nodejs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model users {
+  id                   String                  @id @default(uuid())
+  name                 String
+  email                String                  @unique
+  passwordhash         String?
+  googleid             String?                 @unique
+  resettoken           String?                 @unique
+  resettokenexpires    DateTime?
+  level                Int                     @default(1)
+  xp                   Int                     @default(0)
+  streak               Int                     @default(0)
+  laststudydate        DateTime?
+  lives                Int                     @default(5)
+  liveslastupdated     DateTime                @default(now())
+  livesrechargetimes   Json?
+  avatar               String?                 @default("default")
+  profilepicture       String?
+  onboardingCompleted  Boolean                 @default(false)
+  onboardingLevel      String?
+  onboardingGoals      Json?
+  onboardingStudyTime  Int?
+  onboardingArea       String?
+  onboardingChallenges Json?
+  pushToken            String?
+  lastLoginAt          DateTime?
+  lastStudyAt          DateTime?
+  isPremium            Boolean                 @default(false)
+  totalExercicios      Int                     @default(0)
+  totalIaUsos          Int                     @default(0)
+  diasConsecutivos     Int                     @default(0)
+  createdat            DateTime                @default(now())
+  updatedat            DateTime                @updatedAt
+  userprogress         userprogress[]
+  userexerciseattempts userexerciseattempts[]
+  userachievements     userachievements[]
+  dailymissions        dailymissions[]
+  planilhaAnalises     PlanilhaAnalise[]
+  badges               badges[]
+  usertrailprogress    usertrailprogress[]
+  useranswers          useranswers[]
+}
+
+model levels {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  order       Int       @unique
+  createdat   DateTime  @default(now())
+  lessons     lessons[]
+}
+
+model lessons {
+  id             Int                  @id @default(autoincrement())
+  levelid        Int
+  title          String
+  description    String?
+  order          Int
+  exercisescount Int                  @default(0)
+  createdat      DateTime             @default(now())
+  level          levels               @relation(fields: [levelid], references: [id])
+  exercises      exercises[]
+  userprogress   userprogress[]
+
+  @@unique([levelid, order])
+}
+
+model exercises {
+  id                   Int                      @id @default(autoincrement())
+  lessonid             Int
+  type                 String
+  question             String
+  options              Json?
+  correctanswer        String
+  explanation          String
+  imageUrl             String?   @map("imageurl")
+  hint                 String?
+  order                Int
+  createdat            DateTime                 @default(now())
+  lesson               lessons                  @relation(fields: [lessonid], references: [id])
+  userexerciseattempts userexerciseattempts[]
+
+  @@unique([lessonid, order])
+}
+
+model userprogress {
+  id                 Int       @id @default(autoincrement())
+  userid             String
+  lessonid           Int
+  status             String    @default("not_started")
+  completedat        DateTime?
+  accuracy           Float     @default(0)
+  lastfailedattempt  DateTime?
+  canretryat         DateTime?
+  createdat          DateTime  @default(now())
+  updatedat          DateTime  @updatedAt
+  user               users     @relation(fields: [userid], references: [id], onDelete: Cascade)
+  lesson             lessons   @relation(fields: [lessonid], references: [id])
+
+  @@unique([userid, lessonid])
+}
+
+model userexerciseattempts {
+  id          Int       @id @default(autoincrement())
+  userid      String
+  exerciseid  Int
+  answer      String
+  correct     Boolean
+  attemptedat DateTime  @default(now())
+  user        users     @relation(fields: [userid], references: [id], onDelete: Cascade)
+  exercise    exercises @relation(fields: [exerciseid], references: [id])
+}
+
+model achievements {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
+  description      String
+  icon             String
+  criteria         Json
+  createdat        DateTime           @default(now())
+  userachievements userachievements[]
+}
+
+model userachievements {
+  id            Int          @id @default(autoincrement())
+  userid        String
+  achievementid Int
+  unlockedat    DateTime     @default(now())
+  user          users        @relation(fields: [userid], references: [id], onDelete: Cascade)
+  achievement   achievements @relation(fields: [achievementid], references: [id])
+
+  @@unique([userid, achievementid])
+}
+
+model dailymissions {
+  id        Int      @id @default(autoincrement())
+  userid    String
+  date      DateTime @default(now())
+  missions  Json
+  completed Boolean  @default(false)
+  createdat DateTime @default(now())
+  user      users    @relation(fields: [userid], references: [id], onDelete: Cascade)
+
+  @@unique([userid, date])
+}
+model PlanilhaAnalise {
+  id       String   @id @default(cuid())
+  userId   String
+  criadoEm DateTime @default(now())
+  user     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model badges {
+  id            String   @id @default(cuid())
+  userId        String
+  badgeId       String
+  tipo          String
+  nomeAluno     String?
+  criadoEm      DateTime @default(now())
+  user          users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+// ── ENUMS PARA TRILHAS ──────────────────────────────────────
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  SPREADSHEET_INPUT
+  FORMULA_BUILDER
+  CHART_BUILDER
+  FILL_IN_BLANK
+  DRAG_AND_DROP
+}
+
+enum TrailProfession {
+  GENERAL
+  ANALYST
+  MANAGER
+  HR
+  LOGISTICS
+  FINANCE
+  SALES
+}
+
+// ── MODELO: TRILHA ─────────────────────────────────────────
+
+model trails {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  name        String
+  icon        String
+  description String
+  profession  TrailProfession @default(GENERAL)
+  order       Int
+  color       String          @default("#1E88E5")
+  isActive    Boolean         @default(true) @map("isactive")
+  createdAt   DateTime        @default(now()) @map("createdat")
+  updatedAt   DateTime        @updatedAt @map("updatedat")
+
+  questions   questions[]
+  userProgress usertrailprogress[]
+}
+
+// ── MODELO: QUESTÃO ────────────────────────────────────────
+
+model questions {
+  id                  String       @id @default(cuid())
+  trailId             String       @map("trailid")
+  order               Int
+  type                QuestionType @default(MULTIPLE_CHOICE)
+  title               String
+  description         String       @db.Text
+  hint                String?
+  xpReward            Int          @default(10) @map("xpreward")
+
+  // Múltipla escolha
+  options             String?      @db.Text  // JSON string[]
+  correctOption       Int?         @map("correctoption")
+
+  // Planilha interativa
+  spreadsheetContext  String?      @db.Text @map("spreadsheetcontext")
+  expectedValue       String?      @map("expectedvalue")
+  targetCell          String?      @map("targetcell")
+
+  // Arrastar e soltar
+  correctOrder        String?      @db.Text @map("correctorder")
+
+  explanation         String       @db.Text
+  isActive            Boolean      @default(true) @map("isactive")
+  createdAt           DateTime     @default(now()) @map("createdat")
+  updatedAt           DateTime     @updatedAt @map("updatedat")
+
+  trail               trails       @relation(fields: [trailId], references: [id], onDelete: Cascade)
+  userAnswers         useranswers[]
+
+  @@unique([trailId, order])
+}
+
+// ── MODELO: PROGRESSO DO USUÁRIO NA TRILHA ─────────────────
+
+model usertrailprogress {
+  id              String   @id @default(cuid())
+  userId          String   @map("userid")
+  trailId         String   @map("trailid")
+  currentQuestion Int      @default(0) @map("currentquestion")
+  completedAt     DateTime? @map("completedat")
+  xpEarned        Int      @default(0) @map("xpearned")
+  accuracy        Float    @default(0)
+  createdAt       DateTime @default(now()) @map("createdat")
+  updatedAt       DateTime @updatedAt @map("updatedat")
+
+  user  users  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trail trails @relation(fields: [trailId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trailId])
+}
+
+// ── MODELO: RESPOSTA DO USUÁRIO ────────────────────────────
+
+model useranswers {
+  id         String   @id @default(cuid())
+  userId     String   @map("userid")
+  questionId String   @map("questionid")
+  value      String
+  isCorrect  Boolean  @map("iscorrect")
+  timeSpentMs Int     @default(0) @map("timespentms")
+  createdAt  DateTime @default(now()) @map("createdat")
+
+  user     users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question questions @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}

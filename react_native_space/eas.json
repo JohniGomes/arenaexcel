@@ -1,0 +1,42 @@
+{
+  "cli": {
+    "version": ">= 16.28.0",
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": false
+  },
+  "build": {
+    "base": {
+      "corepack": true,
+      "android": {
+        "credentialsSource": "local",
+        "resourceClass": "large"
+      }
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "extends": "base"
+    },
+    "preview": {
+      "distribution": "internal",
+      "extends": "base",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://arenaexcel.excelcomjohni.com.br/"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "ios": {
+        "distribution": "store",
+        "autoIncrement": true
+      },
+      "extends": "base"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

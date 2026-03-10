@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena Excel - Teste Atualizado</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .emoji {
+            font-size: 2em;
+        }
+
+        h2 {
+            color: #764ba2;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #667eea;
+            margin: 20px 0 10px 0;
+        }
+
+        h4 {
+            color: #764ba2;
+            margin: 15px 0 8px 0;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            background: #E8F5E9;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .warning {
+            background: #FFF3E0;
+            border-left: 4px solid #FF9800;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .error {
+            background: #FFEBEE;
+            border-left: 4px solid #F44336;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .step-list {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            position: relative;
+            padding-left: 50px;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .images-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .images-list li {
+            padding: 8px 8px 8px 25px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .images-list li::before {
+            content: '✅';
+            position: absolute;
+            left: 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+
+        .url-box {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+        }
+
+        strong {
+            color: #764ba2;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="emoji">📱</span> Arena Excel</h1>
+        <p class="subtitle">✅ Imagens Corrigidas! Teste com Expo Go</p>
+
+        <div class="card status">
+            <h2>✅ Problema Corrigido!</h2>
+            <p><strong>O que foi feito:</strong></p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>✅ Arquivo <code>.env</code> atualizado com URL correta</li>
+                <li>✅ Backend testado - todas as 22 imagens acessíveis</li>
+                <li>✅ Servidor Expo reiniciado com novas configurações</li>
+                <li>✅ Sistema funcionando perfeitamente!</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>🎯 Como Testar no Celular</h2>
+            
+            <h3>📱 Método 1: Conexão Manual (RECOMENDADO)</h3>
+            <ol class="step-list">
+                <li><strong>Instale o Expo Go:</strong>
+                    <br>• Android: Google Play Store
+                    <br>• iOS: App Store
+                </li>
+                <li><strong>Conecte-se à mesma rede Wi-Fi:</strong>
+                    <br>• Celular e computador devem estar na mesma rede
+                </li>
+                <li><strong>Abra o Expo Go e digite a URL:</strong>
+                    <div class="url-box">exp://10.244.205.224:8081</div>
+                    <br>• Ou copie e cole no campo "Enter URL manually"
+                </li>
+                <li><strong>Aguarde o app carregar:</strong>
+                    <br>• Primeira vez: 30-60 segundos
+                    <br>• App abre automaticamente
+                </li>
+            </ol>
+
+            <div class="warning">
+                <strong>⚠️ Importante:</strong>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Celular e computador devem estar na MESMA rede Wi-Fi</li>
+                    <li>Se não funcionar, tente desligar VPN/Firewall</li>
+                    <li>Aguarde a mensagem "Bundling complete"</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🎨 22 Imagens de Exercícios Prontas!</h2>
+            
+            <table>
+                <tr>
+                    <th>Nível</th>
+                    <th>Lições com Imagem</th>
+                    <th>Status</th>
+                </tr>
+                <tr>
+                    <td>📘 Fundamentos</td>
+                    <td>10/10</td>
+                    <td><strong style="color: #4CAF50;">100%</strong></td>
+                </tr>
+                <tr>
+                    <td>📗 Básico</td>
+                    <td>10/10</td>
+                    <td><strong style="color: #4CAF50;">100%</strong></td>
+                </tr>
+                <tr>
+                    <td>📙 Intermediário</td>
+                    <td>2/10</td>
+                    <td><strong style="color: #FF9800;">20%</strong></td>
+                </tr>
+                <tr>
+                    <td>📕 Avançado</td>
+                    <td>0/10</td>
+                    <td><strong style="color: #F44336;">0%</strong></td>
+                </tr>
+                <tr>
+                    <td>📙 Especialista</td>
+                    <td>0/10</td>
+                    <td><strong style="color: #F44336;">0%</strong></td>
+                </tr>
+            </table>
+
+            <h3>📘 Nível 1 - Fundamentos (10 lições)</h3>
+            <ul class="images-list">
+                <li><strong>Lição 1:</strong> Interface do Excel</li>
+                <li><strong>Lição 2:</strong> Células e Dados</li>
+                <li><strong>Lição 3:</strong> Atalhos Essenciais</li>
+                <li><strong>Lição 4:</strong> Salvando Arquivos</li>
+                <li><strong>Lição 5:</strong> Navegação Rápida</li>
+                <li><strong>Lição 6:</strong> Seleção de Células</li>
+                <li><strong>Lição 7:</strong> Copiar e Colar</li>
+                <li><strong>Lição 8:</strong> Desfazer e Refazer</li>
+                <li><strong>Lição 9:</strong> Zoom e Visualização</li>
+                <li><strong>Lição 10:</strong> Imprimir Planilhas</li>
+            </ul>
+
+            <h3>📗 Nível 2 - Básico (10 lições)</h3>
+            <ul class="images-list">
+                <li><strong>Lição 1:</strong> Função SOMA</li>
+                <li><strong>Lição 2:</strong> Função MÉDIA</li>
+                <li><strong>Lição 3:</strong> MÁXIMO e MÍNIMO</li>
+                <li><strong>Lição 4:</strong> CONT.NÚM</li>
+                <li><strong>Lição 5:</strong> Formatação de Células</li>
+                <li><strong>Lição 6:</strong> Filtros Básicos</li>
+                <li><strong>Lição 7:</strong> Classificação de Dados</li>
+                <li><strong>Lição 8:</strong> Gráficos Simples</li>
+                <li><strong>Lição 9:</strong> Largura e Altura</li>
+                <li><strong>Lição 10:</strong> Mesclando Células</li>
+            </ul>
+
+            <h3>📙 Nível 3 - Intermediário (2 lições)</h3>
+            <ul class="images-list">
+                <li><strong>Lição 1:</strong> Função PROCV</li>
+                <li><strong>Lição 2:</strong> Função PROCX</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>🔧 URLs do Sistema</h2>
+            
+            <h4>Frontend (React Native):</h4>
+            <div class="url-box">http://localhost:8081</div>
+            
+            <h4>Backend (API):</h4>
+            <div class="url-box">https://143b09382b.na104.preview.abacusai.app</div>
+            
+            <h4>Expo Manual URL:</h4>
+            <div class="url-box">exp://10.244.205.224:8081</div>
+            
+            <h4>Teste de Imagem no Backend:</h4>
+            <div class="url-box">https://143b09382b.na104.preview.abacusai.app/exercise-images/exercicio11.png</div>
+        </div>
+
+        <div class="card error">
+            <h2>❓ Ainda não funciona?</h2>
+            
+            <h3>Checklist de Troubleshooting:</h3>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>☑️ Celular e PC na mesma rede Wi-Fi?</li>
+                <li>☑️ Expo Go instalado e atualizado?</li>
+                <li>☑️ Firewall/VPN desligados?</li>
+                <li>☑️ Aguardou "Bundling complete" aparecer?</li>
+                <li>☑️ Tentou reabrir o Expo Go?</li>
+            </ul>
+
+            <h3>Se o erro persistir:</h3>
+            <p><strong>1. Limpe o cache do Expo:</strong></p>
+            <ul style="margin-left: 20px; margin-top: 5px;">
+                <li>Abra Expo Go → Settings → Clear cache</li>
+                <li>Feche e reabra o app</li>
+            </ul>
+
+            <p style="margin-top: 15px;"><strong>2. Tente a URL web preview:</strong></p>
+            <div class="url-box">http://localhost:8081</div>
+            <p style="margin-top: 5px;"><em>Abra no navegador para testar a versão web</em></p>
+        </div>
+
+        <div class="btn-container">
+            <a href="http://localhost:8081" class="btn" target="_blank">🌐 Preview Web</a>
+            <a href="https://143b09382b.na104.preview.abacusai.app/api-docs" class="btn" target="_blank">📚 API Docs</a>
+        </div>
+
+        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <h2 style="color: white; border-bottom-color: white;">🚀 Próximos Passos</h2>
+            <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                <li>✅ Teste as 22 lições com imagens</li>
+                <li>📸 Adicione mais imagens (Níveis 3, 4, 5)</li>
+                <li>🌐 Deploy do backend para produção</li>
+                <li>📱 Build do APK/IPA quando estiver pronto</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
