@@ -229,10 +229,10 @@ export default function QuestionScreen({
                       <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
                       <style>
                         * { margin: 0; padding: 0; box-sizing: border-box; }
-                        body { 
+                        body {
                           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                           font-size: 15px;
-                          color: #555;
+                          color: #1A1A2E;
                           line-height: 1.5;
                           padding: 12px;
                           background: transparent;
@@ -241,10 +241,10 @@ export default function QuestionScreen({
                           background: #fff;
                           border-radius: 12px;
                           padding: 16px;
-                          border: 1px solid #E9ECEF;
+                          border: 1px solid #E0E5E0;
                         }
                         .excel-grid {
-                          background: #F8F9FA;
+                          background: #F7F9F7;
                           border-radius: 8px;
                           padding: 12px;
                           margin-bottom: 12px;
@@ -254,13 +254,15 @@ export default function QuestionScreen({
                           display: flex;
                           font-weight: 700;
                           font-size: 12px;
-                          color: #666;
+                          color: #217346;
                           margin-bottom: 4px;
                         }
                         .excel-header span {
                           min-width: 50px;
                           text-align: center;
                           padding: 4px;
+                          background: #E8F5E9;
+                          border-radius: 4px;
                         }
                         .excel-row {
                           display: flex;
@@ -271,29 +273,32 @@ export default function QuestionScreen({
                           text-align: center;
                           font-weight: 600;
                           font-size: 11px;
-                          color: #666;
-                          background: #F8F9FA;
+                          color: #4A4A6A;
+                          background: #F7F9F7;
                           padding: 8px 4px;
-                          border: 1px solid #DEE2E6;
+                          border: 1px solid #E0E5E0;
                         }
                         .cell {
                           min-width: 50px;
                           padding: 8px;
-                          border: 1px solid #DEE2E6;
+                          border: 1px solid #E0E5E0;
                           background: #fff;
                           text-align: center;
                           font-size: 13px;
+                          color: #1A1A2E;
                         }
                         .highlight-cell {
-                          background: #E3F2FD !important;
-                          border: 2px solid #2196F3 !important;
+                          background: #E8F5E9 !important;
+                          border: 2px solid #217346 !important;
                           font-weight: 700;
+                          color: #217346;
                         }
-                        p { 
-                          margin-top: 12px; 
-                          color: #666;
+                        p {
+                          margin-top: 12px;
+                          color: #4A4A6A;
                           font-size: 14px;
                         }
+                        strong { color: #217346; }
                       </style>
                     </head>
                     <body>
@@ -484,11 +489,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   htmlContainer: {
-    height: 200,
+    minHeight: 160,
+    maxHeight: 300,
     marginBottom: 20,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.primaryLight,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   webview: {
     flex: 1,

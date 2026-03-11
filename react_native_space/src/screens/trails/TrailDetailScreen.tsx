@@ -18,6 +18,15 @@ import { LearnStackParamList } from '../../navigation/types';
 
 type TrailDetailRouteProp = RouteProp<LearnStackParamList, 'TrailDetail'>;
 
+const TYPE_LABELS: Record<string, { emoji: string; label: string; color: string }> = {
+  MULTIPLE_CHOICE:  { emoji: '📝', label: 'Múltipla Escolha', color: '#1565C0' },
+  SPREADSHEET_INPUT:{ emoji: '📊', label: 'Planilha',         color: '#217346' },
+  FORMULA_BUILDER:  { emoji: '⚡', label: 'Fórmula',          color: '#6A1B9A' },
+  CHART_BUILDER:    { emoji: '📈', label: 'Gráfico',           color: '#E65100' },
+  DRAG_AND_DROP:    { emoji: '↕️', label: 'Ordenar',           color: '#00695C' },
+  FILL_IN_BLANK:    { emoji: '✏️', label: 'Completar',         color: '#4A148C' },
+};
+
 interface TrailDetail {
   id: string;
   slug: string;
@@ -48,12 +57,9 @@ export default function TrailDetailScreen() {
   const route = useRoute<TrailDetailRouteProp>();
   const { slug } = route?.params ?? {};
 
-  // Recarrega progresso sempre que a tela fica visível
   useFocusEffect(
     React.useCallback(() => {
-      if (slug) {
-        loadTrailDetail();
-      }
+      if (slug) loadTrailDetail();
     }, [slug])
   );
 
@@ -73,7 +79,6 @@ export default function TrailDetailScreen() {
       const unlockDate = new Date(question.unlocksAt);
       const now = new Date();
       const minutesLeft = Math.ceil((unlockDate.getTime() - now.getTime()) / 60000);
-      
       Alert.alert(
         '⏳ Questão Bloqueada',
         `Você errou essa questão. Tente novamente em ${minutesLeft} minuto${minutesLeft > 1 ? 's' : ''}.`,
@@ -81,11 +86,7 @@ export default function TrailDetailScreen() {
       );
       return;
     }
-
-    navigation.navigate('Question', {
-      slug: slug ?? '',
-      order: question?.order ?? 1,
-    });
+    navigation.navigate('Question', { slug: slug ?? '', order: question?.order ?? 1 });
   };
 
   if (loading) {
@@ -104,22 +105,24 @@ export default function TrailDetailScreen() {
     );
   }
 
+  const completed = trail.questions?.filter(q => q.status === 'completed').length ?? 0;
+  const total = trail.totalQuestions ?? 0;
+  const percent = total > 0 ? Math.min((completed / total) * 100, 100) : 0;
+  const trailColor = trail.color || theme.colors.primary;
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color="#1A1A2E" />
+      {/* Header com botão voltar */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Trail Header */}
         <LinearGradient
-          colors={[theme.colors.primary, theme.colors.primaryMid]}
+          colors={[trailColor, theme.colors.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.trailHeader}
@@ -127,72 +130,97 @@ export default function TrailDetailScreen() {
           <Text style={styles.trailIcon}>{trail?.icon ?? ''}</Text>
           <Text style={styles.trailName}>{trail?.name ?? ''}</Text>
           <Text style={styles.trailDesc}>{trail?.description ?? ''}</Text>
+
+          {/* Progresso */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${percent}%` }]} />
+            </View>
+            <Text style={styles.progressLabel}>
+              {completed} de {total} questões concluídas
+            </Text>
+          </View>
         </LinearGradient>
 
-        {/* Questions List */}
+        {/* Lista de questões */}
         <View style={styles.questionsContainer}>
           {trail?.questions?.map((question, index) => {
             const status = question?.status ?? 'available';
             const isCompleted = status === 'completed';
             const isLocked = status === 'locked';
-            const isAvailable = status === 'available';
-            
-            // Calcula tempo restante se locked
+            const typeInfo = TYPE_LABELS[question.type] ?? { emoji: '❓', label: question.type, color: theme.colors.primary };
+
             let timeLeftText = '';
             if (isLocked && question?.unlocksAt) {
-              const unlockDate = new Date(question.unlocksAt);
-              const now = new Date();
-              const minutesLeft = Math.ceil((unlockDate.getTime() - now.getTime()) / 60000);
+              const minutesLeft = Math.ceil(
+                (new Date(question.unlocksAt).getTime() - Date.now()) / 60000
+              );
               timeLeftText = `${minutesLeft}min`;
             }
-            
+
             return (
               <TouchableOpacity
                 key={question?.id ?? index}
                 style={[
                   styles.questionCard,
                   isCompleted && styles.questionCardCompleted,
-                  isLocked && styles.questionCardFailed,
+                  isLocked && styles.questionCardLocked,
                 ]}
                 onPress={() => handleQuestionPress(question)}
                 activeOpacity={0.7}
               >
+                {/* Barra de status lateral */}
+                <View style={[
+                  styles.statusBar,
+                  isCompleted && { backgroundColor: theme.colors.success },
+                  isLocked && { backgroundColor: theme.colors.error },
+                  !isCompleted && !isLocked && { backgroundColor: trailColor },
+                ]} />
+
                 <View style={styles.questionLeft}>
-                  <View
-                    style={[
-                      styles.questionNumber,
-                      isCompleted && styles.questionNumberCompleted,
-                      isLocked && styles.questionNumberFailed,
-                    ]}
-                  >
+                  {/* Número / ícone de status */}
+                  <View style={[
+                    styles.questionNumber,
+                    isCompleted && { backgroundColor: theme.colors.success },
+                    isLocked && { backgroundColor: theme.colors.error },
+                    !isCompleted && !isLocked && { backgroundColor: trailColor },
+                  ]}>
                     {isCompleted ? (
-                      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                      <Ionicons name="checkmark" size={18} color="#fff" />
                     ) : isLocked ? (
-                      <Ionicons name="close" size={20} color="#FFFFFF" />
+                      <Ionicons name="time-outline" size={18} color="#fff" />
                     ) : (
-                      <Text style={styles.questionNumberText}>
-                        {question?.order ?? 0}
-                      </Text>
+                      <Text style={styles.questionNumberText}>{question?.order ?? 0}</Text>
                     )}
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={styles.questionTitle}
-                      numberOfLines={2}
-                    >
+
+                  {/* Título e badge de tipo */}
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={styles.questionTitle} numberOfLines={2}>
                       {question?.title ?? ''}
                     </Text>
-                    {isLocked && timeLeftText && (
-                      <Text style={styles.lockTimeText}>
-                        ⏳ Tente novamente em {timeLeftText}
-                      </Text>
-                    )}
+
+                    <View style={styles.typeBadgeRow}>
+                      <View style={[styles.typeBadge, { backgroundColor: typeInfo.color + '18' }]}>
+                        <Text style={styles.typeBadgeText}>
+                          {typeInfo.emoji} {typeInfo.label}
+                        </Text>
+                      </View>
+                      {isLocked && timeLeftText && (
+                        <Text style={styles.lockTimeText}>⏳ {timeLeftText}</Text>
+                      )}
+                    </View>
                   </View>
                 </View>
+
                 <Ionicons
-                  name={isCompleted ? "checkmark-circle" : isLocked ? "time-outline" : "chevron-forward"}
-                  size={24}
-                  color={isCompleted ? '#4CAF50' : isLocked ? '#E53935' : '#999'}
+                  name={isCompleted ? 'checkmark-circle' : isLocked ? 'lock-closed' : 'chevron-forward'}
+                  size={22}
+                  color={
+                    isCompleted ? theme.colors.success
+                    : isLocked ? theme.colors.error
+                    : theme.colors.border
+                  }
                 />
               </TouchableOpacity>
             );
@@ -206,119 +234,81 @@ export default function TrailDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  topBar: { paddingHorizontal: 16, paddingVertical: 10 },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 4, elevation: 3,
   },
   trailHeader: {
-    marginHorizontal: 16,
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 24,
-    alignItems: 'center',
+    marginHorizontal: 16, padding: 24, borderRadius: 20,
+    marginBottom: 20, alignItems: 'center', gap: 8,
   },
-  trailIcon: {
-    fontSize: 64,
-    marginBottom: 12,
-  },
+  trailIcon: { fontSize: 60, marginBottom: 4 },
   trailName: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 26, fontWeight: '800', color: '#fff',
     textAlign: 'center',
-    marginBottom: 8,
   },
   trailDesc: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.95)',
-    textAlign: 'center',
-    lineHeight: 22,
+    fontSize: 14, color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center', lineHeight: 20,
   },
-  questionsContainer: {
-    paddingHorizontal: 16,
+  progressSection: { width: '100%', gap: 6, marginTop: 4 },
+  progressTrack: {
+    width: '100%', height: 6,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 3, overflow: 'hidden',
   },
+  progressFill: {
+    height: '100%', backgroundColor: '#fff', borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 12, color: 'rgba(255,255,255,0.85)',
+    fontWeight: '600', textAlign: 'center',
+  },
+  questionsContainer: { paddingHorizontal: 16, gap: 10 },
   questionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 14, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 4, elevation: 2,
   },
-  questionCardCompleted: {
-    backgroundColor: '#F1F8F4',
-    borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
-  },
-  questionCardFailed: {
-    backgroundColor: '#FFEBEE',
-    borderLeftWidth: 4,
-    borderLeftColor: '#E53935',
-  },
+  questionCardCompleted: { backgroundColor: '#F0FAF4' },
+  questionCardLocked: { backgroundColor: '#FFF5F5' },
+  statusBar: { width: 4, alignSelf: 'stretch' },
   questionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center',
+    flex: 1, padding: 14, gap: 12,
   },
   questionNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 36, height: 36, borderRadius: 18,
+    justifyContent: 'center', alignItems: 'center',
+    flexShrink: 0,
   },
-  questionNumberCompleted: {
-    backgroundColor: '#4CAF50',
-  },
-  questionNumberFailed: {
-    backgroundColor: '#E53935',
-  },
-  questionNumberText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
+  questionNumberText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   questionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A2E',
-    lineHeight: 20,
+    fontSize: 14, fontWeight: '600',
+    color: theme.colors.text, lineHeight: 20,
+  },
+  typeBadgeRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+  },
+  typeBadge: {
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderRadius: 10,
+  },
+  typeBadgeText: {
+    fontSize: 11, fontWeight: '600', color: theme.colors.textSecondary,
   },
   lockTimeText: {
-    fontSize: 12,
-    color: '#E53935',
-    marginTop: 4,
-    fontWeight: '600',
+    fontSize: 11, color: theme.colors.error, fontWeight: '600',
   },
   errorText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 32,
+    fontSize: 16, color: theme.colors.textSecondary,
+    textAlign: 'center', marginTop: 32,
   },
 });

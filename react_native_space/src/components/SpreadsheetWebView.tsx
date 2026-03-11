@@ -54,14 +54,14 @@ export const SpreadsheetWebView: React.FC<SpreadsheetWebViewProps> = ({
     (event: WebViewMessageEvent) => {
       try {
         const data = JSON.parse(event.nativeEvent.data);
-        
+
         if (data.type === 'ANSWER_SUBMITTED') {
           let normalized = (data.value ?? '').trim().toUpperCase();
           let expected = (expectedValue ?? '').trim().toUpperCase();
-          
+
           normalized = normalized.replace(/\s+/g, '').replace(/;/g, ',').replace(/\$/g, '');
           expected = expected.replace(/\s+/g, '').replace(/;/g, ',').replace(/\$/g, '');
-          
+
           if (normalized === expected) {
             onCorrect(data.value);
             webViewRef.current?.injectJavaScript('window.showSuccess(); true;');
@@ -70,12 +70,12 @@ export const SpreadsheetWebView: React.FC<SpreadsheetWebViewProps> = ({
             webViewRef.current?.injectJavaScript('window.showError(); true;');
           }
         }
-        
+
         if (data.type === 'DRAG_ORDER_SUBMITTED') {
           const userOrder = data.order ?? [];
           const correctOrder = JSON.parse(expectedValue || '[]');
           const isCorrect = JSON.stringify(userOrder) === JSON.stringify(correctOrder);
-          
+
           if (isCorrect) {
             onCorrect(JSON.stringify(data.order));
             webViewRef.current?.injectJavaScript('window.showSuccess(); true;');
@@ -91,11 +91,11 @@ export const SpreadsheetWebView: React.FC<SpreadsheetWebViewProps> = ({
     [expectedValue, onCorrect, onWrong]
   );
 
-  // Para DRAG_AND_DROP, passa os itens embaralhados vindos do backend
-  const dragItems = questionType === 'DRAG_AND_DROP' 
-    ? (spreadsheetContext as any)?.dragItems ?? []
-    : [];
-  
+  const dragItems =
+    questionType === 'DRAG_AND_DROP'
+      ? (spreadsheetContext as any)?.dragItems ?? []
+      : [];
+
   const html = generateHTML(questionType, spreadsheetContext, targetCell, dragItems);
 
   return (
@@ -113,13 +113,11 @@ export const SpreadsheetWebView: React.FC<SpreadsheetWebViewProps> = ({
         renderLoading={() => (
           <ActivityIndicator
             style={StyleSheet.absoluteFill}
-            color="#1E88E5"
+            color="#217346"
             size="large"
           />
         )}
-        // iOS: permite input de teclado dentro da WebView
         keyboardDisplayRequiresUserAction={false}
-        // Android: suporte a inputs modernos
         mixedContentMode="compatibility"
         allowsInlineMediaPlayback
         originWhitelist={['*']}
@@ -149,153 +147,207 @@ function generateHTML(
   /* ── RESET & BASE ── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --blue:    #1E88E5;
-    --green:   #43A047;
-    --red:     #E53935;
-    --yellow:  #FDD835;
-    --gray50:  #F8F9FA;
-    --gray100: #E9ECEF;
-    --gray200: #DEE2E6;
-    --gray400: #8D9298;
-    --gray700: #343A40;
+    --excel:   #217346;
+    --excel-mid: #2E9E5B;
+    --excel-light: #E8F5E9;
+    --excel-vivid: #27AE60;
+    --text:    #1A1A2E;
+    --text2:   #4A4A6A;
+    --bg:      #F7F9F7;
+    --border:  #E0E5E0;
     --white:   #FFFFFF;
+    --yellow:  #F59E0B;
+    --yellow-light: #FEF3C7;
+    --success: #27AE60;
+    --error:   #E74C3C;
+    --gray:    #B0BEC5;
     --radius:  8px;
-    --shadow:  0 2px 12px rgba(0,0,0,.10);
-    --font:    'Segoe UI', system-ui, sans-serif;
+    --shadow:  0 2px 12px rgba(0,0,0,.08);
+    --font:    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono:    'Consolas', 'Courier New', monospace;
   }
   html, body {
     height: 100%;
     font-family: var(--font);
-    background: var(--gray50);
-    color: var(--gray700);
+    background: var(--bg);
+    color: var(--text);
     overflow: hidden;
   }
-  .app { display: flex; flex-direction: column; height: 100vh; padding: 12px; gap: 10px; }
+  .app { display: flex; flex-direction: column; height: 100vh; padding: 10px; gap: 8px; }
 
   /* ── FORMULA BAR ── */
   .formula-bar {
     display: flex; align-items: center; gap: 8px;
-    background: var(--white); border: 1.5px solid var(--gray200);
+    background: var(--white); border: 1.5px solid var(--border);
     border-radius: var(--radius); padding: 8px 12px;
     box-shadow: var(--shadow);
   }
   .cell-ref {
-    font-size: 13px; font-weight: 700; color: var(--blue);
-    min-width: 40px; text-align: center;
-    border-right: 1.5px solid var(--gray200); padding-right: 10px;
+    font-size: 13px; font-weight: 700; color: var(--excel);
+    min-width: 36px; text-align: center;
+    border-right: 1.5px solid var(--border); padding-right: 10px;
+    font-family: var(--mono);
   }
-  .fx-label { font-size: 13px; font-style: italic; color: var(--gray400); }
+  .fx-label {
+    font-size: 13px; font-style: italic; color: var(--excel-mid);
+    font-weight: 700; padding-right: 4px;
+  }
   .formula-input {
     flex: 1; border: none; outline: none;
-    font-size: 14px; font-family: 'Consolas', monospace;
-    color: var(--gray700); background: transparent;
+    font-size: 14px; font-family: var(--mono);
+    color: var(--text); background: transparent;
   }
 
   /* ── GRID ── */
   .grid-wrapper {
     flex: 1; overflow: auto;
     border-radius: var(--radius); box-shadow: var(--shadow);
-    border: 1.5px solid var(--gray200); background: var(--white);
+    border: 1.5px solid var(--border); background: var(--white);
   }
   table { border-collapse: collapse; width: max-content; min-width: 100%; }
-  th, td { border: 1px solid var(--gray200); }
-  /* coluna de índice de linha */
+  th, td { border: 1px solid var(--border); }
   .row-idx {
-    background: var(--gray50); color: var(--gray400);
-    font-size: 11px; font-weight: 600; text-align: center;
-    padding: 4px 8px; min-width: 32px; user-select: none;
-  }
-  /* cabeçalho de coluna */
-  .col-hdr {
-    background: var(--gray50); color: var(--gray400);
+    background: var(--excel-light); color: var(--excel);
     font-size: 11px; font-weight: 700; text-align: center;
-    padding: 6px 12px; min-width: 80px; user-select: none;
-    position: sticky; top: 0; z-index: 2;
+    padding: 4px 8px; min-width: 28px; user-select: none;
   }
-  /* célula normal */
+  .col-hdr {
+    background: var(--excel-light); color: var(--excel);
+    font-size: 11px; font-weight: 700; text-align: center;
+    padding: 6px 12px; min-width: 72px; user-select: none;
+    position: sticky; top: 0; z-index: 2;
+    border-bottom: 2px solid var(--excel);
+  }
   .cell {
-    padding: 6px 10px; font-size: 13px; min-width: 80px;
+    padding: 6px 10px; font-size: 13px; min-width: 72px;
     height: 32px; vertical-align: middle; cursor: pointer;
     transition: background .15s;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: var(--text);
   }
-  .cell:hover { background: #EEF6FF; }
-  .cell.selected { background: #DBEEFF; outline: 2px solid var(--blue); outline-offset: -2px; }
+  .cell:hover  { background: var(--excel-light); }
+  .cell.selected {
+    background: #C8E6C9;
+    outline: 2px solid var(--excel); outline-offset: -2px;
+  }
   .cell.highlight {
-    background: #FFF8E1; outline: 2px dashed var(--yellow);
-    outline-offset: -2px; font-weight: 600;
+    background: var(--yellow-light);
+    outline: 2px dashed var(--yellow); outline-offset: -2px;
+    font-weight: 700; color: var(--text);
   }
-  .cell.correct  { background: #E8F5E9; outline: 2px solid var(--green); outline-offset: -2px; }
-  .cell.wrong    { background: #FFEBEE; outline: 2px solid var(--red);   outline-offset: -2px; }
+  .cell.correct { background: var(--excel-light); outline: 2px solid var(--success); outline-offset: -2px; }
+  .cell.wrong   { background: #FFEBEE; outline: 2px solid var(--error); outline-offset: -2px; }
   .cell.editable { cursor: text; }
 
   /* ── INPUT INLINE ── */
   .cell-input {
     width: 100%; height: 100%; border: none; outline: none;
-    background: transparent; font-size: 13px; font-family: 'Consolas', monospace;
-    color: var(--gray700);
+    background: transparent; font-size: 13px; font-family: var(--mono);
+    color: var(--text);
   }
 
   /* ── BOTÃO CONFIRMAR ── */
   .btn-confirm {
-    background: var(--blue); color: #fff;
+    background: var(--excel); color: #fff;
     border: none; border-radius: var(--radius);
     padding: 14px; font-size: 15px; font-weight: 700;
-    cursor: pointer; letter-spacing: .5px;
+    cursor: pointer; letter-spacing: .3px;
     transition: background .2s, transform .1s;
-    box-shadow: 0 3px 8px rgba(30,136,229,.35);
+    box-shadow: 0 3px 8px rgba(33,115,70,.35);
   }
   .btn-confirm:active { transform: scale(.97); }
-  .btn-confirm:hover  { background: #1565C0; }
-  .btn-confirm:disabled { background: var(--gray200); color: var(--gray400); box-shadow: none; }
+  .btn-confirm:hover  { background: var(--excel-mid); }
+  .btn-confirm:disabled {
+    background: var(--border); color: var(--gray); box-shadow: none; cursor: default;
+  }
 
   /* ── FEEDBACK TOAST ── */
   .toast {
     position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
     padding: 10px 24px; border-radius: 24px; font-size: 14px; font-weight: 600;
     opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 99;
+    white-space: nowrap;
   }
-  .toast.show  { opacity: 1; }
-  .toast.ok    { background: var(--green); color: #fff; }
-  .toast.fail  { background: var(--red);   color: #fff; }
+  .toast.show { opacity: 1; }
+  .toast.ok   { background: var(--success); color: #fff; }
+  .toast.fail { background: var(--error);   color: #fff; }
+
+  /* ── FORMULA BUILDER ESPECÍFICO ── */
+  .formula-focus {
+    background: var(--white); border-radius: var(--radius);
+    border: 2px solid var(--excel); padding: 12px 16px;
+    box-shadow: 0 2px 12px rgba(33,115,70,.15);
+  }
+  .formula-focus-label {
+    font-size: 11px; font-weight: 700; color: var(--excel);
+    text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px;
+  }
+  .formula-focus-bar {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .equals-sign {
+    font-size: 20px; font-weight: 900; color: var(--excel);
+    font-family: var(--mono); user-select: none;
+  }
+  .formula-main-input {
+    flex: 1; border: none; border-bottom: 2px solid var(--excel);
+    outline: none; font-size: 16px; font-family: var(--mono);
+    color: var(--text); background: transparent; padding: 4px 2px;
+  }
 
   /* ── DRAG AND DROP ── */
-  .dnd-list { list-style: none; display: flex; flex-direction: column; gap: 8px; padding: 4px; }
+  .dnd-list {
+    list-style: none; display: flex; flex-direction: column; gap: 8px; padding: 4px;
+  }
   .dnd-item {
-    background: var(--white); border: 1.5px solid var(--gray200);
-    border-radius: var(--radius); padding: 12px 16px;
+    background: var(--white); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
     font-size: 14px; cursor: grab; user-select: none;
     display: flex; align-items: center; gap: 10px;
     box-shadow: var(--shadow); transition: box-shadow .15s, transform .15s;
-    touch-action: none;
+    touch-action: none; color: var(--text);
   }
-  .dnd-item:active { cursor: grabbing; box-shadow: 0 6px 20px rgba(0,0,0,.18); transform: scale(1.02); }
-  .dnd-item .drag-icon { color: var(--gray400); font-size: 18px; }
+  .dnd-item:active { cursor: grabbing; box-shadow: 0 6px 20px rgba(0,0,0,.15); transform: scale(1.02); }
+  .dnd-badge {
+    width: 26px; height: 26px; border-radius: 13px;
+    background: var(--excel-light); border: 1.5px solid var(--excel);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--excel); flex-shrink: 0;
+  }
+  .drag-icon { color: var(--gray); font-size: 16px; flex-shrink: 0; }
 
   /* ── CHART SELECTOR ── */
   .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .chart-card {
-    border: 2px solid var(--gray200); border-radius: var(--radius);
+    border: 2px solid var(--border); border-radius: var(--radius);
     padding: 16px 12px; text-align: center; cursor: pointer;
     background: var(--white); transition: all .2s;
   }
-  .chart-card:hover  { border-color: var(--blue); background: #EEF6FF; }
-  .chart-card.active { border-color: var(--blue); background: #DBEEFF; }
+  .chart-card:hover  { border-color: var(--excel); background: var(--excel-light); }
+  .chart-card.active { border-color: var(--excel); background: var(--excel-light); }
+  .chart-card.active .label { color: var(--excel); }
   .chart-card .icon  { font-size: 32px; }
-  .chart-card .label { font-size: 13px; margin-top: 6px; font-weight: 600; }
+  .chart-card .label { font-size: 13px; margin-top: 6px; font-weight: 600; color: var(--text2); }
 
   /* ── FILL IN BLANK ── */
   .formula-blank {
-    font-family: 'Consolas', monospace; font-size: 15px; line-height: 2;
+    font-family: var(--mono); font-size: 15px; line-height: 2.2;
     background: var(--white); border-radius: var(--radius);
     padding: 14px 16px; box-shadow: var(--shadow);
-    border: 1.5px solid var(--gray200);
+    border: 1.5px solid var(--border); color: var(--text);
   }
   .blank-input {
-    display: inline-block; min-width: 80px; border-bottom: 2px solid var(--blue);
-    text-align: center; outline: none; font-family: 'Consolas', monospace;
-    font-size: 15px; color: var(--blue); font-weight: 700;
-    background: transparent;
+    display: inline-block; min-width: 80px;
+    border-bottom: 2.5px solid var(--excel);
+    text-align: center; outline: none;
+    font-family: var(--mono); font-size: 15px;
+    color: var(--excel); font-weight: 700; background: transparent;
+  }
+
+  /* ── LABEL SEÇÃO ── */
+  .section-label {
+    font-size: 12px; color: var(--text2); padding: 2px;
+    font-weight: 600; letter-spacing: .3px;
   }
 </style>
 </head>
@@ -307,7 +359,6 @@ function generateHTML(
 <div class="toast" id="toast"></div>
 
 <script>
-// ── UTILITÁRIOS ───────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
 function postToRN(payload) {
@@ -320,10 +371,9 @@ function showToast(msg, kind) {
   const t = $('toast');
   t.textContent = msg;
   t.className = 'toast show ' + kind;
-  setTimeout(() => t.className = 'toast', 2200);
+  setTimeout(() => t.className = 'toast', 2400);
 }
 
-// ── FEEDBACK (chamado pelo RN via injectJavaScript) ───
 window.showError = function() {
   showToast('❌ Resposta incorreta. Tente novamente!', 'fail');
   const target = document.querySelector('.cell.highlight');
@@ -336,42 +386,44 @@ window.showError = function() {
 window.showSuccess = function() {
   showToast('✅ Resposta correta!', 'ok');
   const target = document.querySelector('.cell.highlight');
-  if (target) {
-    target.classList.add('correct');
+  if (target) target.classList.add('correct');
+  const focusInput = $('formula-main-input');
+  if (focusInput) {
+    focusInput.style.borderBottomColor = '#27AE60';
+    focusInput.disabled = true;
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-//  LÓGICA POR TIPO DE QUESTÃO
-// ─────────────────────────────────────────────────────────────
-
 const QUESTION_TYPE = "${type}";
 
-// ── SPREADSHEET / FORMULA INPUT ───────────────────────────────
+// ── SPREADSHEET / FORMULA INPUT ──────────────────────────────
 if (['SPREADSHEET_INPUT','FORMULA_BUILDER'].includes(QUESTION_TYPE)) {
   const targetCell = "${highlight}";
-  const formulaInput = $('formula-input');
+  const formulaInput = $('formula-input') || $('formula-main-input');
   const cellRef = $('cell-ref');
 
-  // Sincroniza barra de fórmula ↔ célula alvo
   if (formulaInput) {
     formulaInput.addEventListener('input', () => {
       const cell = document.querySelector('[data-cell="'+targetCell+'"]');
-      if (cell) cell.textContent = formulaInput.value;
+      if (cell) {
+        const val = formulaInput.value;
+        cell.textContent = val;
+      }
     });
-
     formulaInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); }
     });
   }
 
-  // Clique em qualquer célula seleciona
   document.querySelectorAll('.cell').forEach(cell => {
     cell.addEventListener('click', () => {
       document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
       cell.classList.add('selected');
       const ref = cell.dataset.cell;
       if (cellRef) cellRef.textContent = ref;
+      if (formulaInput && cell.classList.contains('highlight')) {
+        formulaInput.focus();
+      }
     });
   });
 
@@ -382,7 +434,7 @@ if (['SPREADSHEET_INPUT','FORMULA_BUILDER'].includes(QUESTION_TYPE)) {
   };
 }
 
-// ── CHART BUILDER ─────────────────────────────────────────────
+// ── CHART BUILDER ────────────────────────────────────────────
 if (QUESTION_TYPE === 'CHART_BUILDER') {
   let selected = null;
   document.querySelectorAll('.chart-card').forEach(card => {
@@ -390,21 +442,26 @@ if (QUESTION_TYPE === 'CHART_BUILDER') {
       document.querySelectorAll('.chart-card').forEach(c => c.classList.remove('active'));
       card.classList.add('active');
       selected = card.dataset.chart;
-      $('btn-confirm')?.removeAttribute('disabled');
+      const btn = $('btn-confirm');
+      if (btn) btn.removeAttribute('disabled');
     });
   });
-
   window.submitAnswer = function() {
     if (!selected) { showToast('⚠️ Selecione um tipo de gráfico', 'fail'); return; }
     postToRN({ type: 'ANSWER_SUBMITTED', value: selected });
   };
 }
 
-// ── DRAG AND DROP ─────────────────────────────────────────────
+// ── DRAG AND DROP ────────────────────────────────────────────
 if (QUESTION_TYPE === 'DRAG_AND_DROP') {
   let dragSrc = null;
-  let touchY = 0;
   const list = $('dnd-list');
+
+  function updateBadges() {
+    document.querySelectorAll('.dnd-badge').forEach((badge, i) => {
+      badge.textContent = i + 1;
+    });
+  }
 
   if (list) {
     list.addEventListener('dragstart', e => {
@@ -416,36 +473,30 @@ if (QUESTION_TYPE === 'DRAG_AND_DROP') {
       const target = e.target.closest('.dnd-item');
       if (target && target !== dragSrc) {
         const rect = target.getBoundingClientRect();
-        const mid = rect.top + rect.height / 2;
-        if (e.clientY < mid) list.insertBefore(dragSrc, target);
+        if (e.clientY < rect.top + rect.height / 2) list.insertBefore(dragSrc, target);
         else list.insertBefore(dragSrc, target.nextSibling);
+        updateBadges();
       }
     });
-    
     list.addEventListener('touchstart', e => {
       dragSrc = e.target.closest('.dnd-item');
-      if (dragSrc) {
-        touchY = e.touches[0].clientY;
-        dragSrc.style.opacity = '0.5';
-      }
-    }, {passive: true});
-    
+      if (dragSrc) dragSrc.style.opacity = '0.55';
+    }, { passive: true });
     list.addEventListener('touchmove', e => {
       if (!dragSrc) return;
       const touch = e.touches[0];
       const target = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.dnd-item');
       if (target && target !== dragSrc) {
         const rect = target.getBoundingClientRect();
-        const mid = rect.top + rect.height / 2;
-        if (touch.clientY < mid) list.insertBefore(dragSrc, target);
+        if (touch.clientY < rect.top + rect.height / 2) list.insertBefore(dragSrc, target);
         else list.insertBefore(dragSrc, target.nextSibling);
+        updateBadges();
       }
-    }, {passive: true});
-    
+    }, { passive: true });
     list.addEventListener('touchend', () => {
       if (dragSrc) dragSrc.style.opacity = '1';
       dragSrc = null;
-    }, {passive: true});
+    }, { passive: true });
   }
 
   window.submitAnswer = function() {
@@ -454,7 +505,7 @@ if (QUESTION_TYPE === 'DRAG_AND_DROP') {
   };
 }
 
-// ── FILL IN BLANK ──────────────────────────────────────────────
+// ── FILL IN BLANK ────────────────────────────────────────────
 if (QUESTION_TYPE === 'FILL_IN_BLANK') {
   window.submitAnswer = function() {
     const inputs = [...document.querySelectorAll('.blank-input')];
@@ -478,8 +529,9 @@ function renderByType(
 ): string {
   switch (type) {
     case 'SPREADSHEET_INPUT':
-    case 'FORMULA_BUILDER':
       return renderSpreadsheet(cells, highlight);
+    case 'FORMULA_BUILDER':
+      return renderFormulaBuilder(cells, highlight);
     case 'CHART_BUILDER':
       return renderChartSelector();
     case 'DRAG_AND_DROP':
@@ -491,6 +543,7 @@ function renderByType(
   }
 }
 
+// SPREADSHEET_INPUT — planilha real com dados e célula alvo
 function renderSpreadsheet(
   cells: Record<string, string | number>,
   highlight: string
@@ -503,7 +556,7 @@ function renderSpreadsheet(
       <span class="cell-ref" id="cell-ref">${highlight}</span>
       <span class="fx-label">fx</span>
       <input class="formula-input" id="formula-input"
-        placeholder="Digite sua fórmula aqui (ex: =SOMA(A1:A5))"
+        placeholder="Digite sua fórmula (ex: =SOMA(A1:A5))"
         autocorrect="off" autocapitalize="none" spellcheck="false"/>
     </div>
     <div class="grid-wrapper">
@@ -535,6 +588,58 @@ function renderSpreadsheet(
   return html;
 }
 
+// FORMULA_BUILDER — foco na barra de fórmula + grade reduzida
+function renderFormulaBuilder(
+  cells: Record<string, string | number>,
+  highlight: string
+): string {
+  const COLS = ['A', 'B', 'C', 'D'];
+  const ROWS = 5;
+
+  let grid = `
+    <div class="grid-wrapper" style="max-height:160px;">
+      <table>
+        <thead><tr>
+          <th class="row-idx"></th>
+          ${COLS.map(c => `<th class="col-hdr">${c}</th>`).join('')}
+        </tr></thead>
+        <tbody>`;
+
+  for (let r = 1; r <= ROWS; r++) {
+    grid += `<tr><td class="row-idx">${r}</td>`;
+    for (const c of COLS) {
+      const addr = `${c}${r}`;
+      const val = cells[addr] ?? '';
+      const isHighlight = addr === highlight;
+      const cls = isHighlight ? 'cell highlight editable' : 'cell';
+      grid += `<td class="${cls}" data-cell="${addr}">${isHighlight ? '' : val}</td>`;
+    }
+    grid += `</tr>`;
+  }
+
+  grid += `</tbody></table></div>`;
+
+  return `
+    ${grid}
+    <div class="formula-focus">
+      <div class="formula-focus-label">✏️ Célula ${highlight} — Digite a fórmula</div>
+      <div class="formula-focus-bar">
+        <span class="equals-sign">=</span>
+        <input class="formula-main-input" id="formula-main-input"
+          placeholder="ex: SOMA(A1:A4)"
+          autocorrect="off" autocapitalize="none" spellcheck="false"
+          autofocus/>
+      </div>
+    </div>
+    <div class="formula-bar" style="display:none;">
+      <span class="cell-ref" id="cell-ref">${highlight}</span>
+      <span class="fx-label">fx</span>
+      <input id="formula-input" style="display:none;" autocorrect="off"/>
+    </div>
+    <button class="btn-confirm" onclick="submitAnswer()">✓ Confirmar Fórmula</button>`;
+}
+
+// CHART_BUILDER — seletor de tipo de gráfico
 function renderChartSelector(): string {
   const charts = [
     { type: 'column', icon: '📊', label: 'Colunas' },
@@ -544,7 +649,7 @@ function renderChartSelector(): string {
   ];
 
   return `
-    <p style="font-size:14px;color:#555;padding:4px 2px;">Selecione o tipo de gráfico mais adequado:</p>
+    <p class="section-label">Selecione o tipo de gráfico mais adequado:</p>
     <div class="chart-grid">
       ${charts.map(c => `
         <div class="chart-card" data-chart="${c.type}">
@@ -557,40 +662,35 @@ function renderChartSelector(): string {
     </button>`;
 }
 
+// DRAG_AND_DROP — itens ordenáveis com badge numérico
 function renderDragDrop(items: string[]): string {
   const placeholders = items.length
     ? items
-    : [
-        'Passo 1 — carregando...',
-        'Passo 2 — carregando...',
-        'Passo 3 — carregando...',
-      ];
+    : ['Passo 1', 'Passo 2', 'Passo 3'];
 
   return `
-    <p style="font-size:14px;color:#555;padding:4px 2px;">Arraste para ordenar corretamente:</p>
-    <div style="flex:1;overflow:auto;">
+    <p class="section-label">Arraste para colocar na ordem correta:</p>
+    <div style="flex:1; overflow:auto;">
       <ul class="dnd-list" id="dnd-list">
-        ${placeholders
-          .map(
-            (item, i) => `
+        ${placeholders.map((item, i) => `
           <li class="dnd-item" draggable="true" data-value="${encodeURIComponent(item)}">
+            <span class="dnd-badge">${i + 1}</span>
+            <span style="flex:1;">${item}</span>
             <span class="drag-icon">⠿</span>
-            <span>${item}</span>
-          </li>`
-          )
-          .join('')}
+          </li>`).join('')}
       </ul>
     </div>
     <button class="btn-confirm" onclick="submitAnswer()">✓ Confirmar Ordem</button>`;
 }
 
+// FILL_IN_BLANK — fórmula com lacunas para preencher
 function renderFillBlank(template: string): string {
   const filled = template.replace(
     /___/g,
     `<input class="blank-input" size="6" autocorrect="off" autocapitalize="none"/>`
   );
   return `
-    <p style="font-size:14px;color:#555;padding:4px 2px;">Complete a fórmula:</p>
+    <p class="section-label">Complete a fórmula:</p>
     <div class="formula-blank">${filled}</div>
     <button class="btn-confirm" onclick="submitAnswer()">✓ Confirmar</button>`;
 }
@@ -602,13 +702,11 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#F8F9FA',
-    // iOS shadow
-    shadowColor: '#000',
+    backgroundColor: '#F7F9F7',
+    shadowColor: '#217346',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    // Android shadow
     elevation: 4,
     marginHorizontal: Platform.OS === 'ios' ? 0 : 2,
   },
