@@ -221,7 +221,7 @@ export default function QuestionScreen({
           <Text style={styles.title}>{question.title}</Text>
           
           {/* Renderiza HTML se description começar com "<", senão texto puro */}
-          {question.description?.startsWith('<') ? (
+          {!isDragDrop && !isChartBuilder && question.description?.startsWith('<') ? (
             <View style={[styles.htmlContainer, { height: Math.min(descHeight, 560) }]}>
               <WebView
                 originWhitelist={['*']}
@@ -271,7 +271,7 @@ ${question.description}
               />
             </View>
           ) : (
-            <Text style={styles.description}>{question.description}</Text>
+            !isDragDrop && !isChartBuilder && <Text style={styles.description}>{question.description}</Text>
           )}
 
           {/* Dica (se habilitada) */}
