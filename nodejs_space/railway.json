@@ -2,10 +2,10 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm install && npm run build && npx ts-node prisma/seed_trails.ts"
+    "buildCommand": "npm install && npm run build"
   },
   "deploy": {
-    "startCommand": "node dist/main",
+    "startCommand": "npx ts-node prisma/seed_trails.ts && node dist/main",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
