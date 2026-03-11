@@ -2059,7 +2059,14 @@ async function main() {
 
     const createdTrail = await prisma.trails.upsert({
       where: { slug: trail.slug },
-      update: {},
+      update: {
+        name: trail.name,
+        icon: trail.icon,
+        description: trail.description,
+        profession: trail.profession,
+        order: trail.order,
+        color: trail.color,
+      },
       create: {
         slug: trail.slug,
         name: trail.name,
@@ -2072,27 +2079,28 @@ async function main() {
     });
 
     for (const q of trail.questions) {
+      const questionData = {
+        trailId: createdTrail.id,
+        order: q.order,
+        type: q.type as QuestionType,
+        title: q.title,
+        description: q.description,
+        hint: q.hint ?? null,
+        xpReward: q.xpReward,
+        options: q.options ? JSON.stringify(q.options) : null,
+        correctOption: q.correctOption ?? null,
+        spreadsheetContext: q.spreadsheetContext ?? null,
+        expectedValue: q.expectedValue ?? null,
+        targetCell: q.targetCell ?? null,
+        correctOrder: q.correctOrder ? JSON.stringify(q.correctOrder) : null,
+        explanation: q.explanation,
+      };
       await prisma.questions.upsert({
         where: {
           trailId_order: { trailId: createdTrail.id, order: q.order },
         },
-        update: {},
-        create: {
-          trailId: createdTrail.id,
-          order: q.order,
-          type: q.type as QuestionType,
-          title: q.title,
-          description: q.description,
-          hint: q.hint ?? null,
-          xpReward: q.xpReward,
-          options: q.options ? JSON.stringify(q.options) : null,
-          correctOption: q.correctOption ?? null,
-          spreadsheetContext: q.spreadsheetContext ?? null,
-          expectedValue: q.expectedValue ?? null,
-          targetCell: q.targetCell ?? null,
-          correctOrder: q.correctOrder ? JSON.stringify(q.correctOrder) : null,
-          explanation: q.explanation,
-        },
+        update: questionData,
+        create: questionData,
       });
       process.stdout.write('  ✓');
     }
