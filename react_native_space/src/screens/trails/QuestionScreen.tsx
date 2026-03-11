@@ -14,6 +14,8 @@ import {
 import { WebView } from 'react-native-webview';
 import ApiService from '../../services/api.service';
 import { SpreadsheetWebView } from '../../components/SpreadsheetWebView';
+import DragDropQuestion from '../../components/DragDropQuestion';
+import ChartBuilderQuestion from '../../components/ChartBuilderQuestion';
 import { theme } from '../../constants/theme';
 
 interface QuestionScreenProps {
@@ -177,9 +179,10 @@ export default function QuestionScreen({
   const isInteractive = [
     'SPREADSHEET_INPUT',
     'FORMULA_BUILDER',
-    'CHART_BUILDER',
-    'DRAG_AND_DROP',
   ].includes(question.type);
+
+  const isDragDrop = question.type === 'DRAG_AND_DROP';
+  const isChartBuilder = question.type === 'CHART_BUILDER';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -315,17 +318,29 @@ ${question.description}
             <View style={styles.webviewContainer}>
               <SpreadsheetWebView
                 questionType={question.type as any}
-                spreadsheetContext={{
-                  ...(question.spreadsheetContext ?? {}),
-                  // Para DRAG_AND_DROP, passa os itens embaralhados
-                  dragItems: question.type === 'DRAG_AND_DROP' ? question.correctOrder : undefined,
-                }}
+                spreadsheetContext={question.spreadsheetContext ?? {}}
                 expectedValue=""
                 targetCell={question.targetCell}
                 onCorrect={(val) => submitAnswer(val)}
                 onWrong={() => {}}
               />
             </View>
+          )}
+
+          {isDragDrop && question.correctOrder && (
+            <DragDropQuestion
+              items={question.correctOrder}
+              onSubmit={submitAnswer}
+              answered={answered}
+            />
+          )}
+
+          {isChartBuilder && (
+            <ChartBuilderQuestion
+              spreadsheetContext={question.spreadsheetContext ?? {}}
+              onSubmit={submitAnswer}
+              answered={answered}
+            />
           )}
 
           {/* Feedback */}
