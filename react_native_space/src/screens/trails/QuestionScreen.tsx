@@ -50,6 +50,7 @@ export default function QuestionScreen({
   const [selected, setSelected] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [descHeight, setDescHeight] = useState(220);
   const [result, setResult] = useState<{
     isCorrect: boolean;
     explanation: string;
@@ -218,98 +219,49 @@ export default function QuestionScreen({
           
           {/* Renderiza HTML se description começar com "<", senão texto puro */}
           {question.description?.startsWith('<') ? (
-            <View style={styles.htmlContainer}>
+            <View style={[styles.htmlContainer, { height: Math.min(descHeight, 560) }]}>
               <WebView
                 originWhitelist={['*']}
-                source={{ 
-                  html: `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                      <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-                      <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; }
-                        body {
-                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                          font-size: 15px;
-                          color: #1A1A2E;
-                          line-height: 1.5;
-                          padding: 12px;
-                          background: transparent;
-                        }
-                        .excel-visual {
-                          background: #fff;
-                          border-radius: 12px;
-                          padding: 16px;
-                          border: 1px solid #E0E5E0;
-                        }
-                        .excel-grid {
-                          background: #F7F9F7;
-                          border-radius: 8px;
-                          padding: 12px;
-                          margin-bottom: 12px;
-                          overflow-x: auto;
-                        }
-                        .excel-header {
-                          display: flex;
-                          font-weight: 700;
-                          font-size: 12px;
-                          color: #217346;
-                          margin-bottom: 4px;
-                        }
-                        .excel-header span {
-                          min-width: 50px;
-                          text-align: center;
-                          padding: 4px;
-                          background: #E8F5E9;
-                          border-radius: 4px;
-                        }
-                        .excel-row {
-                          display: flex;
-                          margin: 2px 0;
-                        }
-                        .excel-row span:first-child {
-                          min-width: 30px;
-                          text-align: center;
-                          font-weight: 600;
-                          font-size: 11px;
-                          color: #4A4A6A;
-                          background: #F7F9F7;
-                          padding: 8px 4px;
-                          border: 1px solid #E0E5E0;
-                        }
-                        .cell {
-                          min-width: 50px;
-                          padding: 8px;
-                          border: 1px solid #E0E5E0;
-                          background: #fff;
-                          text-align: center;
-                          font-size: 13px;
-                          color: #1A1A2E;
-                        }
-                        .highlight-cell {
-                          background: #E8F5E9 !important;
-                          border: 2px solid #217346 !important;
-                          font-weight: 700;
-                          color: #217346;
-                        }
-                        p {
-                          margin-top: 12px;
-                          color: #4A4A6A;
-                          font-size: 14px;
-                        }
-                        strong { color: #217346; }
-                      </style>
-                    </head>
-                    <body>
-                      ${question.description}
-                    </body>
-                    </html>
-                  ` 
+                source={{
+                  html: `<!DOCTYPE html>
+<html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; color: #1A1A2E; line-height: 1.5; padding: 12px; background: transparent; }
+  .excel-visual { background: #fff; border-radius: 10px; padding: 14px; border: 1px solid #E0E5E0; }
+  .excel-grid { background: #F7F9F7; border-radius: 8px; padding: 10px; margin-bottom: 10px; overflow-x: auto; }
+  .excel-header { display: flex; font-weight: 700; font-size: 12px; color: #217346; margin-bottom: 4px; }
+  .excel-header span { min-width: 50px; text-align: center; padding: 4px; background: #E8F5E9; border-radius: 4px; }
+  .excel-row { display: flex; margin: 2px 0; }
+  .excel-row span:first-child { min-width: 28px; text-align: center; font-weight: 600; font-size: 11px; color: #4A4A6A; background: #F7F9F7; padding: 6px 4px; border: 1px solid #E0E5E0; }
+  .cell { min-width: 50px; padding: 6px 8px; border: 1px solid #E0E5E0; background: #fff; text-align: center; font-size: 12px; color: #1A1A2E; }
+  .highlight-cell { background: #E8F5E9 !important; border: 2px solid #217346 !important; font-weight: 700; color: #217346; }
+  p { margin-top: 10px; color: #4A4A6A; font-size: 13px; }
+  strong { color: #217346; }
+</style>
+</head>
+<body>
+${question.description}
+</body>
+</html>`
                 }}
-                scrollEnabled={false}
-                style={styles.webview}
-                javaScriptEnabled={false}
+                scrollEnabled={true}
+                style={{ flex: 1 }}
+                javaScriptEnabled={true}
+                injectedJavaScript={`
+                  (function(){
+                    var h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+                    window.ReactNativeWebView.postMessage(JSON.stringify({t:'h',v:h}));
+                  })();
+                  true;
+                `}
+                onMessage={(e) => {
+                  try {
+                    const d = JSON.parse(e.nativeEvent.data);
+                    if (d.t === 'h') setDescHeight(d.v + 24);
+                  } catch {}
+                }}
               />
             </View>
           ) : (
@@ -490,7 +442,6 @@ const styles = StyleSheet.create({
   },
   htmlContainer: {
     minHeight: 160,
-    maxHeight: 300,
     marginBottom: 20,
     borderRadius: 12,
     overflow: 'hidden',

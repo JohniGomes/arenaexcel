@@ -56,33 +56,31 @@ export const SpreadsheetWebView: React.FC<SpreadsheetWebViewProps> = ({
         const data = JSON.parse(event.nativeEvent.data);
 
         if (data.type === 'ANSWER_SUBMITTED') {
+          // Server always validates — expectedValue is intentionally empty (anti-cheat)
+          // Just forward the answer to the server via onCorrect
+          if (!expectedValue) {
+            onCorrect(data.value);
+            return;
+          }
+
+          // Local validation fallback (only when expectedValue is explicitly provided)
           let normalized = (data.value ?? '').trim().toUpperCase();
           let expected = (expectedValue ?? '').trim().toUpperCase();
-
           normalized = normalized.replace(/\s+/g, '').replace(/;/g, ',').replace(/\$/g, '');
           expected = expected.replace(/\s+/g, '').replace(/;/g, ',').replace(/\$/g, '');
 
           if (normalized === expected) {
             onCorrect(data.value);
-            webViewRef.current?.injectJavaScript('window.showSuccess(); true;');
+            webViewRef.current?.injectJavaScript('window.showSuccess && window.showSuccess(); true;');
           } else {
             onWrong(data.value);
-            webViewRef.current?.injectJavaScript('window.showError(); true;');
+            webViewRef.current?.injectJavaScript('window.showError && window.showError(); true;');
           }
         }
 
         if (data.type === 'DRAG_ORDER_SUBMITTED') {
-          const userOrder = data.order ?? [];
-          const correctOrder = JSON.parse(expectedValue || '[]');
-          const isCorrect = JSON.stringify(userOrder) === JSON.stringify(correctOrder);
-
-          if (isCorrect) {
-            onCorrect(JSON.stringify(data.order));
-            webViewRef.current?.injectJavaScript('window.showSuccess(); true;');
-          } else {
-            onWrong(JSON.stringify(data.order));
-            webViewRef.current?.injectJavaScript('window.showError(); true;');
-          }
+          // Always submit to server — server has the correct order
+          onCorrect(JSON.stringify(data.order));
         }
       } catch {
         /* ignora mensagens malformadas */
@@ -136,6 +134,7 @@ function generateHTML(
 ): string {
   const cells = ctx.cells ?? {};
   const highlight = targetCell ?? ctx.highlight ?? 'A1';
+  const dragN = dragItems?.length ?? 3;
 
   return /* html */ `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -147,24 +146,24 @@ function generateHTML(
   /* ── RESET & BASE ── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --excel:   #217346;
-    --excel-mid: #2E9E5B;
-    --excel-light: #E8F5E9;
-    --excel-vivid: #27AE60;
-    --text:    #1A1A2E;
-    --text2:   #4A4A6A;
-    --bg:      #F7F9F7;
-    --border:  #E0E5E0;
-    --white:   #FFFFFF;
-    --yellow:  #F59E0B;
+    --excel:        #217346;
+    --excel-mid:    #2E9E5B;
+    --excel-light:  #E8F5E9;
+    --excel-vivid:  #27AE60;
+    --text:         #1A1A2E;
+    --text2:        #4A4A6A;
+    --bg:           #F7F9F7;
+    --border:       #E0E5E0;
+    --white:        #FFFFFF;
+    --yellow:       #F59E0B;
     --yellow-light: #FEF3C7;
-    --success: #27AE60;
-    --error:   #E74C3C;
-    --gray:    #B0BEC5;
-    --radius:  8px;
-    --shadow:  0 2px 12px rgba(0,0,0,.08);
-    --font:    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --mono:    'Consolas', 'Courier New', monospace;
+    --success:      #27AE60;
+    --error:        #E74C3C;
+    --gray:         #B0BEC5;
+    --radius:       8px;
+    --shadow:       0 2px 12px rgba(0,0,0,.08);
+    --font:         -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono:         'Consolas', 'Courier New', monospace;
   }
   html, body {
     height: 100%;
@@ -272,62 +271,63 @@ function generateHTML(
   .toast.ok   { background: var(--success); color: #fff; }
   .toast.fail { background: var(--error);   color: #fff; }
 
-  /* ── FORMULA BUILDER ESPECÍFICO ── */
-  .formula-focus {
-    background: var(--white); border-radius: var(--radius);
-    border: 2px solid var(--excel); padding: 12px 16px;
-    box-shadow: 0 2px 12px rgba(33,115,70,.15);
-  }
-  .formula-focus-label {
-    font-size: 11px; font-weight: 700; color: var(--excel);
-    text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px;
-  }
-  .formula-focus-bar {
-    display: flex; align-items: center; gap: 8px;
-  }
-  .equals-sign {
-    font-size: 20px; font-weight: 900; color: var(--excel);
-    font-family: var(--mono); user-select: none;
-  }
-  .formula-main-input {
-    flex: 1; border: none; border-bottom: 2px solid var(--excel);
-    outline: none; font-size: 16px; font-family: var(--mono);
-    color: var(--text); background: transparent; padding: 4px 2px;
+  /* ── LABEL SEÇÃO ── */
+  .section-label {
+    font-size: 12px; color: var(--text2); padding: 2px;
+    font-weight: 600; letter-spacing: .3px;
   }
 
-  /* ── DRAG AND DROP ── */
-  .dnd-list {
-    list-style: none; display: flex; flex-direction: column; gap: 8px; padding: 4px;
-  }
-  .dnd-item {
-    background: var(--white); border: 1.5px solid var(--border);
-    border-radius: var(--radius); padding: 12px 14px;
-    font-size: 14px; cursor: grab; user-select: none;
+  /* ── DRAG AND DROP (novo modelo: clicar para preencher) ── */
+  .dnd-slots { display: flex; flex-direction: column; gap: 6px; }
+  .slot {
     display: flex; align-items: center; gap: 10px;
-    box-shadow: var(--shadow); transition: box-shadow .15s, transform .15s;
-    touch-action: none; color: var(--text);
+    border-radius: var(--radius); padding: 10px 12px;
+    min-height: 42px; transition: all .2s; font-size: 13px;
   }
-  .dnd-item:active { cursor: grabbing; box-shadow: 0 6px 20px rgba(0,0,0,.15); transform: scale(1.02); }
-  .dnd-badge {
-    width: 26px; height: 26px; border-radius: 13px;
+  .slot.empty {
+    background: var(--white); border: 2px dashed var(--gray);
+    color: var(--gray); cursor: default;
+  }
+  .slot.filled {
+    background: var(--excel-light); border: 2px solid var(--excel);
+    color: var(--text); cursor: pointer;
+  }
+  .slot-num {
+    width: 24px; height: 24px; border-radius: 12px; flex-shrink: 0;
     background: var(--excel-light); border: 1.5px solid var(--excel);
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; color: var(--excel); flex-shrink: 0;
+    font-size: 11px; font-weight: 700; color: var(--excel);
   }
-  .drag-icon { color: var(--gray); font-size: 16px; flex-shrink: 0; }
+  .slot.filled .slot-num { background: var(--excel); color: #fff; border-color: var(--excel); }
+  .slot-text { flex: 1; }
+  .slot-undo { font-size: 10px; color: var(--gray); flex-shrink: 0; }
+  .dnd-options { display: flex; flex-direction: column; gap: 5px; }
+  .option-chip {
+    background: var(--white); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 10px 14px;
+    font-size: 13px; cursor: pointer; transition: all .15s;
+    color: var(--text); user-select: none;
+  }
+  .option-chip:hover { border-color: var(--excel); background: var(--excel-light); }
+  .option-chip.used { display: none; }
 
   /* ── CHART SELECTOR ── */
-  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .chart-card {
     border: 2px solid var(--border); border-radius: var(--radius);
-    padding: 16px 12px; text-align: center; cursor: pointer;
+    padding: 10px 8px; text-align: center; cursor: pointer;
     background: var(--white); transition: all .2s;
   }
   .chart-card:hover  { border-color: var(--excel); background: var(--excel-light); }
   .chart-card.active { border-color: var(--excel); background: var(--excel-light); }
-  .chart-card.active .label { color: var(--excel); }
-  .chart-card .icon  { font-size: 32px; }
-  .chart-card .label { font-size: 13px; margin-top: 6px; font-weight: 600; color: var(--text2); }
+  .chart-card.active .chart-label { color: var(--excel); }
+  .chart-card .chart-icon  { font-size: 26px; }
+  .chart-card .chart-label { font-size: 12px; margin-top: 4px; font-weight: 600; color: var(--text2); }
+  .chart-preview {
+    background: var(--white); border: 1.5px solid var(--border);
+    border-radius: var(--radius); display: flex; align-items: center;
+    justify-content: center; overflow: hidden; min-height: 80px; padding: 4px;
+  }
 
   /* ── FILL IN BLANK ── */
   .formula-blank {
@@ -343,12 +343,6 @@ function generateHTML(
     font-family: var(--mono); font-size: 15px;
     color: var(--excel); font-weight: 700; background: transparent;
   }
-
-  /* ── LABEL SEÇÃO ── */
-  .section-label {
-    font-size: 12px; color: var(--text2); padding: 2px;
-    font-weight: 600; letter-spacing: .3px;
-  }
 </style>
 </head>
 <body>
@@ -359,7 +353,7 @@ function generateHTML(
 <div class="toast" id="toast"></div>
 
 <script>
-const $ = id => document.getElementById(id);
+var $ = function(id){ return document.getElementById(id); };
 
 function postToRN(payload) {
   if (window.ReactNativeWebView) {
@@ -368,148 +362,237 @@ function postToRN(payload) {
 }
 
 function showToast(msg, kind) {
-  const t = $('toast');
+  var t = $('toast');
   t.textContent = msg;
   t.className = 'toast show ' + kind;
-  setTimeout(() => t.className = 'toast', 2400);
+  setTimeout(function(){ t.className = 'toast'; }, 2400);
 }
 
 window.showError = function() {
   showToast('❌ Resposta incorreta. Tente novamente!', 'fail');
-  const target = document.querySelector('.cell.highlight');
+  var target = document.querySelector('.cell.highlight');
   if (target) {
     target.classList.add('wrong');
-    setTimeout(() => target.classList.remove('wrong'), 1500);
+    setTimeout(function(){ target.classList.remove('wrong'); }, 1500);
   }
 };
 
 window.showSuccess = function() {
   showToast('✅ Resposta correta!', 'ok');
-  const target = document.querySelector('.cell.highlight');
+  var target = document.querySelector('.cell.highlight');
   if (target) target.classList.add('correct');
-  const focusInput = $('formula-main-input');
+  var focusInput = $('formula-main-input');
   if (focusInput) {
     focusInput.style.borderBottomColor = '#27AE60';
     focusInput.disabled = true;
   }
 };
 
-const QUESTION_TYPE = "${type}";
+var QUESTION_TYPE = "${type}";
 
-// ── SPREADSHEET / FORMULA INPUT ──────────────────────────────
-if (['SPREADSHEET_INPUT','FORMULA_BUILDER'].includes(QUESTION_TYPE)) {
-  const targetCell = "${highlight}";
-  const formulaInput = $('formula-input') || $('formula-main-input');
-  const cellRef = $('cell-ref');
+// ── SPREADSHEET_INPUT / FORMULA_BUILDER ──────────────────────
+if (QUESTION_TYPE === 'SPREADSHEET_INPUT' || QUESTION_TYPE === 'FORMULA_BUILDER') {
+  var targetCell = "${highlight}";
+  var formulaInput = $('formula-input') || $('formula-main-input');
+  var cellRef = $('cell-ref');
 
   if (formulaInput) {
-    formulaInput.addEventListener('input', () => {
-      const cell = document.querySelector('[data-cell="'+targetCell+'"]');
-      if (cell) {
-        const val = formulaInput.value;
-        cell.textContent = val;
-      }
+    formulaInput.addEventListener('input', function() {
+      var cell = document.querySelector('[data-cell="' + targetCell + '"]');
+      if (cell) cell.textContent = formulaInput.value;
     });
-    formulaInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); }
+    formulaInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); window.submitAnswer(); }
     });
   }
 
-  document.querySelectorAll('.cell').forEach(cell => {
-    cell.addEventListener('click', () => {
-      document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.cell').forEach(function(cell) {
+    cell.addEventListener('click', function() {
+      document.querySelectorAll('.cell').forEach(function(c){ c.classList.remove('selected'); });
       cell.classList.add('selected');
-      const ref = cell.dataset.cell;
+      var ref = cell.dataset.cell;
       if (cellRef) cellRef.textContent = ref;
-      if (formulaInput && cell.classList.contains('highlight')) {
-        formulaInput.focus();
-      }
+      if (formulaInput && cell.classList.contains('highlight')) formulaInput.focus();
     });
   });
 
   window.submitAnswer = function() {
-    const val = (formulaInput?.value ?? '').trim();
+    var val = (formulaInput ? formulaInput.value : '').trim();
     if (!val) { showToast('⚠️ Digite uma fórmula ou valor', 'fail'); return; }
     postToRN({ type: 'ANSWER_SUBMITTED', value: val });
   };
 }
 
-// ── CHART BUILDER ────────────────────────────────────────────
+// ── CHART_BUILDER ─────────────────────────────────────────────
 if (QUESTION_TYPE === 'CHART_BUILDER') {
-  let selected = null;
-  document.querySelectorAll('.chart-card').forEach(card => {
-    card.addEventListener('click', () => {
-      document.querySelectorAll('.chart-card').forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-      selected = card.dataset.chart;
-      const btn = $('btn-confirm');
-      if (btn) btn.removeAttribute('disabled');
-    });
-  });
+  var selectedChart = null;
+  var cellData = ${JSON.stringify(cells)};
+
+  // Extrai labels (coluna A) e valores (coluna B) a partir da linha 2
+  var chartLabels = [], chartValues = [];
+  for (var r = 2; r <= 10; r++) {
+    var lbl = cellData['A' + r];
+    var val = parseFloat(cellData['B' + r]);
+    if (lbl !== undefined && lbl !== '') {
+      chartLabels.push(String(lbl));
+      chartValues.push(isNaN(val) ? 0 : val);
+    }
+  }
+  var maxVal = Math.max.apply(null, chartValues.concat([1]));
+  var W = 260, H = 150;
+
+  function svgColumnChart() {
+    var n = chartLabels.length;
+    if (!n) return '<text x="50%" y="50%" text-anchor="middle" fill="#aaa" font-size="12">Sem dados</text>';
+    var pad = 30, bw = Math.max(8, Math.floor((W - pad - 10) / n) - 6);
+    var out = '';
+    for (var i = 0; i < n; i++) {
+      var bh = Math.max(2, Math.floor((chartValues[i] / maxVal) * (H - pad - 10)));
+      var x = pad + i * ((W - pad - 10) / n) + ((W - pad - 10) / n - bw) / 2;
+      var y = H - pad - bh;
+      out += '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + bh + '" fill="#217346" rx="2"/>';
+      out += '<text x="' + (x + bw/2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="9" fill="#555">' + chartLabels[i].slice(0,6) + '</text>';
+      out += '<text x="' + (x + bw/2) + '" y="' + (y - 3) + '" text-anchor="middle" font-size="8" fill="#217346" font-weight="bold">' + chartValues[i] + '</text>';
+    }
+    out += '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - 5) + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    out += '<line x1="' + pad + '" y1="8" x2="' + pad + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    return '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
+  }
+
+  function svgBarChart() {
+    var n = chartLabels.length;
+    if (!n) return '<text x="50%" y="50%" text-anchor="middle" fill="#aaa" font-size="12">Sem dados</text>';
+    var lblW = 52, pad = 10, bh = Math.max(8, Math.floor((H - pad * 2) / n) - 5);
+    var out = '';
+    for (var i = 0; i < n; i++) {
+      var bw = Math.max(2, Math.floor((chartValues[i] / maxVal) * (W - lblW - 30)));
+      var y = pad + i * ((H - pad * 2) / n) + ((H - pad * 2) / n - bh) / 2;
+      out += '<rect x="' + lblW + '" y="' + y + '" width="' + bw + '" height="' + bh + '" fill="#217346" rx="2"/>';
+      out += '<text x="' + (lblW - 3) + '" y="' + (y + bh/2 + 4) + '" text-anchor="end" font-size="9" fill="#555">' + chartLabels[i].slice(0,7) + '</text>';
+      out += '<text x="' + (lblW + bw + 4) + '" y="' + (y + bh/2 + 4) + '" font-size="8" fill="#217346" font-weight="bold">' + chartValues[i] + '</text>';
+    }
+    out += '<line x1="' + lblW + '" y1="' + pad + '" x2="' + lblW + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    return '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
+  }
+
+  function svgLineChart() {
+    var n = chartLabels.length;
+    if (!n) return '<text x="50%" y="50%" text-anchor="middle" fill="#aaa" font-size="12">Sem dados</text>';
+    var pad = 30;
+    var stepX = (W - pad - 10) / Math.max(n - 1, 1);
+    var pts = [], dotsHtml = '';
+    for (var i = 0; i < n; i++) {
+      var x = pad + i * stepX;
+      var y = (H - pad - 10) - Math.floor((chartValues[i] / maxVal) * (H - pad - 20)) + 8;
+      pts.push(x + ',' + y);
+      dotsHtml += '<circle cx="' + x + '" cy="' + y + '" r="4" fill="#217346"/>';
+      dotsHtml += '<text x="' + x + '" y="' + (H - 8) + '" text-anchor="middle" font-size="9" fill="#555">' + chartLabels[i].slice(0,5) + '</text>';
+      dotsHtml += '<text x="' + x + '" y="' + (y - 7) + '" text-anchor="middle" font-size="8" fill="#217346" font-weight="bold">' + chartValues[i] + '</text>';
+    }
+    var axes = '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - 5) + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    axes += '<line x1="' + pad + '" y1="8" x2="' + pad + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    return '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' + axes + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#217346" stroke-width="2.5"/>' + dotsHtml + '</svg>';
+  }
+
+  function svgPieChart() {
+    var n = chartLabels.length;
+    if (!n) return '<text x="50%" y="50%" text-anchor="middle" fill="#aaa" font-size="12">Sem dados</text>';
+    var colors = ['#217346','#27AE60','#2ECC71','#1E8449','#58D68D','#82E0AA'];
+    var total = chartValues.reduce(function(a,b){ return a+b; }, 0) || 1;
+    var cx = W/2 - 10, cy = H/2, r = Math.min(H/2 - 16, W/2 - 60);
+    var startAngle = -Math.PI / 2;
+    var out = '';
+    for (var i = 0; i < n; i++) {
+      var angle = (chartValues[i] / total) * 2 * Math.PI;
+      if (angle < 0.01) continue;
+      var endAngle = startAngle + angle;
+      var x1 = cx + r * Math.cos(startAngle);
+      var y1 = cy + r * Math.sin(startAngle);
+      var x2 = cx + r * Math.cos(endAngle);
+      var y2 = cy + r * Math.sin(endAngle);
+      var large = angle > Math.PI ? 1 : 0;
+      out += '<path d="M' + cx + ',' + cy + ' L' + x1 + ',' + y1 + ' A' + r + ',' + r + ' 0 ' + large + ',1 ' + x2 + ',' + y2 + ' Z" fill="' + colors[i % colors.length] + '"/>';
+      var midA = startAngle + angle/2;
+      var lx = cx + (r + 18) * Math.cos(midA);
+      var ly = cy + (r + 18) * Math.sin(midA);
+      out += '<text x="' + lx + '" y="' + ly + '" text-anchor="middle" font-size="8" fill="#333">' + chartLabels[i].slice(0,8) + '</text>';
+      startAngle = endAngle;
+    }
+    return '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
+  }
+
+  var svgRenderers = { column: svgColumnChart, bar: svgBarChart, line: svgLineChart, pie: svgPieChart };
+
+  window.selectChart = function(type) {
+    selectedChart = type;
+    document.querySelectorAll('.chart-card').forEach(function(c){ c.classList.remove('active'); });
+    var card = document.querySelector('.chart-card[data-chart="' + type + '"]');
+    if (card) card.classList.add('active');
+    var preview = $('chart-preview');
+    if (preview && svgRenderers[type]) preview.innerHTML = svgRenderers[type]();
+    var btn = $('btn-confirm');
+    if (btn) btn.removeAttribute('disabled');
+  };
+
   window.submitAnswer = function() {
-    if (!selected) { showToast('⚠️ Selecione um tipo de gráfico', 'fail'); return; }
-    postToRN({ type: 'ANSWER_SUBMITTED', value: selected });
+    if (!selectedChart) { showToast('⚠️ Selecione um tipo de gráfico', 'fail'); return; }
+    postToRN({ type: 'ANSWER_SUBMITTED', value: selectedChart });
   };
 }
 
-// ── DRAG AND DROP ────────────────────────────────────────────
+// ── DRAG AND DROP (clicar para preencher slots) ───────────────
 if (QUESTION_TYPE === 'DRAG_AND_DROP') {
-  let dragSrc = null;
-  const list = $('dnd-list');
+  var dndN = ${dragN};
+  var slots = [];
+  for (var si = 0; si < dndN; si++) slots.push(null); // null = empty
 
-  function updateBadges() {
-    document.querySelectorAll('.dnd-badge').forEach((badge, i) => {
-      badge.textContent = i + 1;
-    });
-  }
+  window.chipClick = function(chipIdx) {
+    var chip = document.querySelector('.option-chip[data-idx="' + chipIdx + '"]');
+    if (!chip || chip.classList.contains('used')) return;
+    var nextEmpty = -1;
+    for (var j = 0; j < slots.length; j++) { if (slots[j] === null) { nextEmpty = j; break; } }
+    if (nextEmpty === -1) { showToast('⚠️ Todos os espaços preenchidos. Clique num slot para desfazer.', 'fail'); return; }
+    slots[nextEmpty] = chipIdx;
+    chip.classList.add('used');
+    var slot = document.querySelector('.slot[data-idx="' + nextEmpty + '"]');
+    if (slot) {
+      slot.querySelector('.slot-text').textContent = chip.textContent;
+      slot.querySelector('.slot-undo').textContent = '✕ desfazer';
+      slot.classList.remove('empty');
+      slot.classList.add('filled');
+      slot.dataset.chipIdx = chipIdx;
+    }
+  };
 
-  if (list) {
-    list.addEventListener('dragstart', e => {
-      dragSrc = e.target.closest('.dnd-item');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    list.addEventListener('dragover', e => {
-      e.preventDefault();
-      const target = e.target.closest('.dnd-item');
-      if (target && target !== dragSrc) {
-        const rect = target.getBoundingClientRect();
-        if (e.clientY < rect.top + rect.height / 2) list.insertBefore(dragSrc, target);
-        else list.insertBefore(dragSrc, target.nextSibling);
-        updateBadges();
-      }
-    });
-    list.addEventListener('touchstart', e => {
-      dragSrc = e.target.closest('.dnd-item');
-      if (dragSrc) dragSrc.style.opacity = '0.55';
-    }, { passive: true });
-    list.addEventListener('touchmove', e => {
-      if (!dragSrc) return;
-      const touch = e.touches[0];
-      const target = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.dnd-item');
-      if (target && target !== dragSrc) {
-        const rect = target.getBoundingClientRect();
-        if (touch.clientY < rect.top + rect.height / 2) list.insertBefore(dragSrc, target);
-        else list.insertBefore(dragSrc, target.nextSibling);
-        updateBadges();
-      }
-    }, { passive: true });
-    list.addEventListener('touchend', () => {
-      if (dragSrc) dragSrc.style.opacity = '1';
-      dragSrc = null;
-    }, { passive: true });
-  }
+  window.slotClick = function(slotIdx) {
+    var slot = document.querySelector('.slot[data-idx="' + slotIdx + '"]');
+    if (!slot || slot.classList.contains('empty')) return;
+    var chipIdx = parseInt(slot.dataset.chipIdx);
+    slots[slotIdx] = null;
+    var chip = document.querySelector('.option-chip[data-idx="' + chipIdx + '"]');
+    if (chip) chip.classList.remove('used');
+    slot.querySelector('.slot-text').textContent = '—';
+    slot.querySelector('.slot-undo').textContent = '';
+    slot.classList.remove('filled');
+    slot.classList.add('empty');
+    delete slot.dataset.chipIdx;
+  };
 
   window.submitAnswer = function() {
-    const order = [...document.querySelectorAll('.dnd-item')].map(i => decodeURIComponent(i.dataset.value));
-    postToRN({ type: 'DRAG_ORDER_SUBMITTED', order });
+    for (var k = 0; k < slots.length; k++) {
+      if (slots[k] === null) { showToast('⚠️ Preencha todos os espaços', 'fail'); return; }
+    }
+    var items = ${JSON.stringify(dragItems ?? [])};
+    var order = slots.map(function(chipIdx){ return items[chipIdx]; });
+    postToRN({ type: 'DRAG_ORDER_SUBMITTED', order: order });
   };
 }
 
-// ── FILL IN BLANK ────────────────────────────────────────────
+// ── FILL IN BLANK ─────────────────────────────────────────────
 if (QUESTION_TYPE === 'FILL_IN_BLANK') {
   window.submitAnswer = function() {
-    const inputs = [...document.querySelectorAll('.blank-input')];
-    const values = inputs.map(i => i.value.trim());
+    var inputs = Array.from(document.querySelectorAll('.blank-input'));
+    var values = inputs.map(function(i){ return i.value.trim(); });
     postToRN({ type: 'ANSWER_SUBMITTED', value: values.join('|') });
   };
 }
@@ -529,11 +612,10 @@ function renderByType(
 ): string {
   switch (type) {
     case 'SPREADSHEET_INPUT':
+    case 'FORMULA_BUILDER':  // unificado — mesmo visual
       return renderSpreadsheet(cells, highlight);
-    case 'FORMULA_BUILDER':
-      return renderFormulaBuilder(cells, highlight);
     case 'CHART_BUILDER':
-      return renderChartSelector();
+      return renderChartSelector(cells, ctx);
     case 'DRAG_AND_DROP':
       return renderDragDrop(dragItems ?? []);
     case 'FILL_IN_BLANK':
@@ -543,7 +625,7 @@ function renderByType(
   }
 }
 
-// SPREADSHEET_INPUT — planilha real com dados e célula alvo
+// SPREADSHEET_INPUT / FORMULA_BUILDER — planilha real com dados e célula alvo
 function renderSpreadsheet(
   cells: Record<string, string | number>,
   highlight: string
@@ -588,59 +670,39 @@ function renderSpreadsheet(
   return html;
 }
 
-// FORMULA_BUILDER — foco na barra de fórmula + grade reduzida
-function renderFormulaBuilder(
+// CHART_BUILDER — mini tabela de dados + seletor de gráfico + preview SVG
+function renderChartSelector(
   cells: Record<string, string | number>,
-  highlight: string
+  _ctx: SpreadsheetContext
 ): string {
-  const COLS = ['A', 'B', 'C', 'D'];
-  const ROWS = 5;
-
-  let grid = `
-    <div class="grid-wrapper" style="max-height:160px;">
-      <table>
-        <thead><tr>
-          <th class="row-idx"></th>
-          ${COLS.map(c => `<th class="col-hdr">${c}</th>`).join('')}
-        </tr></thead>
-        <tbody>`;
-
-  for (let r = 1; r <= ROWS; r++) {
-    grid += `<tr><td class="row-idx">${r}</td>`;
-    for (const c of COLS) {
-      const addr = `${c}${r}`;
-      const val = cells[addr] ?? '';
-      const isHighlight = addr === highlight;
-      const cls = isHighlight ? 'cell highlight editable' : 'cell';
-      grid += `<td class="${cls}" data-cell="${addr}">${isHighlight ? '' : val}</td>`;
-    }
-    grid += `</tr>`;
+  // Mini tabela com os dados (máx 7 linhas: header + 6 dados)
+  const rows: string[] = [];
+  for (let r = 1; r <= 7; r++) {
+    const a = cells[`A${r}`] ?? '';
+    const b = cells[`B${r}`] ?? '';
+    const c = cells[`C${r}`] ?? '';
+    if (a === '' && b === '' && c === '') break;
+    const isH = r === 1;
+    const bg = isH ? 'background:#E8F5E9;font-weight:700;color:#217346;' : 'background:#fff;color:#1A1A2E;';
+    rows.push(`<tr>
+      <td style="padding:4px 6px;border:1px solid #E0E5E0;background:#E8F5E9;font-size:10px;color:#217346;font-weight:700;text-align:center;">${r}</td>
+      <td style="padding:4px 8px;border:1px solid #E0E5E0;${bg}font-size:11px;">${a}</td>
+      <td style="padding:4px 8px;border:1px solid #E0E5E0;${bg}font-size:11px;">${b}</td>
+      ${c !== '' ? `<td style="padding:4px 8px;border:1px solid #E0E5E0;${bg}font-size:11px;">${c}</td>` : ''}
+    </tr>`);
   }
 
-  grid += `</tbody></table></div>`;
+  const tableHtml = `
+    <div style="overflow:auto;border-radius:6px;border:1.5px solid #E0E5E0;max-height:120px;margin-bottom:0;">
+      <table style="border-collapse:collapse;width:100%;">
+        <thead><tr>
+          <th style="padding:3px;background:#E8F5E9;border:1px solid #E0E5E0;font-size:10px;color:#217346;"></th>
+          ${['A','B','C'].map(c => `<th style="padding:4px 8px;background:#E8F5E9;border:1px solid #E0E5E0;font-size:10px;color:#217346;font-weight:700;">${c}</th>`).join('')}
+        </tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>
+    </div>`;
 
-  return `
-    ${grid}
-    <div class="formula-focus">
-      <div class="formula-focus-label">✏️ Célula ${highlight} — Digite a fórmula</div>
-      <div class="formula-focus-bar">
-        <span class="equals-sign">=</span>
-        <input class="formula-main-input" id="formula-main-input"
-          placeholder="ex: SOMA(A1:A4)"
-          autocorrect="off" autocapitalize="none" spellcheck="false"
-          autofocus/>
-      </div>
-    </div>
-    <div class="formula-bar" style="display:none;">
-      <span class="cell-ref" id="cell-ref">${highlight}</span>
-      <span class="fx-label">fx</span>
-      <input id="formula-input" style="display:none;" autocorrect="off"/>
-    </div>
-    <button class="btn-confirm" onclick="submitAnswer()">✓ Confirmar Fórmula</button>`;
-}
-
-// CHART_BUILDER — seletor de tipo de gráfico
-function renderChartSelector(): string {
   const charts = [
     { type: 'column', icon: '📊', label: 'Colunas' },
     { type: 'bar',    icon: '📉', label: 'Barras'  },
@@ -649,37 +711,49 @@ function renderChartSelector(): string {
   ];
 
   return `
-    <p class="section-label">Selecione o tipo de gráfico mais adequado:</p>
+    <p class="section-label">📋 Dados da planilha:</p>
+    ${tableHtml}
+    <p class="section-label" style="margin-top:6px;">📊 Selecione e visualize o tipo de gráfico:</p>
     <div class="chart-grid">
       ${charts.map(c => `
-        <div class="chart-card" data-chart="${c.type}">
-          <div class="icon">${c.icon}</div>
-          <div class="label">${c.label}</div>
+        <div class="chart-card" data-chart="${c.type}" onclick="selectChart('${c.type}')">
+          <div class="chart-icon">${c.icon}</div>
+          <div class="chart-label">${c.label}</div>
         </div>`).join('')}
+    </div>
+    <div class="chart-preview" id="chart-preview">
+      <span style="color:var(--gray);font-size:12px;">← Toque para visualizar</span>
     </div>
     <button class="btn-confirm" id="btn-confirm" disabled onclick="submitAnswer()">
       ✓ Confirmar Gráfico
     </button>`;
 }
 
-// DRAG_AND_DROP — itens ordenáveis com badge numérico
+// DRAG_AND_DROP — clicar para preencher slots em ordem
 function renderDragDrop(items: string[]): string {
-  const placeholders = items.length
-    ? items
-    : ['Passo 1', 'Passo 2', 'Passo 3'];
+  const placeholders = items.length ? items : ['Passo 1', 'Passo 2', 'Passo 3'];
+
+  const slotsHtml = placeholders
+    .map((_, i) => `
+      <div class="slot empty" data-idx="${i}" onclick="slotClick(${i})">
+        <span class="slot-num">${i + 1}</span>
+        <span class="slot-text">—</span>
+        <span class="slot-undo"></span>
+      </div>`)
+    .join('');
+
+  const optionsHtml = placeholders
+    .map((item, i) => `
+      <div class="option-chip" data-idx="${i}" data-value="${encodeURIComponent(item)}" onclick="chipClick(${i})">
+        ${item}
+      </div>`)
+    .join('');
 
   return `
-    <p class="section-label">Arraste para colocar na ordem correta:</p>
-    <div style="flex:1; overflow:auto;">
-      <ul class="dnd-list" id="dnd-list">
-        ${placeholders.map((item, i) => `
-          <li class="dnd-item" draggable="true" data-value="${encodeURIComponent(item)}">
-            <span class="dnd-badge">${i + 1}</span>
-            <span style="flex:1;">${item}</span>
-            <span class="drag-icon">⠿</span>
-          </li>`).join('')}
-      </ul>
-    </div>
+    <p class="section-label">📋 Coloque na ordem correta:</p>
+    <div class="dnd-slots" id="dnd-slots">${slotsHtml}</div>
+    <p class="section-label" style="margin-top:8px;">🎯 Opções — toque para selecionar:</p>
+    <div class="dnd-options" id="dnd-options">${optionsHtml}</div>
     <button class="btn-confirm" onclick="submitAnswer()">✓ Confirmar Ordem</button>`;
 }
 

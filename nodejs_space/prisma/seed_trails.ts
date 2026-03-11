@@ -1496,6 +1496,51 @@ const trails = [
         ],
         explanation: 'A sequência: dados organizados → tipo adequado → título e eixos → rótulos de dados → formatação visual. Pular etapas cria gráficos confusos. O tipo de gráfico deve ser escolhido com base no objetivo (comparar, tendência, proporção).',
       },
+
+      // ── Q11 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 11,
+        type: 'CHART_BUILDER',
+        title: 'Vendas mensais: qual gráfico mostra melhor a tendência ao longo do tempo?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">📈 Dica</div><div style="font-size:13px;color:#1A1A2E;">Quando os dados têm uma sequência temporal (Jan, Fev, Mar…), há um tipo de gráfico específico para mostrar essa evolução. Analise os dados abaixo e escolha o tipo correto.</div></div></div>',
+        hint: '💡 Séries temporais (meses, trimestres, anos) pedem um gráfico que conecte os pontos e mostre a tendência.',
+        xpReward: 20,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Mês', B1: 'Vendas (R$)', A2: 'Jan', B2: 12000, A3: 'Fev', B3: 15000, A4: 'Mar', B4: 11500, A5: 'Abr', B5: 18000, A6: 'Mai', B6: 21000 },
+        }),
+        expectedValue: 'line',
+        explanation: 'Gráfico de Linhas é ideal para dados temporais — conecta os pontos mostrando tendência de crescimento ou queda ao longo do tempo. Colunas compararia categorias; Pizza mostraria proporções.',
+      },
+
+      // ── Q12 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 12,
+        type: 'CHART_BUILDER',
+        title: 'Participação de produtos no faturamento: qual gráfico é mais adequado?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">🥧 Dica</div><div style="font-size:13px;color:#1A1A2E;">Os dados mostram a participação de cada produto no total. Qual gráfico representa melhor a ideia de "fatias de um todo"?</div></div></div>',
+        hint: '💡 Quando os valores somam 100% e você quer mostrar a proporção de cada parte, existe um gráfico circular específico para isso.',
+        xpReward: 20,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Produto', B1: 'Participação (%)', A2: 'Produto A', B2: 35, A3: 'Produto B', B3: 25, A4: 'Produto C', B4: 22, A5: 'Produto D', B5: 18 },
+        }),
+        expectedValue: 'pie',
+        explanation: 'Gráfico de Pizza (circular) é o mais indicado quando os dados representam partes de um todo (100%). Com apenas 4 produtos, as fatias ficam claras e fáceis de comparar visualmente.',
+      },
+
+      // ── Q13 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 13,
+        type: 'CHART_BUILDER',
+        title: 'Desempenho de vendedores no trimestre: como comparar side-by-side?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">📊 Dica</div><div style="font-size:13px;color:#1A1A2E;">Para comparar o desempenho entre várias pessoas ou categorias, use um gráfico que coloque os valores lado a lado de forma vertical para facilitar a comparação.</div></div></div>',
+        hint: '💡 Para comparar categorias independentes (pessoas, regiões, produtos), barras verticais são o padrão mais usado no contexto corporativo.',
+        xpReward: 20,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Vendedor', B1: '% da Meta', A2: 'Ana', B2: 95, A3: 'Bruno', B3: 78, A4: 'Carla', B4: 102, A5: 'Diego', B5: 88, A6: 'Elena', B6: 91 },
+        }),
+        expectedValue: 'column',
+        explanation: 'Gráfico de Colunas (barras verticais) é o mais eficiente para comparar categorias independentes. As colunas ficam lado a lado, facilitando ver quem atingiu ou superou a meta.',
+      },
     ] as QuestionSeed[],
   },
 
@@ -1707,6 +1752,36 @@ const trails = [
         ],
         explanation: 'A sequência: tabela organizada → célula de entrada → PROCV com 0 → testar → SEERRO → expandir para outras colunas. Ter a coluna de busca sempre na 1ª posição é a limitação principal do PROCV (use PROCX para mais flexibilidade).',
       },
+
+      // ── Q11 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 11,
+        type: 'CHART_BUILDER',
+        title: 'Comparação de vendas por região: qual gráfico usar com nomes longos?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">📉 Dica</div><div style="font-size:13px;color:#1A1A2E;">Quando os rótulos das categorias são longos (ex: nomes de regiões), existe um tipo de gráfico que acomoda melhor esses textos do que as colunas verticais.</div></div></div>',
+        hint: '💡 Quando os rótulos das categorias são extensos, o gráfico com barras horizontais lê melhor porque o texto cabe ao lado da barra.',
+        xpReward: 20,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Região', B1: 'Vendas (R$)', A2: 'Norte', B2: 45000, A3: 'Sul', B3: 67000, A4: 'Leste', B4: 52000, A5: 'Oeste', B5: 38000 },
+        }),
+        expectedValue: 'bar',
+        explanation: 'Gráfico de Barras (horizontal) é preferível quando as categorias têm nomes longos — os rótulos ficam na lateral, legíveis sem rotacionar. Colunas verticais ficam com o texto cortado ou inclinado.',
+      },
+
+      // ── Q12 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 12,
+        type: 'CHART_BUILDER',
+        title: 'Evolução da receita por trimestre: como mostrar a trajetória de crescimento?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">📈 Dica</div><div style="font-size:13px;color:#1A1A2E;">Os dados representam a mesma métrica medida em períodos consecutivos (T1, T2, T3, T4). Qual gráfico conecta esses pontos e revela a direção do movimento?</div></div></div>',
+        hint: '💡 Dados sequenciais no tempo mostram uma "história" — crescimento, queda ou estabilidade. Há um gráfico perfeito para contar essa história visualmente.',
+        xpReward: 20,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Trimestre', B1: 'Receita (R$)', A2: 'T1/24', B2: 120000, A3: 'T2/24', B3: 145000, A4: 'T3/24', B4: 132000, A5: 'T4/24', B5: 158000 },
+        }),
+        expectedValue: 'line',
+        explanation: 'Gráfico de Linhas é a escolha certa para mostrar como um valor evolui ao longo de períodos consecutivos. A linha conecta os trimestres e revela imediatamente se a receita está subindo, caindo ou oscilando.',
+      },
     ] as QuestionSeed[],
   },
 
@@ -1904,6 +1979,36 @@ const trails = [
           'Testar com casos de borda: nota exatamente no limite, frequência mínima, campos vazios',
         ],
         explanation: 'Sistemas de aprovação complexos exigem planejamento: definir as regras → identificar dados → combinar SE+E+OU → proteger com SEERRO → testar casos normais e extremos.',
+      },
+
+      // ── Q11 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 11,
+        type: 'CHART_BUILDER',
+        title: 'Resultado de alunos (aprovado/reprovado): qual gráfico mostra as proporções?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">🥧 Dica</div><div style="font-size:13px;color:#1A1A2E;">A planilha mostra a distribuição dos alunos em categorias que juntas somam 100 alunos. Qual gráfico expressa melhor a ideia de "cada grupo representa uma fatia do total"?</div></div></div>',
+        hint: '💡 Quando você quer mostrar como uma turma se divide em grupos (aprovado, reprovado, recuperação), pense em fatias de um bolo.',
+        xpReward: 20,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Resultado', B1: 'Qtd alunos', A2: 'Aprovado', B2: 65, A3: 'Reprovado', B3: 25, A4: 'Recuperação', B4: 10 },
+        }),
+        expectedValue: 'pie',
+        explanation: 'Gráfico de Pizza é ideal aqui: 3 categorias que juntas formam 100% da turma. Cada fatia mostra imediatamente qual proporção de alunos está em cada situação. Linhas seriam para tendência temporal; Colunas, para comparação entre grupos distintos.',
+      },
+
+      // ── Q12 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 12,
+        type: 'CHART_BUILDER',
+        title: 'Média por turma: como comparar o desempenho entre 4 turmas?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">📊 Dica</div><div style="font-size:13px;color:#1A1A2E;">Os dados mostram a média final de 4 turmas diferentes. O objetivo é comparar o desempenho entre elas de forma visual e direta.</div></div></div>',
+        hint: '💡 Para comparar valores de categorias diferentes (turmas, times, produtos) de forma direta, barras verticais lado a lado são o padrão.',
+        xpReward: 20,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Turma', B1: 'Média Final', A2: 'Turma A', B2: 7.5, A3: 'Turma B', B3: 8.2, A4: 'Turma C', B4: 6.8, A5: 'Turma D', B5: 7.9 },
+        }),
+        expectedValue: 'column',
+        explanation: 'Gráfico de Colunas é perfeito para comparar categorias independentes como turmas. As barras verticais ficam lado a lado, e a altura revela instantaneamente qual turma teve melhor desempenho.',
       },
     ] as QuestionSeed[],
   },
@@ -2124,6 +2229,51 @@ const trails = [
         ],
         explanation: 'Modernizar planilhas exige método: auditar → mapear equivalências → substituir gradualmente → simplificar com LET → usar arrays dinâmicos → validar. Nunca substitua tudo de uma vez.',
       },
+
+      // ── Q11 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 11,
+        type: 'CHART_BUILDER',
+        title: 'Preço médio mensal: como exibir a variação e tendência ao longo do tempo?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">📈 Análise de Tendência</div><div style="font-size:13px;color:#1A1A2E;">Em dashboards avançados, mostrar a evolução de preços ao longo do tempo é fundamental para decisões estratégicas. Qual gráfico revela melhor essa trajetória?</div></div></div>',
+        hint: '💡 Preço médio mês a mês é uma série temporal. Para análise de tendência em Excel avançado, há um gráfico específico que conecta os pontos e revela a direção do movimento.',
+        xpReward: 25,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Mês', B1: 'Preço Médio (R$)', A2: 'Jan', B2: 45.90, A3: 'Fev', B3: 47.20, A4: 'Mar', B4: 43.80, A5: 'Abr', B5: 50.10, A6: 'Mai', B6: 52.40 },
+        }),
+        expectedValue: 'line',
+        explanation: 'Gráfico de Linhas é o padrão para análise de tendência temporal em dashboards profissionais. A linha conecta os meses, revela sazonalidade e permite adicionar linhas de tendência com análise de regressão.',
+      },
+
+      // ── Q12 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 12,
+        type: 'CHART_BUILDER',
+        title: 'Distribuição do estoque por categoria: qual gráfico visualiza as proporções?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">🥧 Composição do Estoque</div><div style="font-size:13px;color:#1A1A2E;">A planilha mostra quantos itens cada categoria representa no estoque total. No Excel avançado, a escolha do gráfico impacta diretamente a leitura da informação pelo gestor.</div></div></div>',
+        hint: '💡 Quando o objetivo é mostrar como um todo (estoque total) se distribui entre suas partes (categorias), o gráfico circular é a escolha técnica correta.',
+        xpReward: 25,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Categoria', B1: 'Qtd Itens', A2: 'Eletrônicos', B2: 450, A3: 'Vestuário', B3: 320, A4: 'Alimentos', B4: 680, A5: 'Móveis', B5: 120 },
+        }),
+        expectedValue: 'pie',
+        explanation: 'Gráfico de Pizza é correto para composição de estoque: cada categoria é uma fatia do total. Com 4 categorias, as proporções ficam claras. Em Excel avançado, você pode combinar com gráfico de rosca para layout mais moderno.',
+      },
+
+      // ── Q13 — CHART_BUILDER ──────────────────────────────────
+      {
+        order: 13,
+        type: 'CHART_BUILDER',
+        title: 'Desempenho por departamento (% da meta): qual gráfico com rótulos longos?',
+        description: '<div class="excel-visual"><div style="background:#E8F5E9;padding:12px;border-radius:8px;border-left:4px solid #217346;"><div style="font-weight:bold;color:#217346;margin-bottom:6px;">📉 Ranking por Departamento</div><div style="font-size:13px;color:#1A1A2E;">Os departamentos têm nomes compostos e o objetivo é criar um ranking visual de desempenho. Em dashboards profissionais, legibilidade dos rótulos é essencial na escolha do gráfico.</div></div></div>',
+        hint: '💡 Quando os rótulos são longos e você quer criar um ranking visual, as barras horizontais permitem ler o nome do departamento sem rotacionar o texto.',
+        xpReward: 25,
+        spreadsheetContext: JSON.stringify({
+          cells: { A1: 'Departamento', B1: '% Meta', A2: 'Vendas', B2: 94, A3: 'Marketing', B3: 87, A4: 'Operações', B4: 105, A5: 'Financeiro', B5: 98, A6: 'RH', B6: 76 },
+        }),
+        expectedValue: 'bar',
+        explanation: 'Gráfico de Barras (horizontal) é a melhor escolha para rankings com rótulos longos — os nomes dos departamentos ficam na lateral, legíveis. Em dashboards avançados, combina-se com formatação condicional para destacar quem bateu a meta (>100%).',
+      },
     ] as QuestionSeed[],
   },
 
@@ -2134,7 +2284,7 @@ const trails = [
 async function main() {
   // Pula se o seed já foi executado com sucesso anteriormente
   const existingCount = await prisma.questions.count();
-  if (existingCount >= 100) {
+  if (existingCount >= 110) {
     console.log(`✅ Seed já executado (${existingCount} questões no banco). Pulando.`);
     return;
   }
