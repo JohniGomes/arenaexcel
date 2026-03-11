@@ -18,13 +18,13 @@ import { LearnStackParamList } from '../../navigation/types';
 
 type TrailDetailRouteProp = RouteProp<LearnStackParamList, 'TrailDetail'>;
 
-const TYPE_LABELS: Record<string, { emoji: string; label: string; color: string }> = {
-  MULTIPLE_CHOICE:  { emoji: '📝', label: 'Múltipla Escolha', color: '#1565C0' },
-  SPREADSHEET_INPUT:{ emoji: '📊', label: 'Planilha',         color: '#217346' },
-  FORMULA_BUILDER:  { emoji: '⚡', label: 'Fórmula',          color: '#6A1B9A' },
-  CHART_BUILDER:    { emoji: '📈', label: 'Gráfico',           color: '#E65100' },
-  DRAG_AND_DROP:    { emoji: '↕️', label: 'Ordenar',           color: '#00695C' },
-  FILL_IN_BLANK:    { emoji: '✏️', label: 'Completar',         color: '#4A148C' },
+const TYPE_LABELS: Record<string, { label: string; color: string }> = {
+  MULTIPLE_CHOICE:  { label: 'Múltipla Escolha', color: '#1565C0' },
+  SPREADSHEET_INPUT:{ label: 'Fórmula',          color: '#217346' },
+  FORMULA_BUILDER:  { label: 'Fórmula',          color: '#217346' },
+  CHART_BUILDER:    { label: 'Gráfico',           color: '#E65100' },
+  DRAG_AND_DROP:    { label: 'Seleção',           color: '#00695C' },
+  FILL_IN_BLANK:    { label: 'Completar',         color: '#4A148C' },
 };
 
 interface TrailDetail {
@@ -148,7 +148,7 @@ export default function TrailDetailScreen() {
             const status = question?.status ?? 'available';
             const isCompleted = status === 'completed';
             const isLocked = status === 'locked';
-            const typeInfo = TYPE_LABELS[question.type] ?? { emoji: '❓', label: question.type, color: theme.colors.primary };
+            const typeInfo = TYPE_LABELS[question.type] ?? { label: question.type, color: theme.colors.primary };
 
             let timeLeftText = '';
             if (isLocked && question?.unlocksAt) {
@@ -203,7 +203,7 @@ export default function TrailDetailScreen() {
                     <View style={styles.typeBadgeRow}>
                       <View style={[styles.typeBadge, { backgroundColor: typeInfo.color + '18' }]}>
                         <Text style={styles.typeBadgeText}>
-                          {typeInfo.emoji} {typeInfo.label}
+                          {typeInfo.label}
                         </Text>
                       </View>
                       {isLocked && timeLeftText && (

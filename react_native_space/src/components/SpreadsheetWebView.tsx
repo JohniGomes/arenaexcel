@@ -312,22 +312,24 @@ function generateHTML(
   .option-chip.used { display: none; }
 
   /* ── CHART SELECTOR ── */
-  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .chart-card {
     border: 2px solid var(--border); border-radius: var(--radius);
-    padding: 10px 8px; text-align: center; cursor: pointer;
+    padding: 8px 6px; text-align: center; cursor: pointer;
     background: var(--white); transition: all .2s;
   }
   .chart-card:hover  { border-color: var(--excel); background: var(--excel-light); }
   .chart-card.active { border-color: var(--excel); background: var(--excel-light); }
-  .chart-card.active .chart-label { color: var(--excel); }
-  .chart-card .chart-icon  { font-size: 26px; }
-  .chart-card .chart-label { font-size: 12px; margin-top: 4px; font-weight: 600; color: var(--text2); }
+  .chart-card.active .chart-label { color: var(--excel); font-weight: 700; }
+  .chart-card .chart-icon  { font-size: 22px; }
+  .chart-card .chart-label { font-size: 11px; margin-top: 3px; font-weight: 600; color: var(--text2); }
   .chart-preview {
     background: var(--white); border: 1.5px solid var(--border);
-    border-radius: var(--radius); display: flex; align-items: center;
-    justify-content: center; overflow: hidden; min-height: 80px; padding: 4px;
+    border-radius: var(--radius); overflow: hidden;
+    width: 100%; min-height: 160px;
+    display: flex; align-items: center; justify-content: center;
   }
+  .chart-preview svg { width: 100%; height: auto; display: block; }
 
   /* ── FILL IN BLANK ── */
   .formula-blank {
@@ -439,67 +441,70 @@ if (QUESTION_TYPE === 'CHART_BUILDER') {
     }
   }
   var maxVal = Math.max.apply(null, chartValues.concat([1]));
-  var W = 260, H = 150;
+
+  // viewBox-based SVGs — responsivos (width="100%" via CSS)
+  var VW = 300, VH = 180;
 
   function svgColumnChart() {
     var n = chartLabels.length;
-    if (!n) return '<text x="50%" y="50%" text-anchor="middle" fill="#aaa" font-size="12">Sem dados</text>';
-    var pad = 30, bw = Math.max(8, Math.floor((W - pad - 10) / n) - 6);
+    if (!n) return '<svg viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg"><text x="150" y="90" text-anchor="middle" fill="#aaa" font-size="14">Sem dados</text></svg>';
+    var pad = 36, bw = Math.max(10, Math.floor((VW - pad - 10) / n) - 8);
     var out = '';
     for (var i = 0; i < n; i++) {
-      var bh = Math.max(2, Math.floor((chartValues[i] / maxVal) * (H - pad - 10)));
-      var x = pad + i * ((W - pad - 10) / n) + ((W - pad - 10) / n - bw) / 2;
-      var y = H - pad - bh;
-      out += '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + bh + '" fill="#217346" rx="2"/>';
-      out += '<text x="' + (x + bw/2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="9" fill="#555">' + chartLabels[i].slice(0,6) + '</text>';
-      out += '<text x="' + (x + bw/2) + '" y="' + (y - 3) + '" text-anchor="middle" font-size="8" fill="#217346" font-weight="bold">' + chartValues[i] + '</text>';
+      var bh = Math.max(4, Math.floor((chartValues[i] / maxVal) * (VH - pad - 18)));
+      var x = pad + i * ((VW - pad - 10) / n) + ((VW - pad - 10) / n - bw) / 2;
+      var y = VH - pad - bh;
+      out += '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + bh + '" fill="#217346" rx="3"/>';
+      out += '<text x="' + (x + bw/2) + '" y="' + (VH - 6) + '" text-anchor="middle" font-size="10" fill="#555">' + chartLabels[i].slice(0,6) + '</text>';
+      out += '<text x="' + (x + bw/2) + '" y="' + (y - 4) + '" text-anchor="middle" font-size="9" fill="#217346" font-weight="bold">' + chartValues[i] + '</text>';
     }
-    out += '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - 5) + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
-    out += '<line x1="' + pad + '" y1="8" x2="' + pad + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
-    return '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
+    out += '<line x1="' + pad + '" y1="' + (VH - pad) + '" x2="' + (VW - 5) + '" y2="' + (VH - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    out += '<line x1="' + pad + '" y1="10" x2="' + pad + '" y2="' + (VH - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    return '<svg viewBox="0 0 ' + VW + ' ' + VH + '" xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
   }
 
   function svgBarChart() {
     var n = chartLabels.length;
-    if (!n) return '<text x="50%" y="50%" text-anchor="middle" fill="#aaa" font-size="12">Sem dados</text>';
-    var lblW = 52, pad = 10, bh = Math.max(8, Math.floor((H - pad * 2) / n) - 5);
+    if (!n) return '<svg viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg"><text x="150" y="90" text-anchor="middle" fill="#aaa" font-size="14">Sem dados</text></svg>';
+    var lblW = 62, pad = 10, bh = Math.max(10, Math.floor((VH - pad * 2) / n) - 6);
     var out = '';
     for (var i = 0; i < n; i++) {
-      var bw = Math.max(2, Math.floor((chartValues[i] / maxVal) * (W - lblW - 30)));
-      var y = pad + i * ((H - pad * 2) / n) + ((H - pad * 2) / n - bh) / 2;
-      out += '<rect x="' + lblW + '" y="' + y + '" width="' + bw + '" height="' + bh + '" fill="#217346" rx="2"/>';
-      out += '<text x="' + (lblW - 3) + '" y="' + (y + bh/2 + 4) + '" text-anchor="end" font-size="9" fill="#555">' + chartLabels[i].slice(0,7) + '</text>';
-      out += '<text x="' + (lblW + bw + 4) + '" y="' + (y + bh/2 + 4) + '" font-size="8" fill="#217346" font-weight="bold">' + chartValues[i] + '</text>';
+      var bw = Math.max(4, Math.floor((chartValues[i] / maxVal) * (VW - lblW - 36)));
+      var y = pad + i * ((VH - pad * 2) / n) + ((VH - pad * 2) / n - bh) / 2;
+      out += '<rect x="' + lblW + '" y="' + y + '" width="' + bw + '" height="' + bh + '" fill="#217346" rx="3"/>';
+      out += '<text x="' + (lblW - 4) + '" y="' + (y + bh/2 + 4) + '" text-anchor="end" font-size="10" fill="#555">' + chartLabels[i].slice(0,8) + '</text>';
+      out += '<text x="' + (lblW + bw + 5) + '" y="' + (y + bh/2 + 4) + '" font-size="9" fill="#217346" font-weight="bold">' + chartValues[i] + '</text>';
     }
-    out += '<line x1="' + lblW + '" y1="' + pad + '" x2="' + lblW + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
-    return '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
+    out += '<line x1="' + lblW + '" y1="' + pad + '" x2="' + lblW + '" y2="' + (VH - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    return '<svg viewBox="0 0 ' + VW + ' ' + VH + '" xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
   }
 
   function svgLineChart() {
     var n = chartLabels.length;
-    if (!n) return '<text x="50%" y="50%" text-anchor="middle" fill="#aaa" font-size="12">Sem dados</text>';
-    var pad = 30;
-    var stepX = (W - pad - 10) / Math.max(n - 1, 1);
+    if (!n) return '<svg viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg"><text x="150" y="90" text-anchor="middle" fill="#aaa" font-size="14">Sem dados</text></svg>';
+    var pad = 36;
+    var stepX = (VW - pad - 12) / Math.max(n - 1, 1);
     var pts = [], dotsHtml = '';
     for (var i = 0; i < n; i++) {
       var x = pad + i * stepX;
-      var y = (H - pad - 10) - Math.floor((chartValues[i] / maxVal) * (H - pad - 20)) + 8;
+      var y = (VH - pad - 10) - Math.floor((chartValues[i] / maxVal) * (VH - pad - 26)) + 10;
       pts.push(x + ',' + y);
-      dotsHtml += '<circle cx="' + x + '" cy="' + y + '" r="4" fill="#217346"/>';
-      dotsHtml += '<text x="' + x + '" y="' + (H - 8) + '" text-anchor="middle" font-size="9" fill="#555">' + chartLabels[i].slice(0,5) + '</text>';
-      dotsHtml += '<text x="' + x + '" y="' + (y - 7) + '" text-anchor="middle" font-size="8" fill="#217346" font-weight="bold">' + chartValues[i] + '</text>';
+      dotsHtml += '<circle cx="' + x + '" cy="' + y + '" r="5" fill="#217346"/>';
+      dotsHtml += '<circle cx="' + x + '" cy="' + y + '" r="2.5" fill="#fff"/>';
+      dotsHtml += '<text x="' + x + '" y="' + (VH - 6) + '" text-anchor="middle" font-size="10" fill="#555">' + chartLabels[i].slice(0,5) + '</text>';
+      dotsHtml += '<text x="' + x + '" y="' + (y - 9) + '" text-anchor="middle" font-size="9" fill="#217346" font-weight="bold">' + chartValues[i] + '</text>';
     }
-    var axes = '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - 5) + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
-    axes += '<line x1="' + pad + '" y1="8" x2="' + pad + '" y2="' + (H - pad) + '" stroke="#ccc" stroke-width="1"/>';
-    return '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' + axes + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#217346" stroke-width="2.5"/>' + dotsHtml + '</svg>';
+    var axes = '<line x1="' + pad + '" y1="' + (VH - pad) + '" x2="' + (VW - 5) + '" y2="' + (VH - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    axes += '<line x1="' + pad + '" y1="10" x2="' + pad + '" y2="' + (VH - pad) + '" stroke="#ccc" stroke-width="1"/>';
+    return '<svg viewBox="0 0 ' + VW + ' ' + VH + '" xmlns="http://www.w3.org/2000/svg">' + axes + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#217346" stroke-width="2.5" stroke-linejoin="round"/>' + dotsHtml + '</svg>';
   }
 
   function svgPieChart() {
     var n = chartLabels.length;
-    if (!n) return '<text x="50%" y="50%" text-anchor="middle" fill="#aaa" font-size="12">Sem dados</text>';
+    if (!n) return '<svg viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg"><text x="150" y="90" text-anchor="middle" fill="#aaa" font-size="14">Sem dados</text></svg>';
     var colors = ['#217346','#27AE60','#2ECC71','#1E8449','#58D68D','#82E0AA'];
     var total = chartValues.reduce(function(a,b){ return a+b; }, 0) || 1;
-    var cx = W/2 - 10, cy = H/2, r = Math.min(H/2 - 16, W/2 - 60);
+    var cx = VW * 0.42, cy = VH / 2, r = Math.min(VH / 2 - 18, 64);
     var startAngle = -Math.PI / 2;
     var out = '';
     for (var i = 0; i < n; i++) {
@@ -511,14 +516,15 @@ if (QUESTION_TYPE === 'CHART_BUILDER') {
       var x2 = cx + r * Math.cos(endAngle);
       var y2 = cy + r * Math.sin(endAngle);
       var large = angle > Math.PI ? 1 : 0;
-      out += '<path d="M' + cx + ',' + cy + ' L' + x1 + ',' + y1 + ' A' + r + ',' + r + ' 0 ' + large + ',1 ' + x2 + ',' + y2 + ' Z" fill="' + colors[i % colors.length] + '"/>';
-      var midA = startAngle + angle/2;
-      var lx = cx + (r + 18) * Math.cos(midA);
-      var ly = cy + (r + 18) * Math.sin(midA);
-      out += '<text x="' + lx + '" y="' + ly + '" text-anchor="middle" font-size="8" fill="#333">' + chartLabels[i].slice(0,8) + '</text>';
+      var pct = Math.round(chartValues[i] / total * 100);
+      out += '<path d="M' + cx + ',' + cy + ' L' + x1.toFixed(1) + ',' + y1.toFixed(1) + ' A' + r + ',' + r + ' 0 ' + large + ',1 ' + x2.toFixed(1) + ',' + y2.toFixed(1) + ' Z" fill="' + colors[i % colors.length] + '"/>';
+      var midA = startAngle + angle / 2;
+      var lx = cx + (r + 22) * Math.cos(midA);
+      var ly = cy + (r + 22) * Math.sin(midA);
+      out += '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" text-anchor="middle" font-size="9" fill="#333">' + chartLabels[i].slice(0,8) + ' ' + pct + '%</text>';
       startAngle = endAngle;
     }
-    return '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
+    return '<svg viewBox="0 0 ' + VW + ' ' + VH + '" xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
   }
 
   var svgRenderers = { column: svgColumnChart, bar: svgBarChart, line: svgLineChart, pie: svgPieChart };

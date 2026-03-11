@@ -687,12 +687,12 @@ const trails = [
         xpReward: 10,
         options: [
           'Para destacar células com cores conforme regras definidas',
-          'Para exibir apenas as linhas que atendem a critérios, ocultando as demais',
+          'Exibir só as linhas que atendem a critérios — ativar via Dados → Filtro ou Ctrl+Shift+L',
           'Para proteger células de edição não autorizada',
           'Para ordenar os dados por ordem alfabética automaticamente',
         ],
         correctOption: 1,
-        explanation: 'O AutoFiltro (Dados → Filtro ou Ctrl+Shift+L) adiciona ▼ nos cabeçalhos e permite filtrar por qualquer critério, ocultando temporariamente linhas que não se encaixam.',
+        explanation: 'AutoFiltro: Dados → Filtro ou atalho Ctrl+Shift+L. Adiciona ▼ nos cabeçalhos — clique para escolher critério. Linhas que não atendem ficam temporariamente ocultas, sem serem excluídas.',
       },
       // ── Q3 — MULTIPLE_CHOICE ─────────────────────────────────
       {

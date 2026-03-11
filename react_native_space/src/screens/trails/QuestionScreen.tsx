@@ -227,18 +227,21 @@ export default function QuestionScreen({
 <html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; color: #1A1A2E; line-height: 1.5; padding: 12px; background: transparent; }
-  .excel-visual { background: #fff; border-radius: 10px; padding: 14px; border: 1px solid #E0E5E0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; max-width: 100%; word-break: break-word; overflow-wrap: break-word; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; color: #1A1A2E; line-height: 1.5; padding: 12px; background: transparent; overflow: hidden; }
+  img, table, div, span { max-width: 100%; }
+  .excel-visual { background: #fff; border-radius: 10px; padding: 14px; border: 1px solid #E0E5E0; overflow: hidden; }
   .excel-grid { background: #F7F9F7; border-radius: 8px; padding: 10px; margin-bottom: 10px; overflow-x: auto; }
-  .excel-header { display: flex; font-weight: 700; font-size: 12px; color: #217346; margin-bottom: 4px; }
+  .excel-header { display: flex; font-weight: 700; font-size: 12px; color: #217346; margin-bottom: 4px; flex-wrap: wrap; }
   .excel-header span { min-width: 50px; text-align: center; padding: 4px; background: #E8F5E9; border-radius: 4px; }
-  .excel-row { display: flex; margin: 2px 0; }
+  .excel-row { display: flex; margin: 2px 0; flex-wrap: wrap; }
   .excel-row span:first-child { min-width: 28px; text-align: center; font-weight: 600; font-size: 11px; color: #4A4A6A; background: #F7F9F7; padding: 6px 4px; border: 1px solid #E0E5E0; }
-  .cell { min-width: 50px; padding: 6px 8px; border: 1px solid #E0E5E0; background: #fff; text-align: center; font-size: 12px; color: #1A1A2E; }
+  .cell { min-width: 50px; padding: 6px 8px; border: 1px solid #E0E5E0; background: #fff; text-align: center; font-size: 12px; color: #1A1A2E; word-break: break-word; }
   .highlight-cell { background: #E8F5E9 !important; border: 2px solid #217346 !important; font-weight: 700; color: #217346; }
   p { margin-top: 10px; color: #4A4A6A; font-size: 13px; }
   strong { color: #217346; }
+  [style*="font-family:monospace"], [style*="font-family: monospace"] { word-break: break-all; white-space: normal; }
+  ${question.type === 'DRAG_AND_DROP' ? 'div[style*="linear-gradient(135deg,#217346"] { display: none !important; }' : ''}
 </style>
 </head>
 <body>
