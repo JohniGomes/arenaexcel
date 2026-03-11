@@ -7,10 +7,14 @@
 import { PrismaClient, QuestionType, TrailProfession } from '@prisma/client';
 
 // Pool limitado para evitar esgotamento de conexões no Railway
+const baseUrl = process.env.DATABASE_URL ?? '';
+const dbUrl = baseUrl.includes('?')
+  ? baseUrl + '&connection_limit=5&pool_timeout=30'
+  : baseUrl + '?connection_limit=5&pool_timeout=30';
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL + '&connection_limit=5&pool_timeout=30',
+      url: dbUrl,
     },
   },
 });

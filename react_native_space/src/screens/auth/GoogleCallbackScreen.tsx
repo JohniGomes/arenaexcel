@@ -13,7 +13,7 @@ type GoogleCallbackScreenNavigationProp = StackNavigationProp<AuthStackParamList
 const GoogleCallbackScreen = () => {
   const navigation = useNavigation<GoogleCallbackScreenNavigationProp>();
   const route = useRoute<GoogleCallbackScreenRouteProp>();
-  const { login } = useAuth();
+  const { googleSignIn } = useAuth();
   const [status, setStatus] = useState('Processando login com Google...');
 
   useEffect(() => {
@@ -54,7 +54,7 @@ const GoogleCallbackScreen = () => {
       const user = JSON.parse(decodeURIComponent(userJson));
       
       // Fazer login com os dados recebidos
-      await login(token, user);
+      await googleSignIn(token, user);
       
       // Navegação será tratada automaticamente pelo AuthContext
     } catch (error: any) {

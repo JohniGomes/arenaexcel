@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 // Test Store key para testes sem Google Play Console
 // Trocar para 'goog_ZdprNjnHgmlswNbOvVdIECFINaS' quando publicar na Play Store
-const API_KEY_ANDROID = 'test_GCbPRXbtqWdUdAoE0DOYrgMeNvu';
+const API_KEY_ANDROID = 'goog_ZdprNjnHgmlswNbOvVdIECFINaS';
 const API_KEY_IOS = 'appl_placeholder';
 
 class PurchasesService {

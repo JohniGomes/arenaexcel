@@ -102,7 +102,7 @@ const CertificateScreen = () => {
             {/* Mascote Excelino */}
             <View style={styles.mascotContainer}>
               <Image
-                source={require('../../../assets/mascots/mascot-enthusiastic.png')}
+                source={require('../../../assets/mascots/mascot_enthusiastic.png')}
                 style={styles.mascotImage}
                 resizeMode="contain"
               />

@@ -8,8 +8,8 @@
     "base": {
       "corepack": true,
       "android": {
-        "credentialsSource": "local",
-        "resourceClass": "large"
+        "credentialsSource": "remote",
+        "resourceClass": "medium"
       }
     },
     "development": {
