@@ -6,7 +6,14 @@
 
 import { PrismaClient, QuestionType, TrailProfession } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Pool limitado para evitar esgotamento de conexões no Railway
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL + '&connection_limit=5&pool_timeout=30',
+    },
+  },
+});
 
 // ─── TIPOS ───────────────────────────────────────────────────
 export interface QuestionSeed {
@@ -2052,6 +2059,13 @@ const trails = [
 // ─── FUNÇÃO PRINCIPAL DE SEED ─────────────────────────────────
 
 async function main() {
+  // Pula se o seed já foi executado com sucesso anteriormente
+  const existingCount = await prisma.questions.count();
+  if (existingCount >= 100) {
+    console.log(`✅ Seed já executado (${existingCount} questões no banco). Pulando.`);
+    return;
+  }
+
   console.log('🌱 Iniciando seed de 100 questões em 10 trilhas...\n');
 
   for (const trail of trails) {
@@ -2117,4 +2131,7 @@ main()
     console.error('❌ Erro no seed:', e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+    process.exit(0);
+  });
