@@ -36,32 +36,37 @@ const LEVEL_ICONS: { [key: string]: string } = {
 
 const LearnScreen: React.FC<Props> = ({ navigation }) => {
   const [levels, setLevels] = useState<Level[]>([]);
+  const [trailsCompleted, setTrailsCompleted] = useState(0);
+  const [trailsTotal, setTrailsTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const { showError } = useSnackbar();
   const { isPremium } = usePremium();
 
-  // Níveis que requerem premium
   const NIVEIS_PREMIUM = ['Intermediário', 'Avançado', 'Especialista'];
 
   useFocusEffect(
     useCallback(() => {
-      loadLevels();
+      loadAll();
     }, [])
   );
 
-  const loadLevels = async () => {
+  const loadAll = async () => {
     setLoading(true);
     try {
-      const response = await ApiService.getProgress();
-      console.log('Progress response:', response);
-      const levelsData = response?.levels ?? [];
-      console.log('Levels loaded:', levelsData?.length);
-      setLevels(levelsData);
+      const [progressResponse, trailsData] = await Promise.all([
+        ApiService.getProgress(),
+        ApiService.getTrails(),
+      ]);
+      setLevels(progressResponse?.levels ?? []);
+      // Compute overall trail progress
+      const allTrails: any[] = trailsData ?? [];
+      const done = allTrails.reduce((s: number, t: any) => s + (t?.progress?.currentQuestion ?? 0), 0);
+      const tot  = allTrails.reduce((s: number, t: any) => s + (t?.totalQuestions ?? 0), 0);
+      setTrailsCompleted(done);
+      setTrailsTotal(tot);
     } catch (error: any) {
-      console.error('Error loading levels:', error);
-      console.error('Error details:', error?.response?.data);
-      showError(error?.response?.data?.message || 'Erro ao carregar níveis');
+      showError(error?.response?.data?.message || 'Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
@@ -74,14 +79,11 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleLevelPress = (level: Level, index: number) => {
-    // Verificar se é nível premium
     const ehBloqueado = NIVEIS_PREMIUM.includes(level?.name ?? '') && !isPremium;
     if (ehBloqueado) {
       setShowPaywall(true);
       return;
     }
-
-    // Verificar se está desbloqueado
     if (isLevelUnlocked(index)) {
       navigation.navigate('LessonList', {
         levelId: level?.id ?? 0,
@@ -92,6 +94,8 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const trailPercent = trailsTotal > 0 ? Math.round((trailsCompleted / trailsTotal) * 100) : 0;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
@@ -101,52 +105,67 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={loadLevels} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={loading} onRefresh={loadAll} colors={[theme.colors.primary]} />
         }
       >
-        {/* Card de Trilhas - Novo Sistema de Questões */}
+        {/* Banner Trilhas Interativas */}
         <Card style={styles.trailsCard} onPress={() => navigation.navigate('Trails')}>
           <View style={styles.trailsGradient}>
-            <View style={styles.trailsContent}>
-              <View style={styles.trailsHeader}>
-                <Text style={styles.trailsIcon}>🚀</Text>
-                <View style={styles.trailsBadge}>
-                  <Text style={styles.trailsBadgeText}>NOVO</Text>
-                </View>
+            <View style={styles.trailsHeaderRow}>
+              <Text style={styles.trailsIcon}>🚀</Text>
+              <View style={styles.trailsBadge}>
+                <Text style={styles.trailsBadgeText}>NOVO</Text>
               </View>
-              <Text style={styles.trailsTitle}>Trilhas Interativas</Text>
-              <Text style={styles.trailsDescription}>
-                Aprenda Excel com exercícios práticos e interativos
-              </Text>
-              <View style={styles.trailsFeatures}>
-                <View style={styles.trailsFeature}>
-                  <Ionicons name="construct" size={16} color="#FFFFFF" />
-                  <Text style={styles.trailsFeatureText}>Planilhas Interativas</Text>
-                </View>
-                <View style={styles.trailsFeature}>
-                  <Ionicons name="bar-chart" size={16} color="#FFFFFF" />
-                  <Text style={styles.trailsFeatureText}>Gráficos Profissionais</Text>
-                </View>
+            </View>
+            <Text style={styles.trailsTitle}>Trilhas Interativas</Text>
+            <Text style={styles.trailsDescription}>
+              Aprenda Excel com exercícios práticos e interativos
+            </Text>
+            <View style={styles.trailsFeatures}>
+              <View style={styles.trailsFeature}>
+                <Ionicons name="construct" size={14} color="#FFFFFF" />
+                <Text style={styles.trailsFeatureText}>Planilhas Interativas</Text>
               </View>
-              <View style={styles.trailsArrow}>
-                <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+              <View style={styles.trailsFeature}>
+                <Ionicons name="bar-chart" size={14} color="#FFFFFF" />
+                <Text style={styles.trailsFeatureText}>Gráficos Profissionais</Text>
               </View>
+            </View>
+            <View style={styles.trailsArrowRow}>
+              <Text style={styles.trailsArrowText}>Ver Trilhas</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             </View>
           </View>
         </Card>
 
-        {/* Título para Lições Clássicas */}
+        {/* Card progresso geral */}
+        {trailsTotal > 0 && (
+          <View style={styles.progressCard}>
+            <View style={styles.progressCardHeader}>
+              <Ionicons name="stats-chart" size={18} color={theme.colors.primary} />
+              <Text style={styles.progressCardTitle}>Seu progresso geral</Text>
+              <Text style={styles.progressCardPercent}>{trailPercent}% concluído</Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${trailPercent}%` as any }]} />
+            </View>
+            <Text style={styles.progressCardSub}>
+              {trailsCompleted} de {trailsTotal} questões concluídas nas trilhas
+            </Text>
+          </View>
+        )}
+
+        {/* Lições Clássicas */}
         <Text style={styles.sectionTitle}>Lições Clássicas</Text>
 
         {levels?.length === 0 && !loading && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateIcon}>📚</Text>
             <Text style={styles.emptyStateTitle}>Nenhum nível disponível</Text>
-            <Text style={styles.emptyStateText}>
-              Arraste para baixo para atualizar
-            </Text>
+            <Text style={styles.emptyStateText}>Arraste para baixo para atualizar</Text>
           </View>
         )}
+
         {levels?.map((level, index) => {
           const unlocked = isLevelUnlocked(index);
           const bloqueadoPremium = NIVEIS_PREMIUM.includes(level?.name ?? '') && !isPremium;
@@ -187,9 +206,9 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
                     </View>
                   ) : (
                     !unlocked && (
-                      <View style={styles.lockedBadge}>
-                        <Ionicons name="lock-closed" size={12} color="#FFFFFF" />
-                        <Text style={styles.lockedBadgeText}>Bloqueado</Text>
+                      <View style={styles.lockedIndicator}>
+                        <Ionicons name="lock-closed-outline" size={12} color="#B0BEC5" />
+                        <Text style={styles.lockedIndicatorText}>Bloqueado</Text>
                       </View>
                     )
                   )}
@@ -199,10 +218,7 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
                 )}
               </View>
               {unlocked && !bloqueadoPremium && (
-                <ProgressBar
-                  progress={progress}
-                  style={styles.levelProgressBar}
-                />
+                <ProgressBar progress={progress} style={styles.levelProgressBar} />
               )}
             </Card>
           );
@@ -219,60 +235,99 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-  },
+  safeArea: { flex: 1, backgroundColor: theme.colors.surface },
   header: {
     padding: 16,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.text,
+  headerTitle: { fontSize: 28, fontWeight: '700', color: theme.colors.text },
+  container: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 32 },
+
+  /* Banner */
+  trailsCard: { marginBottom: 16, padding: 0, overflow: 'hidden' },
+  trailsGradient: { backgroundColor: theme.colors.primary, padding: 20 },
+  trailsHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  trailsIcon: { fontSize: 32, marginRight: 10 },
+  trailsBadge: {
+    backgroundColor: theme.colors.primaryVivid,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
   },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  levelCard: {
-    marginBottom: 16,
-    padding: 20,
-  },
-  lockedCard: {
-    opacity: 0.6,
-  },
-  levelContent: {
+  trailsBadgeText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  trailsTitle: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  trailsDescription: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 12, lineHeight: 20 },
+  trailsFeatures: { gap: 6, marginBottom: 14 },
+  trailsFeature: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  trailsFeatureText: { fontSize: 13, color: 'rgba(255,255,255,0.95)', fontWeight: '600' },
+  trailsArrowRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    gap: 6,
+    alignSelf: 'flex-end',
   },
+  trailsArrowText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  /* Progress card */
+  progressCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    elevation: 2,
+    gap: 8,
+  },
+  progressCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  progressCardTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  progressCardPercent: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  progressTrack: {
+    width: '100%',
+    height: 8,
+    backgroundColor: theme.colors.border,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 4,
+  },
+  progressCardSub: { fontSize: 12, color: theme.colors.textSecondary },
+
+  /* Section */
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+
+  /* Levels */
+  levelCard: { marginBottom: 16, padding: 20 },
+  lockedCard: { opacity: 0.6 },
+  levelContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   levelIconContainer: {
     width: 64,
     height: 64,
@@ -282,45 +337,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  levelIcon: {
-    fontSize: 32,
-  },
-  levelTextContainer: {
-    flex: 1,
-  },
-  levelName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: 4,
-  },
-  lockedText: {
-    color: theme.colors.textSecondary,
-  },
-  levelProgress: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  lockedBadge: {
+  levelIcon: { fontSize: 32 },
+  levelTextContainer: { flex: 1 },
+  levelName: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 4 },
+  lockedText: { color: theme.colors.textSecondary },
+  levelProgress: { fontSize: 14, color: theme.colors.textSecondary },
+  lockedIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.textSecondary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 8,
-    alignSelf: 'flex-start',
+    gap: 4,
+    marginTop: 6,
   },
-  lockedBadgeText: {
+  lockedIndicatorText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 4,
+    color: '#B0BEC5',
+    fontWeight: '500',
   },
-  premiumCard: {
-    borderColor: '#F59E0B',
-    borderWidth: 2,
-  },
+  premiumCard: { borderColor: '#F59E0B', borderWidth: 2 },
   premiumBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -331,92 +364,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     alignSelf: 'flex-start',
   },
-  premiumBadgeEmoji: {
-    fontSize: 12,
-  },
-  premiumBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginLeft: 4,
-  },
-  levelProgressBar: {
-    marginTop: 8,
-  },
-  // Estilos do Card de Trilhas
-  trailsCard: {
-    marginBottom: 24,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  trailsGradient: {
-    backgroundColor: theme.colors.primary,
-    padding: 24,
-  },
-  trailsContent: {
-    position: 'relative',
-  },
-  trailsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  trailsIcon: {
-    fontSize: 36,
-    marginRight: 12,
-  },
-  trailsBadge: {
-    backgroundColor: theme.colors.primaryVivid,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  trailsBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 1,
-  },
-  trailsTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  trailsDescription: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 16,
-    lineHeight: 22,
-  },
-  trailsFeatures: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 8,
-  },
-  trailsFeature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  trailsFeatureText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.95)',
-    fontWeight: '600',
-  },
-  trailsArrow: {
-    position: 'absolute',
-    right: 0,
-    top: '50%',
-    transform: [{ translateY: -12 }],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
+  premiumBadgeEmoji: { fontSize: 12 },
+  premiumBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff', marginLeft: 4 },
+  levelProgressBar: { marginTop: 8 },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
+  emptyStateIcon: { fontSize: 64, marginBottom: 16 },
+  emptyStateTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
+  emptyStateText: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center' },
 });
 
 export default LearnScreen;

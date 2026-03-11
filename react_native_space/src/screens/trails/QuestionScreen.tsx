@@ -16,6 +16,7 @@ import ApiService from '../../services/api.service';
 import { SpreadsheetWebView } from '../../components/SpreadsheetWebView';
 import DragDropQuestion from '../../components/DragDropQuestion';
 import ChartBuilderQuestion from '../../components/ChartBuilderQuestion';
+import { useSound } from '../../contexts/SoundContext';
 import { theme } from '../../constants/theme';
 
 interface QuestionScreenProps {
@@ -59,6 +60,7 @@ export default function QuestionScreen({
     xpEarned: number;
   } | null>(null);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const { playSuccess, playError } = useSound();
 
   useEffect(() => {
     loadTrailInfo();
@@ -125,6 +127,7 @@ export default function QuestionScreen({
           timeSpentMs: 0,
         });
         setResult(res);
+        if (res.isCorrect) playSuccess(); else playError();
       } catch (error) {
         Alert.alert('Erro', 'Não foi possível enviar a resposta');
         setAnswered(false);
@@ -287,9 +290,9 @@ ${question.description}
             <View style={styles.options}>
               {question.options?.map((opt: string, i: number) => {
                 const isCorrect =
-                  answered && result?.isCorrect && selected === i;
+                  answered && result !== null && result.isCorrect && selected === i;
                 const isWrong =
-                  answered && !result?.isCorrect && selected === i;
+                  answered && result !== null && !result.isCorrect && selected === i;
                 return (
                   <TouchableOpacity
                     key={i}

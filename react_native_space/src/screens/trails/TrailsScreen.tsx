@@ -26,6 +26,12 @@ interface Trail {
   progress: any;
 }
 
+function getLevelTag(index: number): { label: string; color: string } {
+  if (index < 3) return { label: 'Iniciante',     color: '#27AE60' };
+  if (index < 6) return { label: 'Intermediário', color: '#F59E0B' };
+  return            { label: 'Avançado',          color: '#E74C3C' };
+}
+
 export default function TrailsScreen() {
   const [trails, setTrails] = useState<Trail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,11 +68,11 @@ export default function TrailsScreen() {
           <Text style={styles.headerSub}>{trails.length} trilhas disponíveis</Text>
         </View>
 
-        {trails.map((trail) => {
+        {trails.map((trail, index) => {
           const completed = trail?.progress?.currentQuestion ?? 0;
           const total = trail.totalQuestions ?? 0;
           const percent = total > 0 ? Math.min((completed / total) * 100, 100) : 0;
-          const trailColor = trail.isUnlocked ? (trail.color || theme.colors.primary) : theme.colors.gray;
+          const levelTag = getLevelTag(index);
 
           return (
             <TouchableOpacity
@@ -79,18 +85,21 @@ export default function TrailsScreen() {
               activeOpacity={trail.isUnlocked ? 0.8 : 1}
             >
               <LinearGradient
-                colors={
-                  trail.isUnlocked
-                    ? [trailColor, theme.colors.primary]
-                    : [theme.colors.gray, '#8A9BA8']
-                }
+                colors={trail.isUnlocked ? ['#2E9E5B', '#27AE60'] : ['#B0BEC5', '#90A4AE']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.cardGradient}
               >
+                {/* Level tag */}
+                <View style={[styles.levelTag, { backgroundColor: trail.isUnlocked ? levelTag.color + 'CC' : 'rgba(255,255,255,0.25)' }]}>
+                  <Text style={styles.levelTagText}>
+                    {trail.isUnlocked ? levelTag.label : 'Bloqueado'}
+                  </Text>
+                </View>
+
                 <View style={styles.cardTop}>
                   <Text style={styles.cardIcon}>
-                    {trail.isUnlocked ? trail.icon : '🔒'}
+                    {trail.isUnlocked ? trail.icon : ''}
                   </Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.cardName}>{trail.name}</Text>
@@ -98,14 +107,16 @@ export default function TrailsScreen() {
                       {trail.description}
                     </Text>
                   </View>
-                  {trail.isUnlocked && (
+                  {trail.isUnlocked ? (
                     <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.8)" />
+                  ) : (
+                    <Ionicons name="lock-closed-outline" size={20} color="#B0BEC5" />
                   )}
                 </View>
 
                 <View style={styles.cardFooter}>
                   <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${percent}%` }]} />
+                    <View style={[styles.progressFill, { width: `${percent}%` as any }]} />
                   </View>
                   <Text style={styles.progressLabel}>
                     {completed}/{total} questões
@@ -142,8 +153,22 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  cardLocked: { opacity: 0.6 },
-  cardGradient: { padding: 18, gap: 12 },
+  cardLocked: { opacity: 0.75 },
+  cardGradient: { padding: 18, paddingTop: 36, gap: 12 },
+  levelTag: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  levelTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.3,
+  },
   cardTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -173,7 +198,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#27AE60',
     borderRadius: 3,
   },
   progressLabel: {
