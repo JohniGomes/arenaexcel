@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ApiService from '../../services/api.service';
 import { theme } from '../../constants/theme';
+import { TRAIL_IMAGES, MASCOT_SHADOW } from '../../constants/mascotImages';
 
 interface Trail {
   id: string;
@@ -98,9 +100,19 @@ export default function TrailsScreen() {
                 </View>
 
                 <View style={styles.cardTop}>
-                  <Text style={styles.cardIcon}>
-                    {trail.isUnlocked ? trail.icon : ''}
-                  </Text>
+                  <View style={[styles.cardIconWrap, MASCOT_SHADOW]}>
+                    {TRAIL_IMAGES[trail.slug] ? (
+                      <Image
+                        source={TRAIL_IMAGES[trail.slug]}
+                        style={styles.cardIconImg}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={styles.cardIconFallback}>
+                        {trail.isUnlocked ? trail.icon : '🔒'}
+                      </Text>
+                    )}
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.cardName}>{trail.name}</Text>
                     <Text style={styles.cardDesc} numberOfLines={2}>
@@ -174,7 +186,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
-  cardIcon: { fontSize: 38 },
+  cardIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#217346',
+    flexShrink: 0,
+  },
+  cardIconImg: { width: 56, height: 56 },
+  cardIconFallback: { fontSize: 32, textAlign: 'center', lineHeight: 56 },
   cardName: {
     fontSize: 17,
     fontWeight: '700',

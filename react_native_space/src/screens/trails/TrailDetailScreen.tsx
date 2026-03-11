@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navig
 import { Ionicons } from '@expo/vector-icons';
 import ApiService from '../../services/api.service';
 import { theme } from '../../constants/theme';
+import { TRAIL_IMAGES, MASCOT_SHADOW } from '../../constants/mascotImages';
 import { LearnStackParamList } from '../../navigation/types';
 
 type TrailDetailRouteProp = RouteProp<LearnStackParamList, 'TrailDetail'>;
@@ -127,7 +129,17 @@ export default function TrailDetailScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.trailHeader}
         >
-          <Text style={styles.trailIcon}>{trail?.icon ?? ''}</Text>
+          {TRAIL_IMAGES[trail?.slug ?? ''] ? (
+            <View style={[styles.trailIconWrap, MASCOT_SHADOW]}>
+              <Image
+                source={TRAIL_IMAGES[trail.slug]}
+                style={styles.trailIconImg}
+                resizeMode="cover"
+              />
+            </View>
+          ) : (
+            <Text style={styles.trailIcon}>{trail?.icon ?? ''}</Text>
+          )}
           <Text style={styles.trailName}>{trail?.name ?? ''}</Text>
           <Text style={styles.trailDesc}>{trail?.description ?? ''}</Text>
 
@@ -248,6 +260,16 @@ const styles = StyleSheet.create({
     marginBottom: 20, alignItems: 'center', gap: 8,
   },
   trailIcon: { fontSize: 60, marginBottom: 4 },
+  trailIconWrap: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.7)',
+    marginBottom: 12,
+  },
+  trailIconImg: { width: 100, height: 100 },
   trailName: {
     fontSize: 26, fontWeight: '800', color: '#fff',
     textAlign: 'center',

@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +20,7 @@ import ProgressBar from '../../components/ProgressBar';
 import PaywallModal from '../../components/PaywallModal';
 import { theme } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { LEVEL_IMAGES, BANNER_IMAGE, MASCOT_SHADOW } from '../../constants/mascotImages';
 
 type LearnScreenNavigationProp = StackNavigationProp<LearnStackParamList, 'LevelList'>;
 
@@ -111,29 +113,33 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
         {/* Banner Trilhas Interativas */}
         <Card style={styles.trailsCard} onPress={() => navigation.navigate('Trails')}>
           <View style={styles.trailsGradient}>
-            <View style={styles.trailsHeaderRow}>
-              <Text style={styles.trailsIcon}>🚀</Text>
+            {/* Conteúdo à esquerda */}
+            <View style={styles.trailsLeft}>
               <View style={styles.trailsBadge}>
                 <Text style={styles.trailsBadgeText}>NOVO</Text>
               </View>
-            </View>
-            <Text style={styles.trailsTitle}>Trilhas Interativas</Text>
-            <Text style={styles.trailsDescription}>
-              Aprenda Excel com exercícios práticos e interativos
-            </Text>
-            <View style={styles.trailsFeatures}>
-              <View style={styles.trailsFeature}>
-                <Ionicons name="construct" size={14} color="#FFFFFF" />
-                <Text style={styles.trailsFeatureText}>Planilhas Interativas</Text>
+              <Text style={styles.trailsTitle}>Trilhas Interativas</Text>
+              <Text style={styles.trailsDescription}>
+                Aprenda Excel com exercícios práticos
+              </Text>
+              <View style={styles.trailsFeatures}>
+                <View style={styles.trailsFeature}>
+                  <Ionicons name="construct" size={13} color="#FFFFFF" />
+                  <Text style={styles.trailsFeatureText}>Planilhas</Text>
+                </View>
+                <View style={styles.trailsFeature}>
+                  <Ionicons name="bar-chart" size={13} color="#FFFFFF" />
+                  <Text style={styles.trailsFeatureText}>Gráficos</Text>
+                </View>
               </View>
-              <View style={styles.trailsFeature}>
-                <Ionicons name="bar-chart" size={14} color="#FFFFFF" />
-                <Text style={styles.trailsFeatureText}>Gráficos Profissionais</Text>
+              <View style={styles.trailsArrowRow}>
+                <Text style={styles.trailsArrowText}>Ver Trilhas</Text>
+                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
               </View>
             </View>
-            <View style={styles.trailsArrowRow}>
-              <Text style={styles.trailsArrowText}>Ver Trilhas</Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            {/* Mascote à direita */}
+            <View style={[styles.bannerMascotWrap, MASCOT_SHADOW]}>
+              <Image source={BANNER_IMAGE} style={styles.bannerMascot} resizeMode="cover" />
             </View>
           </View>
         </Card>
@@ -183,14 +189,18 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
               disabled={!unlocked && !bloqueadoPremium}
             >
               <View style={styles.levelContent}>
-                <View style={styles.levelIconContainer}>
-                  <Text style={styles.levelIcon}>
-                    {bloqueadoPremium
-                      ? '🔒'
-                      : unlocked
-                      ? LEVEL_ICONS[level?.name ?? ''] ?? '📚'
-                      : '🔒'}
-                  </Text>
+                <View style={[styles.levelIconContainer, MASCOT_SHADOW]}>
+                  {LEVEL_IMAGES[level?.name ?? ''] ? (
+                    <Image
+                      source={LEVEL_IMAGES[level?.name ?? '']}
+                      style={styles.levelIconImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={styles.levelIcon}>
+                      {bloqueadoPremium ? '🔒' : unlocked ? LEVEL_ICONS[level?.name ?? ''] ?? '📚' : '🔒'}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.levelTextContainer}>
                   <Text style={[styles.levelName, (!unlocked || bloqueadoPremium) && styles.lockedText]}>
@@ -248,28 +258,40 @@ const styles = StyleSheet.create({
 
   /* Banner */
   trailsCard: { marginBottom: 16, padding: 0, overflow: 'hidden' },
-  trailsGradient: { backgroundColor: theme.colors.primary, padding: 20 },
-  trailsHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  trailsIcon: { fontSize: 32, marginRight: 10 },
+  trailsGradient: {
+    backgroundColor: theme.colors.primary,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 160,
+  },
+  trailsLeft: { flex: 1, gap: 6 },
   trailsBadge: {
     backgroundColor: theme.colors.primaryVivid,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12,
+    alignSelf: 'flex-start',
   },
   trailsBadgeText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 1 },
-  trailsTitle: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 6 },
-  trailsDescription: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 12, lineHeight: 20 },
-  trailsFeatures: { gap: 6, marginBottom: 14 },
-  trailsFeature: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  trailsFeatureText: { fontSize: 13, color: 'rgba(255,255,255,0.95)', fontWeight: '600' },
-  trailsArrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-end',
+  trailsTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  trailsDescription: { fontSize: 13, color: 'rgba(255,255,255,0.9)', lineHeight: 18 },
+  trailsFeatures: { gap: 4 },
+  trailsFeature: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  trailsFeatureText: { fontSize: 12, color: 'rgba(255,255,255,0.95)', fontWeight: '600' },
+  trailsArrowRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  trailsArrowText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  bannerMascotWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.6)',
+    flexShrink: 0,
   },
-  trailsArrowText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  bannerMascot: { width: 120, height: 120 },
 
   /* Progress card */
   progressCard: {
@@ -329,15 +351,17 @@ const styles = StyleSheet.create({
   lockedCard: { opacity: 0.6 },
   levelContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   levelIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#217346',
     marginRight: 16,
+    flexShrink: 0,
   },
-  levelIcon: { fontSize: 32 },
+  levelIconImage: { width: 56, height: 56 },
+  levelIcon: { fontSize: 28 },
   levelTextContainer: { flex: 1 },
   levelName: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 4 },
   lockedText: { color: theme.colors.textSecondary },
