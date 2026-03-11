@@ -507,10 +507,7 @@ const WikiExcelScreen = () => {
         </View>
         <View style={styles.videoBannerInfo}>
           <Text style={styles.videoBannerTitulo}>Aulas em Vídeo</Text>
-          <Text style={styles.videoBannerSub}>20 reels práticos • Aprenda vendo na tela</Text>
-        </View>
-        <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
-          <Text style={[styles.badgeTexto, { color: '#FFF' }]}>20</Text>
+          <Text style={styles.videoBannerSub}>Aprenda vendo na tela</Text>
         </View>
         <Text style={[styles.cardSeta, { color: theme.colors.primary, marginLeft: 8 }]}>›</Text>
       </TouchableOpacity>
@@ -552,9 +549,6 @@ const WikiExcelScreen = () => {
               <Text style={styles.cardDescricao} numberOfLines={2}>{item.descricao}</Text>
             </View>
             <View style={styles.cardMeta}>
-              <View style={[styles.badge, { backgroundColor: item.corClara }]}>
-                <Text style={[styles.badgeTexto, { color: item.cor }]}>{item.formulas.length} fórmulas</Text>
-              </View>
               <Text style={styles.cardSeta}>›</Text>
             </View>
           </TouchableOpacity>
@@ -579,17 +573,6 @@ const WikiExcelScreen = () => {
               <Text style={styles.modalEmoji}>{areaSelecionada.emoji}</Text>
               <Text style={styles.modalTitulo}>{areaSelecionada.nome}</Text>
               <Text style={styles.modalSubtitulo}>{areaSelecionada.descricao}</Text>
-              <View style={styles.modalStats}>
-                <View style={styles.modalStatItem}>
-                  <Text style={styles.modalStatNum}>{areaSelecionada.formulas.length}</Text>
-                  <Text style={styles.modalStatLabel}>Fórmulas</Text>
-                </View>
-                <View style={styles.modalStatDivider} />
-                <View style={styles.modalStatItem}>
-                  <Text style={styles.modalStatNum}>{areaSelecionada.dicas.length}</Text>
-                  <Text style={styles.modalStatLabel}>Dicas</Text>
-                </View>
-              </View>
             </View>
 
             {/* Abas */}

@@ -72,34 +72,57 @@ export const theme = {
   },
 };
 
-export const getLevelName = (level: number): string => {
-  switch (level) {
-    case 1:
-      return 'Iniciante';
-    case 2:
-      return 'Bronze';
-    case 3:
-      return 'Prata';
-    case 4:
-      return 'Ouro';
-    case 5:
-      return 'Diamante';
-    default:
-      return 'Iniciante';
-  }
-};
+// XP acumulado necessário para ATINGIR cada nível (índice = nível - 1)
+export const XP_THRESHOLDS = [
+  0,     // Nível 1
+  100,   // Nível 2
+  250,   // Nível 3
+  450,   // Nível 4
+  700,   // Nível 5
+  1000,  // Nível 6
+  1350,  // Nível 7
+  1750,  // Nível 8
+  2200,  // Nível 9
+  2700,  // Nível 10
+  3250,  // Nível 11
+  3850,  // Nível 12
+  4500,  // Nível 13
+  5200,  // Nível 14
+  5950,  // Nível 15
+  6750,  // Nível 16
+  7600,  // Nível 17
+  8500,  // Nível 18
+  9500,  // Nível 19
+  10500, // Nível 20
+];
+
+const LEVEL_NAMES = [
+  'Iniciante',     // 1
+  'Aprendiz',      // 2
+  'Explorador',    // 3
+  'Praticante',    // 4
+  'Analista Jr.',  // 5
+  'Analista',      // 6
+  'Analista Sr.',  // 7
+  'Especialista',  // 8
+  'Consultor Jr.', // 9
+  'Consultor',     // 10
+  'Consultor Sr.', // 11
+  'Expert',        // 12
+  'Mestre Jr.',    // 13
+  'Mestre',        // 14
+  'Mestre Sr.',    // 15
+  'Guru',          // 16
+  'Lenda Jr.',     // 17
+  'Lenda',         // 18
+  'Lenda Sr.',     // 19
+  'Campeão Excel', // 20
+];
+
+export const getLevelName = (level: number): string =>
+  LEVEL_NAMES[Math.max(0, Math.min(level - 1, 19))];
 
 export const getXpForNextLevel = (level: number): number => {
-  switch (level) {
-    case 1:
-      return 100;
-    case 2:
-      return 300;
-    case 3:
-      return 600;
-    case 4:
-      return 1000;
-    default:
-      return 1000;
-  }
+  const idx = Math.min(level, 19); // índice do próximo nível
+  return XP_THRESHOLDS[idx] ?? 10500;
 };

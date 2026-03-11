@@ -18,6 +18,9 @@ export class UserService {
             where: { status: 'completed' },
           },
           userexerciseattempts: true,
+          useranswers: {
+            where: { isCorrect: true },
+          },
         },
       });
 
@@ -25,12 +28,21 @@ export class UserService {
         throw new NotFoundException('User not found');
       }
 
-      // Calculate stats
+      // Calculate stats (classic lessons + trails)
       const lessonsCompleted = user.userprogress.length;
-      const totalAttempts = user.userexerciseattempts.length;
-      const correctAttempts = user.userexerciseattempts.filter(a => a.correct).length;
+      const trailQuestionsCompleted = user.useranswers.length;
+
+      const classicTotal = user.userexerciseattempts.length;
+      const classicCorrect = user.userexerciseattempts.filter(a => a.correct).length;
+      const trailTotal = await this.prisma.useranswers.count({ where: { userId } });
+      const trailCorrect = trailQuestionsCompleted;
+
+      const totalAttempts = classicTotal + trailTotal;
+      const correctAttempts = classicCorrect + trailCorrect;
       const accuracy = totalAttempts > 0 ? (correctAttempts / totalAttempts) * 100 : 0;
-      const studyHours = Math.floor(lessonsCompleted * 0.5); // Estimate 30 min per lesson
+
+      // Estimate study hours: 30 min/lição clássica + 3 min/questão de trilha
+      const studyHours = Math.round((lessonsCompleted * 0.5 + trailQuestionsCompleted * 0.05) * 10) / 10;
 
       // Regenerate lives if needed - 1 life every 10 minutes
       const now = new Date();
@@ -81,7 +93,7 @@ export class UserService {
         onboardingCompleted: user.onboardingCompleted,
         isPremium: user.isPremium,
         stats: {
-          lessonsCompleted,
+          lessonsCompleted: lessonsCompleted + trailQuestionsCompleted,
           accuracy: Math.round(accuracy),
           studyHours,
         },

@@ -1,5 +1,14 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+
+const XP_THRESHOLDS = [0,100,250,450,700,1000,1350,1750,2200,2700,3250,3850,4500,5200,5950,6750,7600,8500,9500,10500];
+
+function calculateLevel(xp: number): number {
+  for (let i = XP_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (xp >= XP_THRESHOLDS[i]) return i + 1;
+  }
+  return 1;
+}
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 
 @Injectable()
@@ -94,14 +103,7 @@ export class ProgressService {
       }
 
       const newXp = user.xp + updateLessonDto.xpEarned;
-      let newLevel = user.level;
-
-      // Calculate level based on XP
-      if (newXp >= 1000) newLevel = 5; // Diamante
-      else if (newXp >= 600) newLevel = 4; // Ouro
-      else if (newXp >= 300) newLevel = 3; // Prata
-      else if (newXp >= 100) newLevel = 2; // Bronze
-      else newLevel = 1; // Iniciante
+      const newLevel = calculateLevel(newXp);
 
       // Update streak if lesson completed
       const now = new Date();

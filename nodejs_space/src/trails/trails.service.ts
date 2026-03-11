@@ -1,6 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+// XP acumulado para atingir cada nível (índice = nível - 1)
+const XP_THRESHOLDS = [0,100,250,450,700,1000,1350,1750,2200,2700,3250,3850,4500,5200,5950,6750,7600,8500,9500,10500];
+
+function calculateLevel(xp: number): number {
+  for (let i = XP_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (xp >= XP_THRESHOLDS[i]) return i + 1;
+  }
+  return 1;
+}
+
 @Injectable()
 export class TrailsService {
   constructor(private prisma: PrismaService) {}
@@ -139,10 +149,35 @@ export class TrailsService {
     });
 
     if (isCorrect) {
-      // Atualiza XP do usuário
+      // Atualiza XP, nível e streak do usuário
+      const user = await this.prisma.users.findUnique({ where: { id: userId } });
+      const newXp = (user?.xp ?? 0) + question.xpReward;
+      const newLevel = calculateLevel(newXp);
+
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const lastStudy = user?.laststudydate
+        ? new Date(user.laststudydate.getFullYear(), user.laststudydate.getMonth(), user.laststudydate.getDate())
+        : null;
+      let newStreak = user?.streak ?? 0;
+      if (!lastStudy) {
+        newStreak = 1;
+      } else {
+        const daysDiff = Math.floor((today.getTime() - lastStudy.getTime()) / 86400000);
+        if (daysDiff === 0) newStreak = user?.streak ?? 1;
+        else if (daysDiff === 1) newStreak = (user?.streak ?? 0) + 1;
+        else newStreak = 1;
+      }
+
       await this.prisma.users.update({
         where: { id: userId },
-        data: { xp: { increment: question.xpReward } },
+        data: {
+          xp: newXp,
+          level: newLevel,
+          streak: newStreak,
+          laststudydate: now,
+          lastStudyAt: now,
+        },
       });
 
       // Verifica se é a última questão da trilha
