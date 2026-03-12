@@ -160,7 +160,7 @@ const PaywallModal = ({ visivel, onFechar, onSuccess }: PaywallModalProps) => {
             <View style={styles.beneficiosContainer}>
               {BENEFITS.map((text, index) => (
                 <View key={index} style={styles.beneficioItem}>
-                  <Ionicons name="checkmark-circle" size={18} color="#34D399" />
+                  <Ionicons name="checkmark-circle" size={18} color="#34D399" style={{ marginRight: 10, marginTop: 1 }} />
                   <Text style={styles.beneficioTexto}>{text}</Text>
                 </View>
               ))}
