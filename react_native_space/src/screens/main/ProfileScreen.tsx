@@ -13,6 +13,39 @@ import Button from '../../components/Button';
 import { theme, getLevelName } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
+const DICAS = [
+  'Use Ctrl+Z para desfazer qualquer ação no Excel!',
+  'Ctrl+C copia e Ctrl+V cola — mas Ctrl+D copia a célula de cima!',
+  'F2 entra no modo de edição da célula selecionada sem usar o mouse.',
+  'Ctrl+Home leva você para A1 instantaneamente em qualquer planilha.',
+  'Selecione várias células não adjacentes segurando Ctrl ao clicar.',
+  'Alt+Enter cria uma nova linha dentro da mesma célula.',
+  'Ctrl+Shift+L ativa ou desativa os filtros automaticamente.',
+  'F4 repete a última ação — um dos atalhos mais subestimados!',
+  'Ctrl+; insere a data atual e Ctrl+Shift+; insere a hora atual.',
+  'Use $ para travar referências: $A$1 não muda ao copiar a fórmula.',
+  '=SOMA(A1:A10) é mais rápido que somar célula por célula.',
+  'Ctrl+Seta navega até a última célula preenchida na direção.',
+  'Dê nome aos intervalos: facilita fórmulas como =SOMA(Vendas).',
+  '=SE(condição, valor_se_verdadeiro, valor_se_falso) é sua aliada!',
+  'Formate como Tabela (Ctrl+T) para filtros e totais automáticos.',
+  '=PROCV busca um valor em uma coluna e retorna outro da mesma linha.',
+  'Congele painéis para manter títulos visíveis ao rolar a planilha.',
+  'Ctrl+PgDn e Ctrl+PgUp navegam entre abas rapidamente.',
+  'Use validação de dados para criar listas suspensas em células.',
+  '=CONT.SE conta células que atendem a um critério específico.',
+  'Gráficos ficam melhores com dados em tabela formatada!',
+  '=ARRED(número, casas) arredonda valores para análises precisas.',
+  'Alt+F1 cria um gráfico instantâneo com os dados selecionados.',
+  'Ctrl+Shift+= insere uma nova linha ou coluna rapidamente.',
+  '=ÍNDICE e =CORRESP juntos são mais poderosos que PROCV!',
+  'Formatação condicional destaca automaticamente os maiores valores.',
+  '=ÚNICO (Excel 365) lista valores sem repetição em segundos.',
+  'Grave macros para automatizar tarefas repetitivas sem programar.',
+  'Power Query importa e transforma dados de várias fontes de uma vez.',
+  'Dashboards no Excel combinam tabelas, gráficos e segmentações!',
+];
+
 // Mascot images
 const MASCOTS = {
   mago: require('../../../assets/excelino_mago.png'),
@@ -38,7 +71,6 @@ const ProfileScreen = () => {
   const { showSuccess, showError } = useSnackbar();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [nextAchievement, setNextAchievement] = useState<Achievement | null>(null);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [mascotDialogVisible, setMascotDialogVisible] = useState(false);
   const [newName, setNewName] = useState('');
@@ -56,7 +88,6 @@ const ProfileScreen = () => {
       ]);
       setProfile(profileData ?? null);
       setAchievements(achievementsData?.achievements ?? []);
-      setNextAchievement(achievementsData?.nextAchievement ?? null);
     } catch (error) {
       console.error('Error loading profile:', error);
     } finally {
@@ -138,6 +169,8 @@ const ProfileScreen = () => {
   };
 
   const unlockedAchievements = achievements?.filter(a => a?.unlocked) ?? [];
+
+  const dicaDoDia = DICAS[(new Date().getDate() - 1) % 30];
   
   // Get current mascot or default
   const currentMascot = profile?.profilePicture && MASCOTS[profile.profilePicture as keyof typeof MASCOTS]
@@ -209,35 +242,14 @@ const ProfileScreen = () => {
           </View>
         </Card>
 
+        {/* Dica do Dia */}
+        <View style={styles.dicaCard}>
+          <Text style={styles.dicaTitle}>💡 Dica do Dia</Text>
+          <Text style={styles.dicaText}>{dicaDoDia}</Text>
+        </View>
+
         <Card style={styles.achievementsCard}>
           <Text style={styles.cardTitle}>Conquistas ({unlockedAchievements.length}/{achievements.length})</Text>
-          
-          {/* Show next achievement progress if user has no achievements yet or has room to grow */}
-          {nextAchievement && unlockedAchievements.length < achievements.length && (
-            <Card style={styles.nextAchievementCard}>
-              <View style={styles.nextAchievementHeader}>
-                <Text style={styles.nextAchievementIcon}>{nextAchievement?.icon ?? '🎯'}</Text>
-                <View style={styles.nextAchievementTextContainer}>
-                  <Text style={styles.nextAchievementTitle}>Próxima Conquista</Text>
-                  <Text style={styles.nextAchievementName}>{nextAchievement?.name ?? ''}</Text>
-                  <Text style={styles.nextAchievementDescription}>{nextAchievement?.description ?? ''}</Text>
-                </View>
-              </View>
-              <View style={styles.nextAchievementProgressContainer}>
-                <View style={styles.nextAchievementProgressBar}>
-                  <View 
-                    style={[
-                      styles.nextAchievementProgressFill, 
-                      { width: `${nextAchievement?.progressPercentage ?? 0}%` }
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.nextAchievementProgressText}>
-                  {nextAchievement?.currentProgress ?? 0} / {nextAchievement?.targetValue ?? 1}
-                </Text>
-              </View>
-            </Card>
-          )}
 
           <ScrollView
             style={styles.achievementsScroll}
@@ -408,63 +420,26 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   statLabel: { fontSize: 16, color: theme.colors.textSecondary },
   statValue: { fontSize: 16, fontWeight: '600', color: theme.colors.text },
-  achievementsCard: { marginBottom: 16, padding: 20 },
-  nextAchievementCard: {
+  dicaCard: {
     marginBottom: 16,
-    padding: 16,
-    backgroundColor: `${theme.colors.primary}10`,
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
+    padding: 14,
+    backgroundColor: 'rgba(33,115,70,0.1)',
+    borderLeftWidth: 4,
+    borderLeftColor: '#217346',
+    borderRadius: 12,
   },
-  nextAchievementHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  nextAchievementIcon: {
-    fontSize: 48,
-    marginRight: 12,
-  },
-  nextAchievementTextContainer: {
-    flex: 1,
-  },
-  nextAchievementTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.primary,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  nextAchievementName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: 4,
-  },
-  nextAchievementDescription: {
+  dicaTitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    fontWeight: '700',
+    color: '#217346',
+    marginBottom: 6,
   },
-  nextAchievementProgressContainer: {
-    marginTop: 8,
+  dicaText: {
+    fontSize: 13,
+    color: theme.colors.text,
+    lineHeight: 19,
   },
-  nextAchievementProgressBar: {
-    height: 8,
-    backgroundColor: `${theme.colors.primary}20`,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  nextAchievementProgressFill: {
-    height: '100%',
-    backgroundColor: theme.colors.primary,
-  },
-  nextAchievementProgressText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.primary,
-    textAlign: 'right',
-  },
+  achievementsCard: { marginBottom: 16, padding: 20 },
   achievementsScroll: { maxHeight: 420 },
   achievementsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   achievementBadge: { width: '30%', alignItems: 'center', marginBottom: 16 },

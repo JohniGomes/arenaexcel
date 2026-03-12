@@ -81,6 +81,11 @@ export class ExercisesService {
         },
       });
 
+      // Block re-submission of already completed lessons (anti-XP farm)
+      if (lessonProgress?.status === 'completed') {
+        throw new BadRequestException('Esta lição já foi concluída!');
+      }
+
       // Check if user can retry (if they failed before)
       const now = new Date();
       if (lessonProgress?.canretryat && lessonProgress.status === 'incomplete') {
@@ -230,6 +235,7 @@ export class ExercisesService {
       return {
         correct: isCorrect,
         explanation: exercise.explanation,
+        correctAnswer: exercise.correctanswer,
         xpEarned,
         livesRemaining,
         canRetryAt: isCorrect ? null : new Date(now.getTime() + 10 * 60000).toISOString(),

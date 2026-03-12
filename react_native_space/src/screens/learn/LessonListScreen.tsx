@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -25,11 +26,28 @@ interface Props {
   route: LessonListScreenRouteProp;
 }
 
+type LessonState = 'completed' | 'available' | 'locked' | 'cooldown';
+
+const formatCountdown = (canRetryAt: string | null | undefined): string => {
+  if (!canRetryAt) return '';
+  const remaining = Math.max(0, new Date(canRetryAt).getTime() - Date.now());
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
 const LessonListScreen: React.FC<Props> = ({ navigation, route }) => {
   const { levelId, levelName } = route?.params ?? {};
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(false);
+  const [tick, setTick] = useState(0);
   const { showError } = useSnackbar();
+
+  // Tick every second to update countdowns
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,14 +69,36 @@ const LessonListScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleLessonPress = (lesson: Lesson) => {
+  const getLessonState = (lesson: Lesson, index: number): LessonState => {
+    if (lesson?.status === 'completed') return 'completed';
+    // Sequential lock: previous lesson must be completed
+    if (index > 0 && lessons[index - 1]?.status !== 'completed') return 'locked';
+    // Cooldown: failed and timer still active
+    if (lesson?.status === 'incomplete' && lesson?.canRetryAt) {
+      if (new Date(lesson.canRetryAt).getTime() > Date.now()) return 'cooldown';
+    }
+    return 'available';
+  };
+
+  const handleLessonPress = (lesson: Lesson, state: LessonState) => {
+    if (state === 'completed') {
+      Alert.alert('Lição concluída!', 'Você já completou esta lição com sucesso.', [{ text: 'OK' }]);
+      return;
+    }
+    if (state === 'locked') {
+      Alert.alert('Bloqueada', 'Complete a lição anterior para desbloquear esta.', [{ text: 'OK' }]);
+      return;
+    }
+    if (state === 'cooldown') {
+      const remaining = formatCountdown(lesson?.canRetryAt);
+      Alert.alert('Aguarde', `Disponível novamente em ${remaining}.`, [{ text: 'OK' }]);
+      return;
+    }
     navigation.navigate('Exercise', {
       lessonId: lesson?.id ?? 0,
       lessonTitle: lesson?.title ?? '',
     });
   };
-
-  const isCompleted = (status: string) => status === 'completed';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -76,37 +116,66 @@ const LessonListScreen: React.FC<Props> = ({ navigation, route }) => {
         }
       >
         {lessons?.map((lesson, index) => {
-          const done = isCompleted(lesson?.status ?? 'not_started');
+          const state = getLessonState(lesson, index);
+          const countdown = state === 'cooldown' ? formatCountdown(lesson?.canRetryAt) : '';
+
           return (
             <TouchableOpacity
               key={lesson?.id}
-              style={[styles.card, done ? styles.cardDone : styles.cardPending]}
-              onPress={() => handleLessonPress(lesson)}
-              activeOpacity={0.75}
+              style={[
+                styles.card,
+                state === 'completed' && styles.cardCompleted,
+                state === 'available' && styles.cardAvailable,
+                state === 'locked' && styles.cardLocked,
+                state === 'cooldown' && styles.cardCooldown,
+              ]}
+              onPress={() => handleLessonPress(lesson, state)}
+              activeOpacity={state === 'available' ? 0.75 : 1}
             >
-              {/* Left: number circle */}
-              <View style={[styles.numCircle, done ? styles.numCircleDone : styles.numCirclePending]}>
-                {done ? (
-                  <Text style={styles.checkMark}>✓</Text>
-                ) : (
-                  <Text style={styles.numText}>{index + 1}</Text>
+              {/* Left: circle */}
+              <View style={[
+                styles.circle,
+                state === 'completed' && styles.circleCompleted,
+                state === 'available' && styles.circleAvailable,
+                state === 'locked' && styles.circleLocked,
+                state === 'cooldown' && styles.circleCooldown,
+              ]}>
+                {state === 'completed' && <Text style={styles.circleSymbol}>✓</Text>}
+                {state === 'available' && <Text style={styles.circleSymbol}>{index + 1}</Text>}
+                {state === 'locked' && <Ionicons name="lock-closed" size={16} color="#fff" />}
+                {state === 'cooldown' && <Text style={styles.circleSymbol}>⏰</Text>}
+              </View>
+
+              {/* Middle: title + badge */}
+              <View style={styles.textWrap}>
+                <Text
+                  style={[
+                    styles.title,
+                    (state === 'completed' || state === 'locked' || state === 'cooldown') && styles.titleDimmed,
+                    state === 'available' && styles.titleAvailable,
+                  ]}
+                  numberOfLines={2}
+                >
+                  {lesson?.title ?? ''}
+                </Text>
+
+                {state === 'completed' && (
+                  <View style={styles.tagCompleted}>
+                    <Text style={styles.tagTextCompleted}>Concluído</Text>
+                  </View>
+                )}
+                {state === 'locked' && (
+                  <View style={styles.tagLocked}>
+                    <Text style={styles.tagTextLocked}>Bloqueado</Text>
+                  </View>
+                )}
+                {state === 'cooldown' && countdown !== '' && (
+                  <Text style={styles.cooldownText}>🕐 Disponível em {countdown}</Text>
                 )}
               </View>
 
-              {/* Middle: title + tag */}
-              <View style={styles.textWrap}>
-                <Text style={[styles.lessonTitle, done && styles.lessonTitleDone]} numberOfLines={2}>
-                  {lesson?.title ?? ''}
-                </Text>
-                <View style={[styles.tag, done ? styles.tagDone : styles.tagPending]}>
-                  <Text style={[styles.tagText, done ? styles.tagTextDone : styles.tagTextPending]}>
-                    {done ? 'Concluído' : `${lesson?.exercises ?? 0} exercícios`}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Right: arrow */}
-              {!done && (
+              {/* Right: arrow for available */}
+              {state === 'available' && (
                 <Text style={styles.arrow}>›</Text>
               )}
             </TouchableOpacity>
@@ -135,27 +204,38 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
+    gap: 12,
+  },
+  cardAvailable: {
+    backgroundColor: '#fff',
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
-    gap: 12,
   },
-  cardPending: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  cardDone: {
+  cardCompleted: {
+    backgroundColor: 'rgba(33,115,70,0.12)',
     borderLeftWidth: 4,
     borderLeftColor: '#27AE60',
   },
+  cardLocked: {
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderLeftWidth: 4,
+    borderLeftColor: '#B0BEC5',
+  },
+  cardCooldown: {
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444',
+  },
 
-  numCircle: {
+  circle: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -163,41 +243,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  numCirclePending: {
-    backgroundColor: '#F59E0B',
-  },
-  numCircleDone: {
-    backgroundColor: '#27AE60',
-  },
-  numText: { fontSize: 15, fontWeight: '800', color: '#fff' },
-  checkMark: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  circleAvailable: { backgroundColor: '#F59E0B' },
+  circleCompleted: { backgroundColor: '#27AE60' },
+  circleLocked: { backgroundColor: '#B0BEC5' },
+  circleCooldown: { backgroundColor: '#EF4444' },
+  circleSymbol: { fontSize: 15, fontWeight: '800', color: '#fff' },
 
-  textWrap: { flex: 1, gap: 6 },
-  lessonTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    lineHeight: 20,
-  },
-  lessonTitleDone: {
-    color: 'rgba(0,0,0,0.45)',
-  },
+  textWrap: { flex: 1, gap: 5 },
+  title: { fontSize: 15, lineHeight: 20 },
+  titleAvailable: { fontWeight: '700', color: '#1A1A2E' },
+  titleDimmed: { color: 'rgba(0,0,0,0.35)', fontWeight: '500' },
 
-  tag: {
+  tagCompleted: {
     alignSelf: 'flex-start',
+    backgroundColor: 'rgba(39,174,96,0.15)',
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 20,
   },
-  tagPending: {
-    backgroundColor: 'rgba(245,158,11,0.15)',
+  tagTextCompleted: { fontSize: 12, fontWeight: '600', color: '#217346' },
+  tagLocked: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
   },
-  tagDone: {
-    backgroundColor: 'rgba(39,174,96,0.15)',
-  },
-  tagText: { fontSize: 12, fontWeight: '600' },
-  tagTextPending: { color: '#B45309' },
-  tagTextDone: { color: '#217346' },
+  tagTextLocked: { fontSize: 12, fontWeight: '600', color: 'rgba(0,0,0,0.35)' },
+  cooldownText: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
 
   arrow: { fontSize: 22, color: '#F59E0B', fontWeight: '700', marginLeft: 4 },
 });

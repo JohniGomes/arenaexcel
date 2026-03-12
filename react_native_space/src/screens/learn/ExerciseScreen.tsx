@@ -17,7 +17,6 @@ import { useSnackbar } from '../../contexts/SnackbarContext';
 import { useSound } from '../../contexts/SoundContext';
 import ApiService from '../../services/api.service';
 import { Exercise } from '../../types/api.types';
-import ProgressBar from '../../components/ProgressBar';
 import HeartIcon from '../../components/HeartIcon';
 import { theme } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -230,9 +229,6 @@ const ExerciseScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Progress bar */}
-      <ProgressBar progress={progress} style={styles.progressBar} />
-
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -395,7 +391,6 @@ const ExerciseScreen: React.FC<Props> = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background },
-  progressBar: { marginHorizontal: 0 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

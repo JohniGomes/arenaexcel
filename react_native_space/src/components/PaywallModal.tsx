@@ -10,8 +10,11 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const ESQUADRAO = require('../../assets/mascots/esquadrao_excelino.png');
 import { PurchasesPackage } from 'react-native-purchases';
 import PurchasesService from '../services/purchases.service';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,13 +26,16 @@ interface PaywallModalProps {
 }
 
 const BENEFITS = [
-  'Acesso a TODOS os níveis (Intermediário e Avançado)',
+  'Acesso a TODOS os níveis',
+  'Acesso a todas as trilhas interativas',
   'Vidas ILIMITADAS - nunca pare de aprender',
+  'Sem espera! Tente novamente imediatamente ao errar',
   'Chat ilimitado com o Excelino',
   '20 vídeos completos na Wiki Excel',
   'Todas as fórmulas e dicas desbloqueadas',
   'Análise de Planilhas com o Excelino Pró',
   'Certificado de conclusão',
+  'Badges exclusivos Premium',
 ];
 
 const PaywallModal = ({ visivel, onFechar, onSuccess }: PaywallModalProps) => {
@@ -138,17 +144,22 @@ const PaywallModal = ({ visivel, onFechar, onSuccess }: PaywallModalProps) => {
         style={styles.container}
       >
         <SafeAreaView style={styles.safe}>
-          {/* Header com botão fechar */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onFechar} style={styles.fecharBtn}>
-              <Text style={styles.fecharTexto}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
           <ScrollView
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
           >
+            {/* Hero image com overlay + botão fechar */}
+            <View style={styles.heroSection}>
+              <Image source={ESQUADRAO} style={styles.heroImage} resizeMode="cover" />
+              <LinearGradient
+                colors={['transparent', '#0A1628']}
+                style={styles.heroOverlay}
+              />
+              <TouchableOpacity onPress={onFechar} style={styles.fecharBtn}>
+                <Text style={styles.fecharTexto}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Título com estrela animada */}
             <View style={styles.titleRow}>
               <Animated.Text style={[styles.starEmoji, { transform: [{ scale: starAnim }] }]}>
@@ -288,20 +299,32 @@ const PaywallModal = ({ visivel, onFechar, onSuccess }: PaywallModalProps) => {
   );
 };
 
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
 
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    alignItems: 'flex-end',
+  heroSection: {
+    width: '100%',
+    height: 180,
+    marginBottom: 20,
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: 180,
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   fecharBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -313,6 +336,7 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: 24,
+    paddingTop: 0,
     paddingBottom: 40,
   },
 

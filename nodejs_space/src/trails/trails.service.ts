@@ -85,9 +85,21 @@ export class TrailsService {
       }),
     );
 
+    // Apply sequential locking: a question is only available if the previous is completed
+    const finalQuestions = questionsWithStatus.map((q, idx) => {
+      if (q.status === 'completed') return q;
+      if (idx === 0) return q; // first question always keeps its computed status
+      const prev = questionsWithStatus[idx - 1];
+      if (prev.status !== 'completed') {
+        // Previous not yet done → sequential lock (no cooldown timer)
+        return { ...q, status: 'locked', unlocksAt: null };
+      }
+      return q;
+    });
+
     return {
       ...trail,
-      questions: questionsWithStatus,
+      questions: finalQuestions,
     };
   }
 
