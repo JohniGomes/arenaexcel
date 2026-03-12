@@ -5,30 +5,26 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Share,
   ScrollView,
   Image,
   Animated,
   Dimensions,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import ApiService from '../../services/api.service';
 import { usePremium } from '../../hooks/usePremium';
+import { useAuth } from '../../contexts/AuthContext';
 import PaywallModal from '../../components/PaywallModal';
 
 const { width: W, height: H } = Dimensions.get('window');
 const PROD_URL = 'https://arenaexcel.excelcomjohni.com.br';
-
-const PARTICLES = [
-  { top: 0.08, left: 0.12, size: 4 }, { top: 0.15, left: 0.78, size: 3 },
-  { top: 0.25, left: 0.45, size: 5 }, { top: 0.32, left: 0.88, size: 3 },
-  { top: 0.42, left: 0.22, size: 4 }, { top: 0.55, left: 0.65, size: 3 },
-  { top: 0.62, left: 0.08, size: 5 }, { top: 0.72, left: 0.55, size: 3 },
-  { top: 0.80, left: 0.35, size: 4 }, { top: 0.88, left: 0.82, size: 3 },
-  { top: 0.18, left: 0.55, size: 3 }, { top: 0.70, left: 0.90, size: 4 },
-];
 
 const BADGE_CATEGORIES = [
   { key: 'sequencia',       label: 'Sequência & Dedicação' },
@@ -50,6 +46,22 @@ interface CertData {
   trilhasConcluidas: number;
 }
 
+interface TrailItem {
+  id: string;
+  slug: string;
+  name: string;
+  icon: string;
+  totalQuestions: number;
+  progress: { completedAt: string | null; currentQuestion: number; accuracy: number } | null;
+}
+
+interface LevelItem {
+  id: number;
+  name: string;
+  completed: number;
+  total: number;
+}
+
 interface BadgeItem {
   id: string;
   nome: string;
@@ -60,556 +72,837 @@ interface BadgeItem {
   dataConquista: string | null;
 }
 
-// ── Particles ────────────────────────────────────────────────
-const ParticlesBackground = () => {
-  const anims = useRef(PARTICLES.map(() => new Animated.Value(0))).current;
+interface CertTarget {
+  type: 'trail' | 'level';
+  name: string;
+  completedAt: string | null;
+  horas: number;
+  courseId: string;
+}
 
-  useEffect(() => {
-    anims.forEach((anim, i) => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 350),
-          Animated.timing(anim, { toValue: 1, duration: 1800, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0, duration: 1800, useNativeDriver: true }),
-        ])
-      ).start();
-    });
-  }, []);
+// ── Certificate HTML Generator ────────────────────────────────
+const generateCertificateHTML = (p: {
+  nomeAluno: string;
+  curso: string;
+  horas: number;
+  licoesConcluidas: number;
+  data: string;
+  userId: string;
+  courseId: string;
+}): string => {
+  const validateUrl = `${PROD_URL}/certificado/${p.userId}/${p.courseId}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(validateUrl)}&color=145A32&bgcolor=ffffff`;
+  const dataFmt = p.data ? new Date(p.data).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=900">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:wght@700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; font-family: 'Montserrat', Arial, sans-serif; }
+  .cw {
+    width: 900px; height: 636px; position: relative;
+    background: #fff; overflow: hidden;
+  }
+  .corner-tl {
+    position: absolute; top: 0; left: 0; width: 280px; height: 200px;
+    overflow: hidden; z-index: 2;
+  }
+  .corner-tl::before {
+    content: ''; position: absolute; top: -60px; left: -100px;
+    width: 400px; height: 250px;
+    background: linear-gradient(135deg, #145A32 0%, #1B7A3D 40%, #1B5E20 70%);
+    border-radius: 0 0 60% 0; transform: rotate(-5deg);
+  }
+  .corner-tl::after {
+    content: ''; position: absolute; top: -30px; left: -80px;
+    width: 350px; height: 200px;
+    background: linear-gradient(135deg, rgba(212,160,23,0.3) 0%, transparent 60%);
+    border-radius: 0 0 50% 0; transform: rotate(-8deg);
+  }
+  .corner-br {
+    position: absolute; bottom: 0; right: 0; width: 300px; height: 220px;
+    overflow: hidden; z-index: 2;
+  }
+  .corner-br::before {
+    content: ''; position: absolute; bottom: -70px; right: -110px;
+    width: 420px; height: 270px;
+    background: linear-gradient(315deg, #145A32 0%, #1B7A3D 40%, #1B5E20 70%);
+    border-radius: 60% 0 0 0; transform: rotate(-5deg);
+  }
+  .corner-br::after {
+    content: ''; position: absolute; bottom: -40px; right: -90px;
+    width: 370px; height: 220px;
+    background: linear-gradient(315deg, rgba(212,160,23,0.35) 0%, transparent 60%);
+    border-radius: 50% 0 0 0; transform: rotate(-8deg);
+  }
+  .gold-tl {
+    position: absolute; top: 0; left: 0; width: 240px; height: 160px;
+    overflow: hidden; z-index: 3;
+  }
+  .gold-tl::before {
+    content: ''; position: absolute; top: -50px; left: -70px;
+    width: 350px; height: 200px;
+    border: 3px solid rgba(212,160,23,0.5);
+    border-radius: 0 0 55% 0; transform: rotate(-5deg); background: transparent;
+  }
+  .gold-br {
+    position: absolute; bottom: 0; right: 0; width: 260px; height: 180px;
+    overflow: hidden; z-index: 3;
+  }
+  .gold-br::before {
+    content: ''; position: absolute; bottom: -60px; right: -80px;
+    width: 380px; height: 230px;
+    border: 3px solid rgba(212,160,23,0.5);
+    border-radius: 55% 0 0 0; transform: rotate(-5deg); background: transparent;
+  }
+  .inner-border {
+    position: absolute; top: 16px; left: 16px; right: 16px; bottom: 16px;
+    border: 1px solid #d0d0d0; z-index: 1;
+  }
+  .ornament-tr {
+    position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
+    border-top: 2px solid #888; border-right: 2px solid #888;
+    border-radius: 0 8px 0 0; z-index: 4; opacity: 0.3;
+  }
+  .ornament-bl {
+    position: absolute; bottom: 20px; left: 20px; width: 40px; height: 40px;
+    border-bottom: 2px solid #888; border-left: 2px solid #888;
+    border-radius: 0 0 0 8px; z-index: 4; opacity: 0.3;
+  }
+  .medal {
+    position: absolute; top: 36px; right: 60px; z-index: 6; width: 90px; height: 110px;
+  }
+  .medal-circle {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: radial-gradient(ellipse at 35% 35%, #f5d96b 0%, #d4a017 40%, #b8860b 70%, #a67c00 100%);
+    box-shadow: 0 4px 15px rgba(180,130,0,0.4), inset 0 -3px 8px rgba(0,0,0,0.15), inset 0 3px 8px rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center; margin: 0 auto;
+    font-size: 30px; color: rgba(255,255,255,0.25);
+    position: relative;
+  }
+  .medal-circle::after {
+    content: ''; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px;
+    border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
+  }
+  .medal-rl { position: absolute; bottom: 0; left: 14px; width: 0; height: 0; z-index: -1;
+    border-left: 18px solid #1B5E20; border-right: 18px solid transparent;
+    border-top: 30px solid #1B5E20; border-bottom: 12px solid transparent; }
+  .medal-rr { position: absolute; bottom: 0; right: 14px; width: 0; height: 0; z-index: -1;
+    border-left: 18px solid transparent; border-right: 18px solid #1B5E20;
+    border-top: 30px solid #1B5E20; border-bottom: 12px solid transparent; }
+  .excel-icon {
+    position: absolute; bottom: 36px; left: 50px; z-index: 6;
+    width: 44px; height: 44px; background: #1B7A3D; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-family: 'Montserrat', sans-serif;
+    font-weight: 700; font-size: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .meta-info {
+    position: absolute; bottom: 40px; right: 60px; z-index: 6; text-align: right;
+  }
+  .meta-info p {
+    font-family: 'Montserrat', sans-serif; font-size: 11px; color: #666; line-height: 1.6;
+  }
+  .meta-info strong { color: #333; font-weight: 600; }
+  .qr-block {
+    position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 6; text-align: center;
+  }
+  .qr-block img { width: 60px; height: 60px; }
+  .qr-label { font-size: 8px; color: #999; margin-top: 2px; letter-spacing: 0.3px; }
+  .content {
+    position: relative; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; padding: 50px 80px; text-align: center;
+  }
+  .title-main {
+    font-family: 'Playfair Display', Georgia, serif; font-weight: 900; font-size: 48px;
+    color: #1A237E; letter-spacing: 6px; line-height: 1; text-transform: uppercase;
+  }
+  .title-sub {
+    font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 16px;
+    color: #1A237E; letter-spacing: 12px; text-transform: uppercase; margin-top: 4px;
+  }
+  .presented-to {
+    font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 13px;
+    color: #1B5E20; letter-spacing: 5px; text-transform: uppercase; margin: 20px 0 10px;
+  }
+  .recipient-name {
+    font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 38px;
+    color: #1a1a1a; line-height: 1.2; margin-bottom: 4px;
+  }
+  .description {
+    font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px; color: #444;
+    line-height: 1.7; max-width: 520px; margin: 12px auto 0;
+  }
+  .description strong { font-weight: 600; color: #1a1a1a; }
+  .signature-section { margin-top: 24px; display: flex; flex-direction: column; align-items: center; }
+  .sig-cursive {
+    font-family: 'Dancing Script', cursive; font-size: 34px; color: #1a1a1a; margin-bottom: -2px;
+  }
+  .sig-line { width: 200px; height: 1px; background: #333; margin: 4px 0; }
+  .sig-name {
+    font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 12px;
+    color: #1a1a1a; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px;
+  }
+  .sig-role {
+    font-family: 'Cormorant Garamond', Georgia, serif; font-size: 13px;
+    color: #1B5E20; font-style: italic; margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="cw">
+  <div class="corner-tl"></div>
+  <div class="corner-br"></div>
+  <div class="gold-tl"></div>
+  <div class="gold-br"></div>
+  <div class="inner-border"></div>
+  <div class="ornament-tr"></div>
+  <div class="ornament-bl"></div>
+
+  <div class="medal">
+    <div class="medal-circle">★</div>
+    <div class="medal-rl"></div>
+    <div class="medal-rr"></div>
+  </div>
+
+  <div class="excel-icon">X</div>
+
+  <div class="meta-info">
+    <p>Data: <strong>${dataFmt}</strong></p>
+    <p>Carga horária: <strong>${p.horas}h</strong></p>
+    <p>Lições: <strong>${p.licoesConcluidas}</strong></p>
+  </div>
+
+  <div class="qr-block">
+    <img src="${qrUrl}" alt="QR Code" />
+    <div class="qr-label">Escaneie para validar</div>
+  </div>
+
+  <div class="content">
+    <div>
+      <div class="title-main">Certificado</div>
+      <div class="title-sub">de Qualificação</div>
+    </div>
+    <div class="presented-to">Este certificado é apresentado a</div>
+    <div class="recipient-name">${p.nomeAluno}</div>
+    <p class="description">
+      Após a conclusão com sucesso de <strong>"${p.curso}"</strong>
+      com carga horária total de <strong>${p.horas}h</strong> e
+      <strong>${p.licoesConcluidas} lições</strong> concluídas.
+      Certifico a capacidade do(a) aluno(a) em aplicar as habilidades
+      aprendidas em contextos profissionais e acadêmicos.
+    </p>
+    <div class="signature-section">
+      <div class="sig-cursive">Johni Michael</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">Johni Michael</div>
+      <div class="sig-role">Professor e Mentor</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+};
+
+// ── Trail Card ────────────────────────────────────────────────
+const TrailCard: React.FC<{
+  trail: TrailItem;
+  onGenerate: (target: CertTarget) => void;
+}> = ({ trail, onGenerate }) => {
+  const completed = !!trail.progress?.completedAt;
+  const inProgress = !completed && (trail.progress?.currentQuestion ?? 0) > 0;
+  const progress = trail.progress;
+  const pct = completed ? 100 : Math.round(((progress?.currentQuestion ?? 0) / Math.max(trail.totalQuestions, 1)) * 100);
+  const horas = Math.round((trail.totalQuestions * 3 / 60) * 10) / 10;
 
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-      {PARTICLES.map((p, i) => (
-        <Animated.View
-          key={i}
-          style={{
-            position: 'absolute',
-            top: p.top * H,
-            left: p.left * W,
-            width: p.size,
-            height: p.size,
-            borderRadius: p.size / 2,
-            backgroundColor: '#F59E0B',
-            opacity: anims[i].interpolate({ inputRange: [0, 1], outputRange: [0, 0.35] }),
-          }}
-        />
-      ))}
+    <View style={[styles.itemCard, completed && styles.itemCardDone, inProgress && styles.itemCardProgress]}>
+      <View style={styles.itemRow}>
+        <View style={[styles.itemIconWrap, completed && styles.itemIconDone, inProgress && styles.itemIconProgress]}>
+          {completed
+            ? <Ionicons name="checkmark" size={18} color="#fff" />
+            : inProgress
+              ? <Text style={styles.itemIconEmoji}>{trail.icon}</Text>
+              : <Ionicons name="lock-closed" size={16} color="#bbb" />
+          }
+        </View>
+        <View style={styles.itemInfo}>
+          <Text style={[styles.itemName, !completed && !inProgress && styles.itemNameLocked]} numberOfLines={1}>
+            {trail.name}
+          </Text>
+          <Text style={styles.itemMeta}>
+            {completed
+              ? `✓ Concluída · ${Math.round((progress?.accuracy ?? 0) * 100)}% precisão`
+              : inProgress
+                ? `${progress?.currentQuestion ?? 0}/${trail.totalQuestions} questões`
+                : `${trail.totalQuestions} questões`
+            }
+          </Text>
+          {(completed || inProgress) && (
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${pct}%` as any, backgroundColor: completed ? '#27AE60' : '#F59E0B' }]} />
+            </View>
+          )}
+        </View>
+        {completed && (
+          <TouchableOpacity
+            style={styles.certBtn}
+            onPress={() => onGenerate({
+              type: 'trail',
+              name: trail.name,
+              completedAt: progress?.completedAt ?? null,
+              horas,
+              courseId: trail.slug,
+            })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="ribbon-outline" size={14} color="#fff" />
+            <Text style={styles.certBtnText}>Certificado</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 };
 
-// ── Mock cert watermark ───────────────────────────────────────
-const MockCertWatermark = () => (
-  <View style={styles.mockCertWrap} pointerEvents="none">
-    <View style={styles.mockCert}>
-      <View style={styles.mockCertHeader} />
-      <View style={styles.mockCertLine} />
-      <View style={[styles.mockCertLine, { width: '60%', marginTop: 8 }]} />
-      <View style={[styles.mockCertLine, { width: '80%', marginTop: 8 }]} />
-      <View style={styles.mockCertSeal} />
-    </View>
-  </View>
-);
-
-// ── Certificate Card ──────────────────────────────────────────
-interface CertCardProps {
-  nome: string;
-  curso: string;
-  nivelNome: string;
-  data: string;
-  horas: number;
-  precisao: number;
-  userId: string;
-}
-
-const CertificateCard: React.FC<CertCardProps> = ({ nome, curso, nivelNome, data, horas, precisao, userId }) => {
-  const validateUrl = `${PROD_URL}/certificado/${userId}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(validateUrl)}&bgcolor=0A1628&color=F59E0B`;
-  const dataFmt = data ? new Date(data).toLocaleDateString('pt-BR') : '-';
-
-  const handleShare = async () => {
-    await Share.share({
-      message: `🎓 Conquistei o certificado "${curso}" no Arena Excel!\n\nAcesse: ${validateUrl}`,
-    });
-  };
+// ── Level Card ────────────────────────────────────────────────
+const LevelCard: React.FC<{
+  level: LevelItem;
+  onGenerate: (target: CertTarget) => void;
+}> = ({ level, onGenerate }) => {
+  const completed = level.total > 0 && level.completed === level.total;
+  const inProgress = !completed && level.completed > 0;
+  const pct = level.total > 0 ? Math.round((level.completed / level.total) * 100) : 0;
+  const horas = Math.round((level.completed * 3 / 60) * 10) / 10;
 
   return (
-    <View style={styles.certCardWrap}>
-      <LinearGradient
-        colors={['#0A1628', '#217346']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.certCard}
-      >
-        <Image
-          source={require('../../../assets/mascots/mascot_enthusiastic.png')}
-          style={styles.certMascot}
-          resizeMode="contain"
-        />
-        <Text style={styles.certBrand}>ARENA EXCEL</Text>
-        <Text style={styles.certTitle}>CERTIFICADO DE CONCLUSÃO</Text>
-
-        <View style={styles.certDivider} />
-
-        <Text style={styles.certNomeAluno}>{nome}</Text>
-        <Text style={styles.certCurso}>{curso}</Text>
-
-        <View style={styles.certDividerThin} />
-
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>NÍVEL</Text>
-            <Text style={styles.statValue}>{nivelNome}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>DATA</Text>
-            <Text style={styles.statValue}>{dataFmt}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>HORAS</Text>
-            <Text style={styles.statValue}>{horas}h</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>PRECISÃO</Text>
-            <Text style={styles.statValue}>{precisao}%</Text>
-          </View>
+    <View style={[styles.itemCard, completed && styles.itemCardDone, inProgress && styles.itemCardProgress]}>
+      <View style={styles.itemRow}>
+        <View style={[styles.itemIconWrap, completed && styles.itemIconDone, inProgress && styles.itemIconProgress]}>
+          {completed
+            ? <Ionicons name="checkmark" size={18} color="#fff" />
+            : inProgress
+              ? <Ionicons name="book-outline" size={16} color="#F59E0B" />
+              : <Ionicons name="lock-closed" size={16} color="#bbb" />
+          }
         </View>
-
-        <Image source={{ uri: qrUrl }} style={styles.qrCode} resizeMode="contain" />
-        <Text style={styles.qrLabel}>Escaneie para validar</Text>
-      </LinearGradient>
-
-      <TouchableOpacity onPress={handleShare} style={styles.shareBtn} activeOpacity={0.85}>
-        <Text style={styles.shareBtnText}>📤 Compartilhar Certificado</Text>
-      </TouchableOpacity>
+        <View style={styles.itemInfo}>
+          <Text style={[styles.itemName, !completed && !inProgress && styles.itemNameLocked]} numberOfLines={1}>
+            {level.name}
+          </Text>
+          <Text style={styles.itemMeta}>
+            {completed
+              ? `✓ ${level.completed}/${level.total} lições concluídas`
+              : `${level.completed}/${level.total} lições`
+            }
+          </Text>
+          {(completed || inProgress) && (
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${pct}%` as any, backgroundColor: completed ? '#27AE60' : '#F59E0B' }]} />
+            </View>
+          )}
+        </View>
+        {completed && (
+          <TouchableOpacity
+            style={styles.certBtn}
+            onPress={() => onGenerate({
+              type: 'level',
+              name: `${level.name} — Lições Clássicas`,
+              completedAt: null,
+              horas,
+              courseId: `nivel-${level.id}`,
+            })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="ribbon-outline" size={14} color="#fff" />
+            <Text style={styles.certBtnText}>Certificado</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 };
 
 // ── Badge Card ────────────────────────────────────────────────
 const BadgeCard: React.FC<{ badge: BadgeItem }> = ({ badge }) => (
-  <View style={[styles.badgeCard, badge.conquistado ? styles.badgeConquistado : styles.badgeBloqueado]}>
-    <Text style={[styles.badgeIcon, !badge.conquistado && { opacity: 0.3 }]}>
+  <View style={[styles.badgeCard, badge.conquistado ? styles.badgeDone : styles.badgeLocked]}>
+    <Text style={[styles.badgeIcon, !badge.conquistado && { opacity: 0.25 }]}>
       {badge.icone}
     </Text>
     {!badge.conquistado && (
-      <View style={styles.lockOverlay}>
-        <Text style={styles.lockIcon}>🔒</Text>
+      <View style={styles.badgeLockIcon}>
+        <Ionicons name="lock-closed" size={10} color="#bbb" />
       </View>
     )}
-    <Text style={[styles.badgeNome, !badge.conquistado && styles.badgeNomeLocked]}>
+    <Text style={[styles.badgeName, !badge.conquistado && styles.badgeNameLocked]}>
       {badge.nome}
+    </Text>
+    <Text style={[styles.badgeDesc, !badge.conquistado && styles.badgeDescLocked]} numberOfLines={2}>
+      {badge.descricao}
     </Text>
   </View>
 );
 
-// ── Main Component ────────────────────────────────────────────
-const CertificateScreen = () => {
-  const { isPremium } = usePremium();
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [certData, setCertData] = useState<CertData | null>(null);
-  const [badges, setBadges] = useState<BadgeItem[]>([]);
-  const [loading, setLoading] = useState(true);
+// ── Certificate Modal ─────────────────────────────────────────
+interface CertModalProps {
+  visible: boolean;
+  target: CertTarget | null;
+  certData: CertData | null;
+  isPremium: boolean;
+  onClose: () => void;
+  onShowPaywall: () => void;
+}
+
+const CertModal: React.FC<CertModalProps> = ({ visible, target, certData, isPremium, onClose, onShowPaywall }) => {
+  const { user } = useAuth();
+  const [nome, setNome] = useState('');
+  const [gerando, setGerando] = useState(false);
+
+  useEffect(() => {
+    if (visible) setNome(user?.name ?? '');
+  }, [visible]);
+
+  const handleGerar = async () => {
+    if (!nome.trim() || !target || !certData) return;
+
+    if (!isPremium) {
+      onClose();
+      setTimeout(() => onShowPaywall(), 300);
+      return;
+    }
+
+    setGerando(true);
+    try {
+      const html = generateCertificateHTML({
+        nomeAluno: nome.trim(),
+        curso: target.name,
+        horas: target.horas + certData.horasDedicadas,
+        licoesConcluidas: certData.licoesConcluidas,
+        data: target.completedAt ?? new Date().toISOString(),
+        userId: certData.userId,
+        courseId: target.courseId,
+      });
+
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Compartilhar Certificado',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('PDF Gerado', `Arquivo salvo em:\n${uri}`);
+      }
+      onClose();
+    } catch (e) {
+      console.error('Erro ao gerar certificado:', e);
+      Alert.alert('Erro', 'Não foi possível gerar o certificado. Tente novamente.');
+    } finally {
+      setGerando(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <LinearGradient colors={['#0A1628', '#217346']} style={styles.modalHeader}>
+            <Ionicons name="ribbon" size={32} color="#F59E0B" />
+            <Text style={styles.modalHeaderTitle}>Gerar Certificado</Text>
+            <Text style={styles.modalHeaderSub} numberOfLines={2}>{target?.name}</Text>
+          </LinearGradient>
+
+          <View style={styles.modalBody}>
+            {!isPremium && (
+              <View style={styles.premiumWarning}>
+                <Ionicons name="star" size={16} color="#F59E0B" />
+                <Text style={styles.premiumWarningText}>Recurso exclusivo Premium</Text>
+              </View>
+            )}
+
+            <Text style={styles.modalLabel}>Nome completo para o certificado:</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={nome}
+              onChangeText={setNome}
+              placeholder="Seu nome completo"
+              placeholderTextColor="#aaa"
+              autoFocus
+            />
+
+            <View style={styles.modalStats}>
+              <View style={styles.modalStat}>
+                <Text style={styles.modalStatVal}>{(target?.horas ?? 0) + (certData?.horasDedicadas ?? 0)}h</Text>
+                <Text style={styles.modalStatLabel}>Horas</Text>
+              </View>
+              <View style={styles.modalStat}>
+                <Text style={styles.modalStatVal}>{certData?.licoesConcluidas ?? 0}</Text>
+                <Text style={styles.modalStatLabel}>Lições</Text>
+              </View>
+              <View style={styles.modalStat}>
+                <Text style={styles.modalStatVal}>{certData?.precisao ?? 0}%</Text>
+                <Text style={styles.modalStatLabel}>Precisão</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.modalBtn, (!nome.trim() || gerando) && { opacity: 0.5 }]}
+              onPress={handleGerar}
+              disabled={!nome.trim() || gerando}
+              activeOpacity={0.85}
+            >
+              {gerando
+                ? <ActivityIndicator color="#1A1A2E" size="small" />
+                : <>
+                    <Ionicons name={isPremium ? 'download-outline' : 'star'} size={18} color="#1A1A2E" />
+                    <Text style={styles.modalBtnText}>
+                      {isPremium ? 'Salvar PDF e Compartilhar' : 'Assinar Premium'}
+                    </Text>
+                  </>
+              }
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={onClose} style={styles.modalCancel}>
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// ── Free View (non-premium marketing page) ────────────────────
+const FreeView: React.FC<{ onShowPaywall: () => void }> = ({ onShowPaywall }) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.02, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.03, duration: 900, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1.0, duration: 900, useNativeDriver: true }),
       ])
     ).start();
   }, []);
 
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#1A5C35' }} edges={['top']}>
+      <LinearGradient colors={['#0A1628', '#217346']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.freeContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.mascotRingWrap}>
+            <LinearGradient colors={['#1A3A2A', '#0A1628']} style={styles.mascotRing}>
+              <Image source={require('../../../assets/mascots/mascot_enthusiastic.png')} style={styles.mascotImg} resizeMode="contain" />
+            </LinearGradient>
+            <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
+          </View>
+
+          <Text style={styles.freeTitle}>Certificados e Badges</Text>
+          <Text style={styles.freeSub}>Comprove suas habilidades no mercado</Text>
+          <Text style={styles.freeDesc}>
+            Gere certificados PDF profissionais ao concluir trilhas e módulos. Compartilhe no LinkedIn e valide suas habilidades.
+          </Text>
+
+          {[
+            'Certificados PDF de cada trilha concluída',
+            'QR Code único para validação',
+            'Compartilhe no LinkedIn e redes sociais',
+            'Badges desbloqueáveis por conquistas',
+          ].map((t, i) => (
+            <View key={i} style={styles.freeBenefit}>
+              <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+              <Text style={styles.freeBenefitText}>{t}</Text>
+            </View>
+          ))}
+
+          <Animated.View style={[styles.freeBtnWrap, { transform: [{ scale: pulseAnim }] }]}>
+            <TouchableOpacity onPress={onShowPaywall} activeOpacity={0.85} style={styles.freeBtnOuter}>
+              <LinearGradient colors={['#F59E0B', '#F7C948']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.freeBtnGrad}>
+                <Text style={styles.freeBtnText}>⭐ Desbloquear Premium</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
+  );
+};
+
+// ── Main Component ────────────────────────────────────────────
+const CertificateScreen = () => {
+  const { isPremium } = usePremium();
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [trails, setTrails] = useState<TrailItem[]>([]);
+  const [levels, setLevels] = useState<LevelItem[]>([]);
+  const [badges, setBadges] = useState<BadgeItem[]>([]);
+  const [certData, setCertData] = useState<CertData | null>(null);
+  const [certTarget, setCertTarget] = useState<CertTarget | null>(null);
+
   useEffect(() => {
-    if (isPremium) {
-      carregarDados();
-    } else {
-      setLoading(false);
-    }
-  }, [isPremium]);
+    carregarDados();
+  }, []);
 
   const carregarDados = async () => {
     try {
-      const [certResp, badgesResp] = await Promise.all([
-        ApiService.getCertificateData(),
-        ApiService.getMeusBadges(),
+      const [trailsResp, progressResp, certResp, badgesResp] = await Promise.all([
+        ApiService.getTrails(),
+        ApiService.getProgress(),
+        ApiService.getCertificateData().catch(() => null),
+        ApiService.getMeusBadges().catch(() => []),
       ]);
+      setTrails(trailsResp ?? []);
+      setLevels(progressResp?.levels ?? []);
       setCertData(certResp);
       setBadges(badgesResp ?? []);
     } catch (e) {
-      console.error('Erro ao carregar dados de certificado:', e);
+      console.error('Erro ao carregar dados:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── FREE VIEW ──────────────────────────────────────────────
+  const handleGenerateCert = (target: CertTarget) => {
+    setCertTarget(target);
+  };
+
   if (!isPremium) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#1A5C35' }} edges={['top']}>
-        <LinearGradient
-          colors={['#0A1628', '#217346']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ flex: 1 }}
-        >
-          <ParticlesBackground />
-          <MockCertWatermark />
-
-          <ScrollView contentContainerStyle={styles.freeScrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.mascotWrapper}>
-              <LinearGradient
-                colors={['#1A3A2A', '#0A1628']}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={styles.mascotRing}
-              >
-                <Image
-                  source={require('../../../assets/mascots/mascot_enthusiastic.png')}
-                  style={styles.mascotImage}
-                  resizeMode="contain"
-                />
-              </LinearGradient>
-              <View style={styles.proBadge}>
-                <Text style={styles.proBadgeText}>PRO</Text>
-              </View>
-            </View>
-
-            <Text style={styles.freeTitle}>Certificado e Badges</Text>
-            <Text style={styles.freeSubtitle}>Você está quase lá! 🏆</Text>
-            <Text style={styles.freeDescription}>
-              Comprove suas habilidades e conquiste seu espaço no mercado com o certificado oficial do Arena Excel
-            </Text>
-
-            <View style={styles.benefitsList}>
-              {[
-                'Certificado oficial de conclusão',
-                'Compartilhe no LinkedIn',
-                'Valide suas habilidades em Excel',
-              ].map((text, i) => (
-                <View key={i} style={styles.benefitCard}>
-                  <Ionicons name="checkmark-circle" size={22} color="#10B981" />
-                  <Text style={styles.benefitText}>{text}</Text>
-                </View>
-              ))}
-            </View>
-
-            <Animated.View style={[styles.btnWrapper, { transform: [{ scale: pulseAnim }] }]}>
-              <TouchableOpacity onPress={() => setShowPaywall(true)} activeOpacity={0.85} style={styles.btnOuter}>
-                <LinearGradient
-                  colors={['#F59E0B', '#F7C948']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.btnGradient}
-                >
-                  <Text style={styles.btnText}>⭐ Desbloquear Premium</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </Animated.View>
-          </ScrollView>
-
-          <PaywallModal
-            visivel={showPaywall}
-            onFechar={() => setShowPaywall(false)}
-            onSuccess={() => { setShowPaywall(false); carregarDados(); }}
-          />
-        </LinearGradient>
-      </SafeAreaView>
+      <>
+        <FreeView onShowPaywall={() => setShowPaywall(true)} />
+        <PaywallModal
+          visivel={showPaywall}
+          onFechar={() => setShowPaywall(false)}
+          onSuccess={() => { setShowPaywall(false); carregarDados(); }}
+        />
+      </>
     );
   }
 
-  // ── LOADING ────────────────────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingBox} edges={['top', 'bottom']}>
-        <ActivityIndicator size="large" color="#10B981" />
+        <ActivityIndicator size="large" color="#217346" />
       </SafeAreaView>
     );
   }
 
-  // ── PREMIUM VIEW ───────────────────────────────────────────
-  const hasCertificates = certData && (certData.licoesConcluidas > 0 || certData.trilhasConcluidas > 0);
+  const trailsDone = trails.filter(t => t.progress?.completedAt).length;
+  const levelsDone = levels.filter(l => l.total > 0 && l.completed === l.total).length;
+  const badgesDone = badges.filter(b => b.conquistado).length;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.premiumScroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.premiumTitle}>🏆 Certificados</Text>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {hasCertificates ? (
-          <CertificateCard
-            nome={certData!.nome}
-            curso={certData!.trilhasConcluidas > 0
-              ? `${certData!.trilhasConcluidas} trilha${certData!.trilhasConcluidas > 1 ? 's' : ''} concluída${certData!.trilhasConcluidas > 1 ? 's' : ''}`
-              : 'Lições Clássicas de Excel'}
-            nivelNome={certData!.nivelNome}
-            data={certData!.dataInicio}
-            horas={certData!.horasDedicadas}
-            precisao={certData!.precisao}
-            userId={certData!.userId}
-          />
-        ) : (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyIcon}>🎓</Text>
-            <Text style={styles.emptyText}>
-              Complete lições ou trilhas para gerar seu certificado!
-            </Text>
-          </View>
-        )}
+        {/* ── TRILHAS ── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>🗺️ Trilhas</Text>
+          <Text style={styles.sectionCount}>{trailsDone}/{trails.length} concluídas</Text>
+        </View>
+        {trails.length === 0
+          ? <Text style={styles.emptyMsg}>Nenhuma trilha disponível</Text>
+          : trails.map(t => <TrailCard key={t.id} trail={t} onGenerate={handleGenerateCert} />)
+        }
 
-        <Text style={styles.badgesSectionTitle}>⭐ Suas Badges</Text>
+        {/* ── LIÇÕES CLÁSSICAS ── */}
+        <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+          <Text style={styles.sectionTitle}>📖 Lições Clássicas</Text>
+          <Text style={styles.sectionCount}>{levelsDone}/{levels.length} módulos</Text>
+        </View>
+        {levels.length === 0
+          ? <Text style={styles.emptyMsg}>Nenhum módulo disponível</Text>
+          : levels.map(l => <LevelCard key={l.id} level={l} onGenerate={handleGenerateCert} />)
+        }
 
+        {/* ── BADGES ── */}
+        <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+          <Text style={styles.sectionTitle}>⭐ Badges</Text>
+          <Text style={styles.sectionCount}>{badgesDone}/{badges.length} desbloqueadas</Text>
+        </View>
         {BADGE_CATEGORIES.map(cat => {
           const catBadges = badges.filter(b => b.categoria === cat.key);
           if (catBadges.length === 0) return null;
-          const conquistadas = catBadges.filter(b => b.conquistado).length;
+          const done = catBadges.filter(b => b.conquistado).length;
           return (
             <View key={cat.key} style={styles.categorySection}>
-              <View style={styles.categoryHeader}>
+              <View style={styles.categoryRow}>
                 <Text style={styles.categoryLabel}>{cat.label}</Text>
-                <Text style={styles.categoryCount}>{conquistadas}/{catBadges.length}</Text>
+                <Text style={styles.categoryCount}>{done}/{catBadges.length}</Text>
               </View>
               <View style={styles.badgesGrid}>
-                {catBadges.map(badge => (
-                  <BadgeCard key={badge.id} badge={badge} />
-                ))}
+                {catBadges.map(b => <BadgeCard key={b.id} badge={b} />)}
               </View>
             </View>
           );
         })}
+
+        <View style={{ height: 40 }} />
       </ScrollView>
+
+      <CertModal
+        visible={!!certTarget}
+        target={certTarget}
+        certData={certData}
+        isPremium={isPremium}
+        onClose={() => setCertTarget(null)}
+        onShowPaywall={() => setShowPaywall(true)}
+      />
+
+      <PaywallModal
+        visivel={showPaywall}
+        onFechar={() => setShowPaywall(false)}
+        onSuccess={() => { setShowPaywall(false); carregarDados(); }}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  // ── FREE ──────────────────────────────────────────────────
-  freeScrollContent: {
-    alignItems: 'center',
-    paddingHorizontal: 28,
-    paddingTop: 40,
-    paddingBottom: 48,
-  },
-  mockCertWrap: {
-    position: 'absolute',
-    top: '12%',
-    left: -30,
-    right: -30,
-    height: 200,
-    opacity: 0.12,
-    transform: [{ rotate: '-5deg' }],
-    zIndex: 0,
-  },
-  mockCert: {
-    flex: 1,
-    borderWidth: 3,
-    borderColor: '#F59E0B',
-    borderRadius: 14,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  mockCertHeader: {
-    width: '50%',
-    height: 14,
-    backgroundColor: '#F59E0B',
-    borderRadius: 4,
-    marginBottom: 16,
-  },
-  mockCertLine: { width: '90%', height: 8, backgroundColor: '#333', borderRadius: 4 },
-  mockCertSeal: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: '#F59E0B',
-    marginTop: 16,
-  },
-  mascotWrapper: { position: 'relative', marginBottom: 28, zIndex: 1 },
+  container: { flex: 1, backgroundColor: '#F4F6F9' },
+  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F4F6F9' },
+  scroll: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 24 },
+
+  // ── FREE VIEW ──────────────────────────────────────────────
+  freeContent: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 48, paddingBottom: 56 },
+  mascotRingWrap: { position: 'relative', marginBottom: 28 },
   mascotRing: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 3,
-    borderColor: '#F59E0B',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 24,
-    elevation: 16,
+    width: 130, height: 130, borderRadius: 65,
+    borderWidth: 3, borderColor: '#F59E0B',
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8, shadowRadius: 24, elevation: 16,
   },
-  mascotImage: { width: 100, height: 100 },
+  mascotImg: { width: 100, height: 100 },
   proBadge: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: '#F59E0B',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
+    position: 'absolute', bottom: 4, right: 4,
+    backgroundColor: '#F59E0B', borderRadius: 10,
+    paddingHorizontal: 8, paddingVertical: 3,
     elevation: 6,
   },
   proBadgeText: { fontSize: 11, fontWeight: '800', color: '#1A1A2E', letterSpacing: 1 },
-  freeTitle: { fontSize: 28, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 10, zIndex: 1 },
-  freeSubtitle: { fontSize: 20, fontWeight: '700', color: '#fff', textAlign: 'center', marginBottom: 10, zIndex: 1 },
-  freeDescription: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
-    zIndex: 1,
+  freeTitle: { fontSize: 26, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 8 },
+  freeSub: { fontSize: 17, fontWeight: '600', color: '#F59E0B', textAlign: 'center', marginBottom: 12 },
+  freeDesc: { fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+  freeBenefit: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, width: '100%' },
+  freeBenefitText: { fontSize: 14, color: '#fff', fontWeight: '500', flex: 1 },
+  freeBtnWrap: {
+    width: '100%', marginTop: 28,
+    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6, shadowRadius: 16, elevation: 12,
   },
-  benefitsList: { width: '100%', gap: 10, marginBottom: 36, zIndex: 1 },
-  benefitCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 10,
-    padding: 12,
-    gap: 12,
-  },
-  benefitText: { fontSize: 15, color: '#fff', fontWeight: '600', flex: 1 },
-  btnWrapper: {
-    width: '100%',
-    zIndex: 1,
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  btnOuter: { borderRadius: 16, overflow: 'hidden' },
-  btnGradient: { paddingVertical: 18, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' },
-  btnText: { fontSize: 17, fontWeight: '800', color: '#1A1A2E' },
+  freeBtnOuter: { borderRadius: 16, overflow: 'hidden' },
+  freeBtnGrad: { paddingVertical: 18, alignItems: 'center' },
+  freeBtnText: { fontSize: 17, fontWeight: '800', color: '#1A1A2E' },
 
-  // ── PREMIUM ────────────────────────────────────────────────
-  container: { flex: 1, backgroundColor: '#F4F6F9' },
-  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  premiumScroll: { paddingBottom: 48, paddingTop: 20 },
-  premiumTitle: { fontSize: 26, fontWeight: '800', color: '#1a3a5c', paddingHorizontal: 20, marginBottom: 20 },
+  // ── SECTION HEADERS ──────────────────────────────────────
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#1a3a5c' },
+  sectionCount: { fontSize: 13, fontWeight: '600', color: '#888' },
+  emptyMsg: { fontSize: 14, color: '#aaa', textAlign: 'center', paddingVertical: 16 },
 
-  // Certificate card
-  certCardWrap: { marginHorizontal: 20, marginBottom: 24 },
-  certCard: {
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#F59E0B',
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 10,
+  // ── ITEM CARDS (trails & levels) ─────────────────────────
+  itemCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10,
+    borderWidth: 1.5, borderColor: '#E5E7EB',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
   },
-  certMascot: { width: 80, height: 80, marginBottom: 8 },
-  certBrand: { fontSize: 11, fontWeight: '800', color: '#F59E0B', letterSpacing: 3, marginBottom: 4 },
-  certTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#F59E0B',
-    letterSpacing: 1,
-    textAlign: 'center',
-    marginBottom: 12,
+  itemCardDone: { borderColor: '#27AE60', backgroundColor: '#F0FDF4' },
+  itemCardProgress: { borderColor: '#F59E0B', backgroundColor: '#FFFBEB' },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  itemIconWrap: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: '#F3F4F6',
+    justifyContent: 'center', alignItems: 'center', flexShrink: 0,
   },
-  certDivider: {
-    width: '80%',
-    height: 2,
-    backgroundColor: '#F59E0B',
-    marginBottom: 14,
-    borderRadius: 1,
+  itemIconDone: { backgroundColor: '#27AE60' },
+  itemIconProgress: { backgroundColor: '#FEF3C7' },
+  itemIconEmoji: { fontSize: 20 },
+  itemInfo: { flex: 1 },
+  itemName: { fontSize: 14, fontWeight: '700', color: '#1a3a5c', marginBottom: 2 },
+  itemNameLocked: { color: '#9CA3AF' },
+  itemMeta: { fontSize: 12, color: '#6B7280', marginBottom: 4 },
+  progressBarBg: { height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, overflow: 'hidden' },
+  progressBarFill: { height: 4, borderRadius: 2 },
+  certBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#217346', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 7,
+    flexShrink: 0,
   },
-  certDividerThin: {
-    width: '60%',
-    height: 1,
-    backgroundColor: 'rgba(245,158,11,0.4)',
-    marginBottom: 14,
-    borderRadius: 1,
-  },
-  certNomeAluno: { fontSize: 22, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4 },
-  certCurso: { fontSize: 14, color: 'rgba(255,255,255,0.75)', textAlign: 'center', marginBottom: 14 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', width: '100%', marginBottom: 16, gap: 8 },
-  statItem: {
-    width: '48%',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 8,
-    padding: 10,
-    alignItems: 'center',
-  },
-  statLabel: { fontSize: 9, fontWeight: '700', color: '#F59E0B', letterSpacing: 1, marginBottom: 2 },
-  statValue: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  qrCode: { width: 90, height: 90, borderRadius: 8, marginBottom: 6 },
-  qrLabel: { fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 },
-  shareBtn: {
-    marginTop: 12,
-    backgroundColor: '#F59E0B',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  shareBtnText: { fontSize: 15, fontWeight: '800', color: '#1A1A2E' },
+  certBtnText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
-  // Empty state
-  emptyBox: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 15, color: '#666', textAlign: 'center', lineHeight: 22 },
-
-  // Badges
-  badgesSectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1a3a5c',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  categorySection: { marginBottom: 24, paddingHorizontal: 20 },
-  categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  categoryLabel: { fontSize: 14, fontWeight: '700', color: '#444' },
-  categoryCount: { fontSize: 12, fontWeight: '600', color: '#888' },
+  // ── BADGES ───────────────────────────────────────────────
+  categorySection: { marginBottom: 20 },
+  categoryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  categoryLabel: { fontSize: 13, fontWeight: '700', color: '#555' },
+  categoryCount: { fontSize: 12, color: '#888' },
   badgesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   badgeCard: {
-    width: (W - 56) / 3,
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    position: 'relative',
-    minHeight: 80,
-    justifyContent: 'center',
+    width: (W - 48) / 3,
+    borderRadius: 12, padding: 10, alignItems: 'center',
+    position: 'relative', minHeight: 100, justifyContent: 'center',
   },
-  badgeConquistado: {
-    backgroundColor: 'rgba(33,115,70,0.15)',
-    borderWidth: 1.5,
-    borderColor: '#27AE60',
+  badgeDone: { backgroundColor: 'rgba(33,115,70,0.12)', borderWidth: 1.5, borderColor: '#27AE60' },
+  badgeLocked: { backgroundColor: 'rgba(0,0,0,0.03)', borderWidth: 1, borderColor: '#E5E7EB' },
+  badgeIcon: { fontSize: 28, marginBottom: 4 },
+  badgeLockIcon: { position: 'absolute', top: 6, right: 6 },
+  badgeName: { fontSize: 10, fontWeight: '700', color: '#1a3a5c', textAlign: 'center', marginBottom: 3 },
+  badgeNameLocked: { color: '#9CA3AF' },
+  badgeDesc: { fontSize: 9, color: '#217346', textAlign: 'center', lineHeight: 13 },
+  badgeDescLocked: { color: '#C4C4C4' },
+
+  // ── CERT MODAL ───────────────────────────────────────────
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center', alignItems: 'center', padding: 20,
   },
-  badgeBloqueado: {
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    opacity: 0.5,
+  modalCard: {
+    width: '100%', backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3, shadowRadius: 20, elevation: 20,
   },
-  badgeIcon: { fontSize: 30, marginBottom: 4 },
-  lockOverlay: { position: 'absolute', top: 6, right: 6 },
-  lockIcon: { fontSize: 12 },
-  badgeNome: { fontSize: 10, fontWeight: '700', color: '#1a3a5c', textAlign: 'center' },
-  badgeNomeLocked: { color: '#aaa' },
+  modalHeader: { padding: 24, alignItems: 'center', gap: 6 },
+  modalHeaderTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  modalHeaderSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center', maxWidth: '90%' },
+  modalBody: { padding: 20 },
+  premiumWarning: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FFFBEB', borderRadius: 10,
+    padding: 10, marginBottom: 14,
+    borderWidth: 1, borderColor: '#F59E0B',
+  },
+  premiumWarningText: { fontSize: 13, fontWeight: '600', color: '#92400E' },
+  modalLabel: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8 },
+  modalInput: {
+    borderWidth: 1.5, borderColor: '#D1D5DB', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, color: '#111', marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+  },
+  modalStats: {
+    flexDirection: 'row', justifyContent: 'space-around',
+    backgroundColor: '#F3F4F6', borderRadius: 12, padding: 14, marginBottom: 16,
+  },
+  modalStat: { alignItems: 'center' },
+  modalStatVal: { fontSize: 18, fontWeight: '800', color: '#1a3a5c' },
+  modalStatLabel: { fontSize: 11, color: '#888', marginTop: 2 },
+  modalBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#F59E0B', borderRadius: 12,
+    paddingVertical: 15, marginBottom: 10,
+  },
+  modalBtnText: { fontSize: 15, fontWeight: '800', color: '#1A1A2E' },
+  modalCancel: { alignItems: 'center', paddingVertical: 8 },
+  modalCancelText: { fontSize: 14, color: '#9CA3AF' },
 });
 
 export default CertificateScreen;
