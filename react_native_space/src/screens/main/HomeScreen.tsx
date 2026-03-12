@@ -49,7 +49,7 @@ const HomeScreen = () => {
     }, [])
   );
 
-  const DAILY_XP_KEY = `dailyXpProgress_${new Date().toISOString().slice(0, 10)}`;
+  const DAILY_XP_KEY = `dailyXpProgress_${user?.id}_${new Date().toISOString().slice(0, 10)}`;
 
   const loadData = async () => {
     setLoading(true);
@@ -63,11 +63,14 @@ const HomeScreen = () => {
       setMissions(missionsData?.missions ?? []);
       setDailyXpGoal(missionsData?.dailyXpGoal ?? 65);
 
-      // Use server value if available, otherwise fallback to AsyncStorage cache
+      // Always trust the server value when it returns a number (including 0).
+      // Only fall back to AsyncStorage cache if the API didn't return a number at all.
       const serverXp = missionsData?.dailyXpProgress;
-      if (typeof serverXp === 'number' && serverXp > 0) {
+      if (typeof serverXp === 'number') {
         setDailyXpProgress(serverXp);
-        await AsyncStorage.setItem(DAILY_XP_KEY, String(serverXp));
+        if (serverXp > 0) {
+          await AsyncStorage.setItem(DAILY_XP_KEY, String(serverXp));
+        }
       } else {
         const cached = await AsyncStorage.getItem(DAILY_XP_KEY);
         setDailyXpProgress(cached ? parseInt(cached, 10) : 0);
