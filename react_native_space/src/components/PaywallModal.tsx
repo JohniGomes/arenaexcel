@@ -150,7 +150,7 @@ const PaywallModal = ({ visivel, onFechar, onSuccess }: PaywallModalProps) => {
           >
             {/* Hero image + botão fechar */}
             <View style={styles.heroSection}>
-              <Image source={ESQUADRAO} style={styles.heroImage} resizeMode="contain" />
+              <Image source={ESQUADRAO} style={styles.heroImage} />
               <TouchableOpacity onPress={onFechar} style={styles.fecharBtn}>
                 <Text style={styles.fecharTexto}>✕</Text>
               </TouchableOpacity>
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     height: 180,
     marginBottom: 20,
     position: 'relative',
-    backgroundColor: '#0A1628',
+    backgroundColor: 'transparent',
   },
   heroImage: {
     width: '100%',
