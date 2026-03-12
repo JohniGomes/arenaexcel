@@ -25,7 +25,7 @@ class PurchasesService {
       this.initialized = true;
       console.log('✅ RevenueCat initialized anonymously');
     } catch (error) {
-      console.error('❌ Error initializing RevenueCat:', error);
+      console.warn('⚠️ Error initializing RevenueCat (esperado no Expo Go):', error);
     }
   }
 
@@ -61,7 +61,7 @@ class PurchasesService {
       
       return [];
     } catch (error) {
-      console.error('Error getting offerings:', error);
+      console.warn('⚠️ Error getting offerings (esperado no Expo Go):', error);
       return [];
     }
   }

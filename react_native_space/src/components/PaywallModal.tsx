@@ -43,7 +43,7 @@ const PaywallModal = ({ visivel, onFechar, onSuccess }: PaywallModalProps) => {
   const [loading, setLoading] = useState(false);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
-  const [loadingPackages, setLoadingPackages] = useState(true);
+  const [loadingPackages, setLoadingPackages] = useState(false);
 
   // Star pulse animation
   const starAnim = useRef(new Animated.Value(1)).current;
@@ -57,31 +57,19 @@ const PaywallModal = ({ visivel, onFechar, onSuccess }: PaywallModalProps) => {
     ).start();
   }, []);
 
-  useEffect(() => {
-    if (visivel) {
-      loadOfferings();
-    }
-  }, [visivel]);
-
-  const loadOfferings = async () => {
-    setLoadingPackages(true);
-    try {
-      const pkgs = await PurchasesService.getOfferings();
-      setPackages(pkgs);
-      if (pkgs.length === 0) {
-        console.warn('⚠️ Nenhum pacote disponível. Verifique o RevenueCat Dashboard.');
-      }
-    } catch (error) {
-      console.error('❌ Error loading offerings:', error);
-    } finally {
-      setLoadingPackages(false);
-    }
-  };
-
   const handlePurchase = async () => {
     setLoading(true);
     try {
-      const pkg = packages.find((p) => {
+      // Carregar pacotes sob demanda — RevenueCat só é chamado ao clicar em "Assinar"
+      let pkgs = packages;
+      if (pkgs.length === 0) {
+        setLoadingPackages(true);
+        pkgs = await PurchasesService.getOfferings();
+        setPackages(pkgs);
+        setLoadingPackages(false);
+      }
+
+      const pkg = pkgs.find((p) => {
         if (selectedPlan === 'monthly') {
           return p.packageType === 'MONTHLY' || p.identifier?.includes('monthly');
         } else {
