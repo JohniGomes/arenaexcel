@@ -104,7 +104,7 @@ const generateCertificateHTML = (p: {
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Cinzel:wght@400;500;600;700&family=Dancing+Script:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
 @page { size: A4 portrait; margin: 0; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f3f4f0; padding: 24px; font-family: 'EB Garamond', serif; }
+body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 24px; font-family: 'EB Garamond', serif; }
 </style>
 </head>
 <body>
@@ -149,7 +149,7 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
   </svg>
 
   <!-- Medal Seal -->
-  <div style="position:absolute;top:18px;right:22px;background:transparent;width:74px">
+  <div style="position:absolute;top:18px;right:22px;background:transparent;width:74px;z-index:10">
     <div style="width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#217346,#0A1628);border:2px solid #F59E0B;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(33,115,70,0.25),0 0 0 4px rgba(245,158,11,0.08)">
       <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
         <polygon points="18,3 21.8,13 33,13 24,19.6 27.2,30 18,24 8.8,30 12,19.6 3,13 14.2,13" fill="#F59E0B"/>
@@ -168,8 +168,9 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
     <span style="color:#217346;font-family:'Cinzel',serif;font-weight:700;font-size:22px;line-height:1">X</span>
   </div>
 
-  <!-- QR Code + CNPJ rente à borda inferior -->
-  <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);text-align:center;z-index:10">
+  <!-- Data + QR Code + CNPJ rente à borda inferior -->
+  <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);text-align:center;z-index:10;white-space:nowrap">
+    <p style="font-family:'EB Garamond',serif;font-size:12px;font-weight:600;color:#0A1628;letter-spacing:0.2em;margin:0 0 6px">${dataFmt}</p>
     <img src="${qrUrl}" alt="QR Code" style="width:52px;height:52px;display:block;margin:0 auto"/>
     <p style="font-family:'EB Garamond',serif;font-size:9px;color:#ccc;margin-top:2px;letter-spacing:0.1em">CNPJ: 65.002.492/0001-08</p>
   </div>
@@ -220,7 +221,7 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
     </div>
 
     <!-- Description -->
-    <p style="font-family:'EB Garamond',serif;font-size:15.5px;color:#555;line-height:1.75;max-width:490px;margin:0 auto 30px;font-style:italic">
+    <p style="font-family:'EB Garamond',serif;font-size:15.5px;color:#555;line-height:1.75;max-width:490px;margin:0 auto 12px;font-style:italic">
       Após a conclusão com sucesso de
       <span style="color:#217346;font-weight:600;font-style:normal">"${p.curso}"</span>
       com carga horária total de
@@ -230,7 +231,7 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
     </p>
 
     <!-- Divider 180 -->
-    <div style="margin:20px 0 24px">
+    <div style="margin:8px 0 10px">
       <svg width="180" height="14" viewBox="0 0 180 14" fill="none" style="display:block;margin:0 auto">
         <defs>
           <linearGradient id="gl3" x1="0" y1="0" x2="180" y2="0" gradientUnits="userSpaceOnUse">
@@ -249,18 +250,6 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
     <p style="font-family:'Dancing Script',cursive;font-weight:700;font-size:36px;color:#1a1a2e;margin:0 0 2px;letter-spacing:0.5px">Johni Michael</p>
     <div style="width:180px;height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,0.4),transparent);margin:2px auto 3px"></div>
     <p style="font-family:'Cinzel',serif;font-weight:400;font-size:12px;letter-spacing:0.5em;color:#0A1628;text-transform:uppercase;margin:0">Professor e Fundador | Arena Excel</p>
-
-    <!-- Info row -->
-    <div style="margin-top:36px;display:flex;justify-content:center;gap:60px">
-      <div style="text-align:center">
-        <p style="font-family:'EB Garamond',serif;font-size:9px;letter-spacing:0.2em;color:#bbb;text-transform:uppercase;margin:0 0 4px">Lições</p>
-        <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0A1628;margin:0">${p.licoesConcluidas}</p>
-      </div>
-      <div style="text-align:center">
-        <p style="font-family:'EB Garamond',serif;font-size:9px;letter-spacing:0.2em;color:#bbb;text-transform:uppercase;margin:0 0 4px">Data</p>
-        <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0A1628;margin:0">${dataFmt}</p>
-      </div>
-    </div>
 
   </div>
 </div>
