@@ -91,222 +91,181 @@ const generateCertificateHTML = (p: {
   userId: string;
   courseId: string;
 }): string => {
-  const validateUrl = `${PROD_URL}/certificado/${p.userId}/${p.courseId}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(validateUrl)}&color=F59E0B&bgcolor=0A1628`;
   const dataFmt = p.data ? new Date(p.data).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+  const barcodeText = encodeURIComponent(`${p.userId}-${p.courseId}`);
+  const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${barcodeText}&scale=2&height=10&backgroundcolor=ffffff`;
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=900">
+<meta name="viewport" content="width=700">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:wght@700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@400;500;600;700&display=swap');
-  @page { size: A4 landscape; margin: 0; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0A1628; font-family: 'Montserrat', Arial, sans-serif; }
-  .cw {
-    width: 900px; height: 636px; position: relative;
-    background: linear-gradient(135deg, #0A1628 0%, #0d2a1a 50%, #0A1628 100%);
-    overflow: hidden;
-  }
-  .corner-tl {
-    position: absolute; top: 0; left: 0; width: 280px; height: 200px;
-    overflow: hidden; z-index: 2;
-  }
-  .corner-tl::before {
-    content: ''; position: absolute; top: -60px; left: -100px;
-    width: 400px; height: 250px;
-    background: linear-gradient(135deg, #217346 0%, #2a8f5a 40%, #1a5e38 70%);
-    border-radius: 0 0 60% 0; transform: rotate(-5deg);
-  }
-  .corner-tl::after {
-    content: ''; position: absolute; top: -30px; left: -80px;
-    width: 350px; height: 200px;
-    background: linear-gradient(135deg, rgba(245,159,11,0.25) 0%, transparent 60%);
-    border-radius: 0 0 50% 0; transform: rotate(-8deg);
-  }
-  .corner-br {
-    position: absolute; bottom: 0; right: 0; width: 300px; height: 220px;
-    overflow: hidden; z-index: 2;
-  }
-  .corner-br::before {
-    content: ''; position: absolute; bottom: -70px; right: -110px;
-    width: 420px; height: 270px;
-    background: linear-gradient(315deg, #217346 0%, #2a8f5a 40%, #1a5e38 70%);
-    border-radius: 60% 0 0 0; transform: rotate(-5deg);
-  }
-  .corner-br::after {
-    content: ''; position: absolute; bottom: -40px; right: -90px;
-    width: 370px; height: 220px;
-    background: linear-gradient(315deg, rgba(245,159,11,0.3) 0%, transparent 60%);
-    border-radius: 50% 0 0 0; transform: rotate(-8deg);
-  }
-  .gold-tl {
-    position: absolute; top: 0; left: 0; width: 240px; height: 160px;
-    overflow: hidden; z-index: 3;
-  }
-  .gold-tl::before {
-    content: ''; position: absolute; top: -50px; left: -70px;
-    width: 350px; height: 200px;
-    border: 3px solid rgba(245,159,11,0.4);
-    border-radius: 0 0 55% 0; transform: rotate(-5deg); background: transparent;
-  }
-  .gold-br {
-    position: absolute; bottom: 0; right: 0; width: 260px; height: 180px;
-    overflow: hidden; z-index: 3;
-  }
-  .gold-br::before {
-    content: ''; position: absolute; bottom: -60px; right: -80px;
-    width: 380px; height: 230px;
-    border: 3px solid rgba(245,159,11,0.4);
-    border-radius: 55% 0 0 0; transform: rotate(-5deg); background: transparent;
-  }
-  .inner-border {
-    position: absolute; top: 16px; left: 16px; right: 16px; bottom: 16px;
-    border: 1px solid rgba(245,159,11,0.25); z-index: 1;
-  }
-  .ornament-tr {
-    position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
-    border-top: 2px solid rgba(245,159,11,0.4); border-right: 2px solid rgba(245,159,11,0.4);
-    border-radius: 0 8px 0 0; z-index: 4;
-  }
-  .ornament-bl {
-    position: absolute; bottom: 20px; left: 20px; width: 40px; height: 40px;
-    border-bottom: 2px solid rgba(245,159,11,0.4); border-left: 2px solid rgba(245,159,11,0.4);
-    border-radius: 0 0 0 8px; z-index: 4;
-  }
-  .medal {
-    position: absolute; top: 36px; right: 60px; z-index: 6; width: 90px; height: 110px;
-  }
-  .medal-circle {
-    width: 80px; height: 80px; border-radius: 50%;
-    background: radial-gradient(circle, #217346 0%, #0A1628 100%);
-    border: 2px solid #F59E0B;
-    box-shadow: 0 4px 20px rgba(245,159,11,0.4), 0 0 30px rgba(33,115,70,0.3);
-    display: flex; align-items: center; justify-content: center; margin: 0 auto;
-    font-size: 30px; color: #F59E0B;
-    position: relative;
-  }
-  .medal-circle::after {
-    content: ''; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px;
-    border-radius: 50%; border: 1px solid rgba(245,159,11,0.3);
-  }
-  .medal-rl { position: absolute; bottom: 0; left: 14px; width: 0; height: 0; z-index: -1;
-    border-left: 18px solid #217346; border-right: 18px solid transparent;
-    border-top: 30px solid #217346; border-bottom: 12px solid transparent; }
-  .medal-rr { position: absolute; bottom: 0; right: 14px; width: 0; height: 0; z-index: -1;
-    border-left: 18px solid transparent; border-right: 18px solid #217346;
-    border-top: 30px solid #217346; border-bottom: 12px solid transparent; }
-  .excel-icon {
-    position: absolute; bottom: 36px; left: 50px; z-index: 6;
-    width: 44px; height: 44px; background: #217346; border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-family: 'Montserrat', sans-serif;
-    font-weight: 700; font-size: 20px;
-    box-shadow: 0 2px 12px rgba(33,115,70,0.5);
-  }
-  .meta-info {
-    position: absolute; bottom: 40px; right: 60px; z-index: 6; text-align: right;
-  }
-  .meta-info p {
-    font-family: 'Montserrat', sans-serif; font-size: 11px; color: rgba(255,255,255,0.55); line-height: 1.6;
-  }
-  .meta-info strong { color: rgba(255,255,255,0.9); font-weight: 600; }
-  .qr-block {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-    z-index: 6; text-align: center;
-  }
-  .qr-block img { width: 56px; height: 56px; border-radius: 4px; }
-  .qr-label { font-size: 8px; color: rgba(255,255,255,0.5); margin-top: 2px; letter-spacing: 0.3px; }
-  .qr-cnpj { font-size: 7px; color: rgba(255,255,255,0.35); margin-top: 1px; letter-spacing: 0.2px; }
-  .content {
-    position: relative; z-index: 5;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    height: 100%; padding: 50px 80px; text-align: center;
-  }
-  .title-main {
-    font-family: 'Playfair Display', Georgia, serif; font-weight: 900; font-size: 48px;
-    color: #F59E0B; letter-spacing: 6px; line-height: 1; text-transform: uppercase;
-    text-shadow: 0 0 30px rgba(245,159,11,0.3);
-  }
-  .title-sub {
-    font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 16px;
-    color: rgba(255,255,255,0.75); letter-spacing: 12px; text-transform: uppercase; margin-top: 4px;
-  }
-  .presented-to {
-    font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 13px;
-    color: rgba(245,159,11,0.7); letter-spacing: 5px; text-transform: uppercase; margin: 20px 0 10px;
-  }
-  .recipient-name {
-    font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 38px;
-    color: #fff; line-height: 1.2; margin-bottom: 4px;
-  }
-  .description {
-    font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px; color: rgba(255,255,255,0.8);
-    line-height: 1.7; max-width: 520px; margin: 12px auto 0;
-  }
-  .description strong { font-weight: 600; color: #fff; }
-  .signature-section { margin-top: 24px; display: flex; flex-direction: column; align-items: center; }
-  .sig-cursive {
-    font-family: 'Dancing Script', cursive; font-size: 34px; color: #fff; margin-bottom: -2px;
-  }
-  .sig-line { width: 200px; height: 1px; background: rgba(255,255,255,0.3); margin: 4px 0; }
-  .sig-role {
-    font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600;
-    color: #F59E0B; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 6px;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Cinzel:wght@400;500;600;700&family=Dancing+Script:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+@page { size: A4 portrait; margin: 0; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f3f4f0; padding: 24px; font-family: 'EB Garamond', serif; }
 </style>
 </head>
 <body>
-<div class="cw">
-  <div class="corner-tl"></div>
-  <div class="corner-br"></div>
-  <div class="gold-tl"></div>
-  <div class="gold-br"></div>
-  <div class="inner-border"></div>
-  <div class="ornament-tr"></div>
-  <div class="ornament-bl"></div>
+<div style="position:relative;width:100%;max-width:700px;background:#FFFFFF;border-radius:3px;padding:60px 52px 90px;border:1px solid rgba(33,115,70,0.15);box-shadow:0 1px 3px rgba(0,0,0,0.04),0 12px 40px rgba(33,115,70,0.06);overflow:hidden">
 
-  <div class="medal">
-    <div class="medal-circle">★</div>
-    <div class="medal-rl"></div>
-    <div class="medal-rr"></div>
-  </div>
+  <!-- Watermark -->
+  <div style="position:absolute;inset:0;background-image:radial-gradient(ellipse at 25% 15%,rgba(33,115,70,0.02) 0%,transparent 50%),radial-gradient(ellipse at 75% 85%,rgba(245,158,11,0.015) 0%,transparent 50%);pointer-events:none"></div>
 
-  <div class="excel-icon">X</div>
+  <!-- Inner frames -->
+  <div style="position:absolute;inset:12px;border:1px solid rgba(33,115,70,0.12);pointer-events:none"></div>
+  <div style="position:absolute;inset:15px;border:0.5px solid rgba(245,158,11,0.1);pointer-events:none"></div>
 
-  <div class="meta-info">
-    <p>Data: <strong>${dataFmt}</strong></p>
-    <p>Carga horária: <strong>${p.horas}h</strong></p>
-    <p>Lições: <strong>${p.licoesConcluidas}</strong></p>
-  </div>
+  <!-- Top accent bar -->
+  <div style="position:absolute;top:0;left:60px;right:60px;height:3px;background:linear-gradient(90deg,transparent,#217346,#F59E0B,#217346,transparent);opacity:0.6"></div>
 
-  <div class="qr-block">
-    <img src="${qrUrl}" alt="QR Code" />
-    <div class="qr-label">Escaneie para validar</div>
-    <div class="qr-cnpj">CNPJ: 65.002.492/0001-08</div>
-  </div>
+  <!-- Corner top-left -->
+  <svg width="140" height="140" viewBox="0 0 140 140" fill="none" style="position:absolute;top:0;left:0">
+    <defs>
+      <linearGradient id="cg-tl" x1="0" y1="0" x2="140" y2="140" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#217346"/><stop offset="100%" stop-color="#0A1628"/>
+      </linearGradient>
+    </defs>
+    <path d="M0 0 L55 0 Q40 12 30 28 Q14 52 12 80 L0 80 Z" fill="url(#cg-tl)" opacity="0.08"/>
+    <path d="M0 0 Q0 65 65 65" stroke="#217346" stroke-width="2" fill="none"/>
+    <path d="M0 0 Q0 95 95 95" stroke="#F59E0B" stroke-width="0.5" fill="none" opacity="0.35"/>
+    <path d="M8 0 Q8 42 50 42" stroke="#217346" stroke-width="0.6" fill="none" opacity="0.3"/>
+    <path d="M50 50 Q55 40 48 32 Q58 38 50 50Z" fill="#217346" opacity="0.15"/>
+  </svg>
 
-  <div class="content">
-    <div>
-      <div class="title-main">Certificado</div>
-      <div class="title-sub">de Qualificação</div>
+  <!-- Corner bottom-right -->
+  <svg width="140" height="140" viewBox="0 0 140 140" fill="none" style="position:absolute;bottom:0;right:0;transform:rotate(180deg)">
+    <defs>
+      <linearGradient id="cg-br" x1="0" y1="0" x2="140" y2="140" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#217346"/><stop offset="100%" stop-color="#0A1628"/>
+      </linearGradient>
+    </defs>
+    <path d="M0 0 L55 0 Q40 12 30 28 Q14 52 12 80 L0 80 Z" fill="url(#cg-br)" opacity="0.08"/>
+    <path d="M0 0 Q0 65 65 65" stroke="#217346" stroke-width="2" fill="none"/>
+    <path d="M0 0 Q0 95 95 95" stroke="#F59E0B" stroke-width="0.5" fill="none" opacity="0.35"/>
+    <path d="M8 0 Q8 42 50 42" stroke="#217346" stroke-width="0.6" fill="none" opacity="0.3"/>
+    <path d="M50 50 Q55 40 48 32 Q58 38 50 50Z" fill="#217346" opacity="0.15"/>
+  </svg>
+
+  <!-- Medal Seal -->
+  <div style="position:absolute;top:18px;right:22px">
+    <div style="width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#217346,#0A1628);border:2px solid #F59E0B;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(33,115,70,0.25),0 0 0 4px rgba(245,158,11,0.08)">
+      <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
+        <polygon points="18,3 21.8,13 33,13 24,19.6 27.2,30 18,24 8.8,30 12,19.6 3,13 14.2,13" fill="#F59E0B"/>
+      </svg>
     </div>
-    <div class="presented-to">Este certificado é apresentado a</div>
-    <div class="recipient-name">${p.nomeAluno}</div>
-    <p class="description">
-      Após a conclusão com sucesso de <strong>"${p.curso}"</strong>
-      com carga horária total de <strong>${p.horas}h</strong> e
-      <strong>${p.licoesConcluidas} lições</strong> concluídas.
-      Certifico a capacidade do(a) aluno(a) em aplicar as habilidades
-      aprendidas em contextos profissionais e acadêmicos.
+    <svg width="74" height="28" viewBox="0 0 74 28" style="position:absolute;bottom:-20px;left:0">
+      <path d="M22 0 L12 14 L22 26 L30 14 Z" fill="#217346" opacity="0.7"/>
+      <path d="M52 0 L62 14 L52 26 L44 14 Z" fill="#217346" opacity="0.7"/>
+      <path d="M22 0 L12 14 L22 26 L30 14 Z" stroke="#F59E0B" stroke-width="0.4" fill="none" opacity="0.5"/>
+      <path d="M52 0 L62 14 L52 26 L44 14 Z" stroke="#F59E0B" stroke-width="0.4" fill="none" opacity="0.5"/>
+    </svg>
+  </div>
+
+  <!-- Excel Icon -->
+  <div style="position:absolute;bottom:22px;left:22px;width:44px;height:44px;background:#217346;border-radius:8px;border:1px solid rgba(245,158,11,0.4);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(33,115,70,0.3)">
+    <span style="color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:22px;line-height:1">X</span>
+  </div>
+
+  <!-- Barcode + CNPJ rente à borda inferior -->
+  <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);text-align:center;z-index:10">
+    <img src="${barcodeUrl}" alt="Código de barras" style="height:28px;width:auto;display:block;margin:0 auto"/>
+    <p style="font-family:'EB Garamond',serif;font-size:9px;color:#ccc;margin-top:2px;letter-spacing:0.1em">CNPJ: 65.002.492/0001-08</p>
+  </div>
+
+  <!-- Content -->
+  <div style="position:relative;z-index:2;text-align:center">
+
+    <!-- Title -->
+    <h1 style="font-family:'Cinzel',serif;font-weight:700;font-size:40px;letter-spacing:0.22em;margin:0;line-height:1.1;background:linear-gradient(90deg,#217346,#2a9558,#217346,#1a5c38,#217346);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">CERTIFICADO</h1>
+    <p style="font-family:'Cinzel',serif;font-weight:400;font-size:12px;letter-spacing:0.5em;color:#0A1628;margin:8px 0 0;text-transform:uppercase">de Qualificação</p>
+
+    <!-- Divider 300 -->
+    <div style="margin:28px 0 26px">
+      <svg width="300" height="14" viewBox="0 0 300 14" fill="none" style="display:block;margin:0 auto">
+        <defs>
+          <linearGradient id="gl1" x1="0" y1="0" x2="300" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="transparent"/><stop offset="15%" stop-color="#F59E0B" stop-opacity="0.5"/>
+            <stop offset="50%" stop-color="#F59E0B"/><stop offset="85%" stop-color="#F59E0B" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="transparent"/>
+          </linearGradient>
+        </defs>
+        <line x1="0" y1="7" x2="300" y2="7" stroke="url(#gl1)" stroke-width="0.5"/>
+        <path d="M144 7 L150 2 L156 7 L150 12 Z" fill="none" stroke="#F59E0B" stroke-width="0.6"/>
+        <circle cx="150" cy="7" r="1.5" fill="#F59E0B"/>
+      </svg>
+    </div>
+
+    <!-- Presented to -->
+    <p style="font-family:'EB Garamond',serif;font-size:11px;letter-spacing:0.35em;color:#999;text-transform:uppercase;margin:0 0 18px">Este certificado é apresentado a</p>
+
+    <!-- Recipient name -->
+    <h2 style="font-family:'Cormorant Garamond',serif;font-weight:500;font-style:italic;font-size:34px;color:#000000;margin:0 0 4px;line-height:1.25">${p.nomeAluno}</h2>
+
+    <!-- Divider 220 -->
+    <div style="margin:24px 0">
+      <svg width="220" height="14" viewBox="0 0 220 14" fill="none" style="display:block;margin:0 auto">
+        <defs>
+          <linearGradient id="gl2" x1="0" y1="0" x2="220" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="transparent"/><stop offset="15%" stop-color="#F59E0B" stop-opacity="0.5"/>
+            <stop offset="50%" stop-color="#F59E0B"/><stop offset="85%" stop-color="#F59E0B" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="transparent"/>
+          </linearGradient>
+        </defs>
+        <line x1="0" y1="7" x2="220" y2="7" stroke="url(#gl2)" stroke-width="0.5"/>
+        <path d="M104 7 L110 2 L116 7 L110 12 Z" fill="none" stroke="#F59E0B" stroke-width="0.6"/>
+        <circle cx="110" cy="7" r="1.5" fill="#F59E0B"/>
+      </svg>
+    </div>
+
+    <!-- Description -->
+    <p style="font-family:'EB Garamond',serif;font-size:15.5px;color:#555;line-height:1.75;max-width:490px;margin:0 auto 30px;font-style:italic">
+      Após a conclusão com sucesso de
+      <span style="color:#217346;font-weight:600;font-style:normal">"${p.curso}"</span>
+      com carga horária total de
+      <span style="color:#0A1628;font-weight:600;font-family:Arial,sans-serif;font-style:normal">${p.horas}h</span> e
+      <span style="color:#0A1628;font-weight:600;font-family:Arial,sans-serif;font-style:normal">${p.licoesConcluidas} lições</span>
+      concluídas. Certifico a capacidade do(a) aluno(a) em aplicar as habilidades aprendidas em contextos profissionais e acadêmicos.
     </p>
-    <div class="signature-section">
-      <div class="sig-cursive">Johni Michael</div>
-      <div class="sig-line"></div>
-      <div class="sig-role">Professor e Fundador | Arena Excel</div>
+
+    <!-- Divider 180 -->
+    <div style="margin:20px 0 24px">
+      <svg width="180" height="14" viewBox="0 0 180 14" fill="none" style="display:block;margin:0 auto">
+        <defs>
+          <linearGradient id="gl3" x1="0" y1="0" x2="180" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="transparent"/><stop offset="15%" stop-color="#F59E0B" stop-opacity="0.5"/>
+            <stop offset="50%" stop-color="#F59E0B"/><stop offset="85%" stop-color="#F59E0B" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="transparent"/>
+          </linearGradient>
+        </defs>
+        <line x1="0" y1="7" x2="180" y2="7" stroke="url(#gl3)" stroke-width="0.5"/>
+        <path d="M84 7 L90 2 L96 7 L90 12 Z" fill="none" stroke="#F59E0B" stroke-width="0.6"/>
+        <circle cx="90" cy="7" r="1.5" fill="#F59E0B"/>
+      </svg>
     </div>
+
+    <!-- Signature -->
+    <p style="font-family:'Dancing Script',cursive;font-weight:700;font-size:36px;color:#1a1a2e;margin:0 0 2px;letter-spacing:0.5px">Johni Michael</p>
+    <div style="width:180px;height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,0.4),transparent);margin:2px auto 3px"></div>
+    <p style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:0.35em;color:#999;text-transform:uppercase;margin:0">Professor e Fundador | Arena Excel</p>
+
+    <!-- Info row -->
+    <div style="margin-top:36px;display:flex;justify-content:center;gap:40px">
+      <div style="text-align:center">
+        <p style="font-family:'EB Garamond',serif;font-size:9px;letter-spacing:0.2em;color:#bbb;text-transform:uppercase;margin:0 0 4px">Data</p>
+        <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0A1628;margin:0">${dataFmt}</p>
+      </div>
+      <div style="text-align:center">
+        <p style="font-family:'EB Garamond',serif;font-size:9px;letter-spacing:0.2em;color:#bbb;text-transform:uppercase;margin:0 0 4px">Carga horária</p>
+        <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0A1628;margin:0">${p.horas}h</p>
+      </div>
+      <div style="text-align:center">
+        <p style="font-family:'EB Garamond',serif;font-size:9px;letter-spacing:0.2em;color:#bbb;text-transform:uppercase;margin:0 0 4px">Lições</p>
+        <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0A1628;margin:0">${p.licoesConcluidas}</p>
+      </div>
+    </div>
+
   </div>
 </div>
 </body>
@@ -499,7 +458,7 @@ const CertModal: React.FC<CertModalProps> = ({ visible, target, certData, isPrem
       const { uri } = await Print.printToFileAsync({
         html,
         base64: false,
-        orientation: Print.Orientation.Landscape,
+        orientation: Print.Orientation.Portrait,
       });
 
       const canShare = await Sharing.isAvailableAsync();
