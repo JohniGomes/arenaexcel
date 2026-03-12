@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -13,7 +14,6 @@ import { LearnStackParamList } from '../../navigation/types';
 import { useSnackbar } from '../../contexts/SnackbarContext';
 import ApiService from '../../services/api.service';
 import { Lesson } from '../../types/api.types';
-import Card from '../../components/Card';
 import { theme } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -58,57 +58,14 @@ const LessonListScreen: React.FC<Props> = ({ navigation, route }) => {
     });
   };
 
-  const getStatusIcon = (status: string): string => {
-    switch (status) {
-      case 'completed':
-        return 'checkmark-circle';
-      case 'incomplete':
-        return 'close-circle';
-      case 'in_progress':
-        return 'play-circle';
-      default:
-        return 'radio-button-off';
-    }
-  };
-
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'completed':
-        return theme.colors.success;
-      case 'incomplete':
-        return theme.colors.error;
-      case 'in_progress':
-        return theme.colors.secondary;
-      default:
-        return theme.colors.textSecondary;
-    }
-  };
-
-  const getStatusText = (status: string): string => {
-    switch (status) {
-      case 'completed':
-        return 'Completo';
-      case 'incomplete':
-        return 'Incompleto';
-      case 'in_progress':
-        return 'Continuar';
-      default:
-        return 'Iniciar';
-    }
-  };
+  const isCompleted = (status: string) => status === 'completed';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
-        <Ionicons
-          name="arrow-back"
-          size={24}
-          color={theme.colors.text}
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-        />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>{levelName ?? ''}</Text>
       </View>
       <ScrollView
@@ -118,50 +75,50 @@ const LessonListScreen: React.FC<Props> = ({ navigation, route }) => {
           <RefreshControl refreshing={loading} onRefresh={loadLessons} colors={[theme.colors.primary]} />
         }
       >
-        {lessons?.map((lesson, index) => (
-          <Card
-            key={lesson?.id}
-            style={styles.lessonCard}
-            onPress={() => handleLessonPress(lesson)}
-          >
-            <View style={styles.lessonContent}>
-              <View style={styles.lessonIconContainer}>
-                <Ionicons
-                  name={getStatusIcon(lesson?.status ?? 'not_started')}
-                  size={40}
-                  color={getStatusColor(lesson?.status ?? 'not_started')}
-                />
+        {lessons?.map((lesson, index) => {
+          const done = isCompleted(lesson?.status ?? 'not_started');
+          return (
+            <TouchableOpacity
+              key={lesson?.id}
+              style={[styles.card, done ? styles.cardDone : styles.cardPending]}
+              onPress={() => handleLessonPress(lesson)}
+              activeOpacity={0.75}
+            >
+              {/* Left: number circle */}
+              <View style={[styles.numCircle, done ? styles.numCircleDone : styles.numCirclePending]}>
+                {done ? (
+                  <Text style={styles.checkMark}>✓</Text>
+                ) : (
+                  <Text style={styles.numText}>{index + 1}</Text>
+                )}
               </View>
-              <View style={styles.lessonTextContainer}>
-                <Text style={styles.lessonTitle}>{lesson?.title ?? ''}</Text>
-                <Text style={styles.lessonSubtitle}>
-                  {lesson?.exercises ?? 0} exercícios
+
+              {/* Middle: title + tag */}
+              <View style={styles.textWrap}>
+                <Text style={[styles.lessonTitle, done && styles.lessonTitleDone]} numberOfLines={2}>
+                  {lesson?.title ?? ''}
                 </Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: getStatusColor(lesson?.status ?? 'not_started') },
-                  ]}
-                >
-                  <Text style={styles.statusBadgeText}>
-                    {getStatusText(lesson?.status ?? 'not_started')}
+                <View style={[styles.tag, done ? styles.tagDone : styles.tagPending]}>
+                  <Text style={[styles.tagText, done ? styles.tagTextDone : styles.tagTextPending]}>
+                    {done ? 'Concluído' : `${lesson?.exercises ?? 0} exercícios`}
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={24} color={theme.colors.textSecondary} />
-            </View>
-          </Card>
-        ))}
+
+              {/* Right: arrow */}
+              {!done && (
+                <Text style={styles.arrow}>›</Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-  },
+  safeArea: { flex: 1, backgroundColor: theme.colors.surface },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -170,57 +127,79 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  backButton: {
-    marginRight: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  lessonCard: {
-    marginBottom: 12,
-    padding: 16,
-  },
-  lessonContent: {
+  backBtn: { marginRight: 16 },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: theme.colors.text },
+  container: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 32 },
+
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    gap: 12,
   },
-  lessonIconContainer: {
-    marginRight: 16,
+  cardPending: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
   },
-  lessonTextContainer: {
-    flex: 1,
+  cardDone: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#27AE60',
   },
+
+  numCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  numCirclePending: {
+    backgroundColor: '#F59E0B',
+  },
+  numCircleDone: {
+    backgroundColor: '#27AE60',
+  },
+  numText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  checkMark: { fontSize: 16, fontWeight: '800', color: '#fff' },
+
+  textWrap: { flex: 1, gap: 6 },
   lessonTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    lineHeight: 20,
   },
-  lessonSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 8,
+  lessonTitleDone: {
+    color: 'rgba(0,0,0,0.45)',
   },
-  statusBadge: {
+
+  tag: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
   },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  tagPending: {
+    backgroundColor: 'rgba(245,158,11,0.15)',
   },
+  tagDone: {
+    backgroundColor: 'rgba(39,174,96,0.15)',
+  },
+  tagText: { fontSize: 12, fontWeight: '600' },
+  tagTextPending: { color: '#B45309' },
+  tagTextDone: { color: '#217346' },
+
+  arrow: { fontSize: 22, color: '#F59E0B', fontWeight: '700', marginLeft: 4 },
 });
 
 export default LessonListScreen;
