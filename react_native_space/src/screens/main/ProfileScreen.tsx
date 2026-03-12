@@ -353,13 +353,18 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: theme.colors.surface,
   },
-  nameContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 8, 
-    marginBottom: 4 
+  nameContainer: {
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+    paddingHorizontal: 16,
   },
-  name: { fontSize: 24, fontWeight: '700', color: theme.colors.text },
+  name: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: theme.colors.text,
+    textAlign: 'center',
+  },
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -369,7 +374,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F59E0B',
   },
   badgeFree: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: '#B0BEC5',
   },
   badgeText: {
     fontSize: 12,

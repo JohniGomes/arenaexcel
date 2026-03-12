@@ -6,6 +6,7 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -60,13 +61,16 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
         ApiService.getProgress(),
         ApiService.getTrails(),
       ]);
-      setLevels(progressResponse?.levels ?? []);
-      // Compute overall trail progress
+      const levelsData = progressResponse?.levels ?? [];
+      setLevels(levelsData);
+      // Compute overall progress: trails + classic lessons
       const allTrails: any[] = trailsData ?? [];
-      const done = allTrails.reduce((s: number, t: any) => s + (t?.progress?.currentQuestion ?? 0), 0);
-      const tot  = allTrails.reduce((s: number, t: any) => s + (t?.totalQuestions ?? 0), 0);
-      setTrailsCompleted(done);
-      setTrailsTotal(tot);
+      const trailDone = allTrails.reduce((s: number, t: any) => s + (t?.progress?.currentQuestion ?? 0), 0);
+      const trailTot  = allTrails.reduce((s: number, t: any) => s + (t?.totalQuestions ?? 0), 0);
+      const classicDone = levelsData.reduce((s: number, l: any) => s + (l?.completed ?? 0), 0);
+      const classicTot  = levelsData.reduce((s: number, l: any) => s + (l?.total ?? 0), 0);
+      setTrailsCompleted(trailDone + classicDone);
+      setTrailsTotal(trailTot + classicTot);
     } catch (error: any) {
       showError(error?.response?.data?.message || 'Erro ao carregar dados');
     } finally {
@@ -113,31 +117,12 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
         {/* Banner Trilhas Interativas */}
         <Card style={styles.trailsCard} onPress={() => navigation.navigate('Trails')}>
           <View style={styles.trailsGradient}>
-            {/* Conteúdo à esquerda */}
             <View style={styles.trailsLeft}>
-              <View style={styles.trailsBadge}>
-                <Text style={styles.trailsBadgeText}>NOVO</Text>
-              </View>
               <Text style={styles.trailsTitle}>Trilhas Interativas</Text>
               <Text style={styles.trailsDescription}>
-                Aprenda Excel com exercícios práticos
+                Aprenda Excel com exercícios práticos e interativos
               </Text>
-              <View style={styles.trailsFeatures}>
-                <View style={styles.trailsFeature}>
-                  <Ionicons name="construct" size={13} color="#FFFFFF" />
-                  <Text style={styles.trailsFeatureText}>Planilhas</Text>
-                </View>
-                <View style={styles.trailsFeature}>
-                  <Ionicons name="bar-chart" size={13} color="#FFFFFF" />
-                  <Text style={styles.trailsFeatureText}>Gráficos</Text>
-                </View>
-              </View>
-              <View style={styles.trailsArrowRow}>
-                <Text style={styles.trailsArrowText}>Ver Trilhas</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-              </View>
             </View>
-            {/* Mascote à direita */}
             <View style={[styles.bannerMascotWrap, MASCOT_SHADOW]}>
               <Image source={BANNER_IMAGE} style={styles.bannerMascot} resizeMode="cover" />
             </View>
@@ -180,56 +165,63 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
           return (
             <Card
               key={level?.id}
-              style={[
-                styles.levelCard,
-                (!unlocked || bloqueadoPremium) && styles.lockedCard,
-                bloqueadoPremium && styles.premiumCard,
-              ]}
+              style={[styles.levelCard, (!unlocked || bloqueadoPremium) && styles.lockedCard]}
               onPress={() => handleLevelPress(level, index)}
               disabled={!unlocked && !bloqueadoPremium}
             >
-              <View style={styles.levelContent}>
-                <View style={[styles.levelIconContainer, MASCOT_SHADOW]}>
-                  {LEVEL_IMAGES[level?.name ?? ''] ? (
-                    <Image
-                      source={LEVEL_IMAGES[level?.name ?? '']}
-                      style={styles.levelIconImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Text style={styles.levelIcon}>
-                      {bloqueadoPremium ? '🔒' : unlocked ? LEVEL_ICONS[level?.name ?? ''] ?? '📚' : '🔒'}
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.levelTextContainer}>
-                  <Text style={[styles.levelName, (!unlocked || bloqueadoPremium) && styles.lockedText]}>
-                    {level?.name ?? ''}
-                  </Text>
-                  <Text style={styles.levelProgress}>
-                    {level?.completed ?? 0}/{level?.total ?? 0} lições
-                  </Text>
-                  {bloqueadoPremium ? (
-                    <View style={styles.premiumBadge}>
-                      <Text style={styles.premiumBadgeEmoji}>⭐</Text>
-                      <Text style={styles.premiumBadgeText}>Premium</Text>
-                    </View>
-                  ) : (
-                    !unlocked && (
-                      <View style={styles.lockedIndicator}>
-                        <Ionicons name="lock-closed-outline" size={12} color="#B0BEC5" />
-                        <Text style={styles.lockedIndicatorText}>Bloqueado</Text>
-                      </View>
-                    )
-                  )}
-                </View>
-                {unlocked && !bloqueadoPremium && (
-                  <Ionicons name="chevron-forward" size={24} color={theme.colors.textSecondary} />
+              <LinearGradient
+                colors={['#0A1628', '#217346']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.levelGradient}
+              >
+                {/* Glow canto superior direito */}
+                <View style={styles.levelGlow} />
+
+                {/* Badge de nível no canto */}
+                {bloqueadoPremium && (
+                  <View style={styles.levelCornerBadge}>
+                    <Text style={styles.levelCornerBadgeText}>⭐ Premium</Text>
+                  </View>
                 )}
-              </View>
-              {unlocked && !bloqueadoPremium && (
-                <ProgressBar progress={progress} style={styles.levelProgressBar} />
-              )}
+                {!unlocked && !bloqueadoPremium && (
+                  <View style={styles.levelCornerBadge}>
+                    <Ionicons name="lock-closed-outline" size={11} color="#fff" />
+                    <Text style={styles.levelCornerBadgeText}> Bloqueado</Text>
+                  </View>
+                )}
+
+                <View style={styles.levelContent}>
+                  <View style={styles.levelIconContainer}>
+                    {LEVEL_IMAGES[level?.name ?? ''] ? (
+                      <Image
+                        source={LEVEL_IMAGES[level?.name ?? '']}
+                        style={styles.levelIconImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={styles.levelIcon}>
+                        {bloqueadoPremium ? '🔒' : unlocked ? LEVEL_ICONS[level?.name ?? ''] ?? '📚' : '🔒'}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.levelTextContainer}>
+                    <Text style={styles.levelName}>{level?.name ?? ''}</Text>
+                    <Text style={styles.levelProgressText}>
+                      {level?.completed ?? 0}/{level?.total ?? 0} lições
+                    </Text>
+                  </View>
+                  {unlocked && !bloqueadoPremium && (
+                    <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.7)" />
+                  )}
+                </View>
+
+                {unlocked && !bloqueadoPremium && (
+                  <View style={styles.levelProgressTrack}>
+                    <View style={[styles.levelProgressFill, { width: `${progress * 100}%` as any }]} />
+                  </View>
+                )}
+              </LinearGradient>
             </Card>
           );
         })}
@@ -264,24 +256,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    minHeight: 160,
+    minHeight: 140,
   },
-  trailsLeft: { flex: 1, gap: 6 },
-  trailsBadge: {
-    backgroundColor: theme.colors.primaryVivid,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  trailsBadgeText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  trailsLeft: { flex: 1, gap: 8 },
   trailsTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
   trailsDescription: { fontSize: 13, color: 'rgba(255,255,255,0.9)', lineHeight: 18 },
-  trailsFeatures: { gap: 4 },
-  trailsFeature: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  trailsFeatureText: { fontSize: 12, color: 'rgba(255,255,255,0.95)', fontWeight: '600' },
-  trailsArrowRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
-  trailsArrowText: { fontSize: 13, fontWeight: '700', color: '#fff' },
   bannerMascotWrap: {
     width: 120,
     height: 120,
@@ -347,50 +326,61 @@ const styles = StyleSheet.create({
   },
 
   /* Levels */
-  levelCard: { marginBottom: 16, padding: 20 },
-  lockedCard: { opacity: 0.6 },
-  levelContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  levelCard: {
+    marginBottom: 12,
+    padding: 0,
+    overflow: 'hidden',
+    borderRadius: 16,
+    shadowColor: '#217346',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  lockedCard: { opacity: 0.7 },
+  levelGradient: { padding: 16, paddingTop: 28 },
+  levelGlow: {
+    position: 'absolute', top: -20, right: -20,
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: 'rgba(39,174,96,0.25)',
+  },
+  levelCornerBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  levelCornerBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  levelContent: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 12 },
   levelIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: '#217346',
-    marginRight: 16,
     flexShrink: 0,
   },
   levelIconImage: { width: 56, height: 56 },
-  levelIcon: { fontSize: 28 },
+  levelIcon: { fontSize: 28, textAlign: 'center', lineHeight: 56 },
   levelTextContainer: { flex: 1 },
-  levelName: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 4 },
-  lockedText: { color: theme.colors.textSecondary },
-  levelProgress: { fontSize: 14, color: theme.colors.textSecondary },
-  lockedIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 6,
+  levelName: { fontSize: 17, fontWeight: '700', color: '#fff', marginBottom: 3 },
+  levelProgressText: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+  levelProgressTrack: {
+    width: '100%',
+    height: 5,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
   },
-  lockedIndicatorText: {
-    fontSize: 12,
-    color: '#B0BEC5',
-    fontWeight: '500',
+  levelProgressFill: {
+    height: '100%',
+    backgroundColor: '#27AE60',
+    borderRadius: 3,
   },
-  premiumCard: { borderColor: '#F59E0B', borderWidth: 2 },
-  premiumBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 8,
-    alignSelf: 'flex-start',
-  },
-  premiumBadgeEmoji: { fontSize: 12 },
-  premiumBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff', marginLeft: 4 },
-  levelProgressBar: { marginTop: 8 },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyStateIcon: { fontSize: 64, marginBottom: 16 },
   emptyStateTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },

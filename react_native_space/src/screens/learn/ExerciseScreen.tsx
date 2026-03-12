@@ -249,7 +249,7 @@ const ExerciseScreen: React.FC<Props> = ({ navigation, route }) => {
                 {(Array.isArray(currentExercise.options) ? currentExercise.options : Object.values(currentExercise.options)).map((option, index) => (
                   <View key={index} style={styles.optionContainer}>
                     <RadioButton.Item
-                      label={`${index}. ${option}`}
+                      label={`${['A','B','C','D'][index] ?? index}. ${option}`}
                       value={option}
                       style={styles.radioButton}
                     />

@@ -12,6 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { LinearGradient } from 'expo-linear-gradient';
 import { usePremium } from '../../hooks/usePremium';
 import PaywallModal from '../../components/PaywallModal';
 import { theme } from '../../constants/theme';
@@ -507,7 +508,7 @@ const WikiExcelScreen = () => {
         </View>
         <View style={styles.videoBannerInfo}>
           <Text style={styles.videoBannerTitulo}>Aulas em Vídeo</Text>
-          <Text style={styles.videoBannerSub}>Aprenda vendo na tela</Text>
+          <Text style={styles.videoBannerSub}>Aprenda com reels práticos</Text>
         </View>
         <Text style={[styles.cardSeta, { color: theme.colors.primary, marginLeft: 8 }]}>›</Text>
       </TouchableOpacity>
@@ -537,20 +538,27 @@ const WikiExcelScreen = () => {
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.card, { borderLeftColor: item.cor }]}
+            style={styles.card}
             onPress={() => { setAreaSelecionada(item); setAbaAtiva('formulas'); }}
             activeOpacity={0.8}
           >
-            <View style={[styles.cardEmoji, { backgroundColor: item.corClara }]}>
-              <Text style={styles.cardEmojiText}>{item.emoji}</Text>
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardNome}>{item.nome}</Text>
-              <Text style={styles.cardDescricao} numberOfLines={2}>{item.descricao}</Text>
-            </View>
-            <View style={styles.cardMeta}>
+            <LinearGradient
+              colors={['#0A1628', '#217346']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cardGradient}
+            >
+              {/* Glow no canto superior direito */}
+              <View style={styles.cardGlow} />
+              <View style={styles.cardEmoji}>
+                <Text style={styles.cardEmojiText}>{item.emoji}</Text>
+              </View>
+              <View style={styles.cardInfo}>
+                <Text style={styles.cardNome}>{item.nome}</Text>
+                <Text style={styles.cardDescricao} numberOfLines={2}>{item.descricao}</Text>
+              </View>
               <Text style={styles.cardSeta}>›</Text>
-            </View>
+            </LinearGradient>
           </TouchableOpacity>
         )}
         ListEmptyComponent={
@@ -690,19 +698,26 @@ const styles = StyleSheet.create({
   lista: { paddingHorizontal: 16, paddingBottom: 20 },
 
   card: {
-    backgroundColor: '#FFF', borderRadius: 14, marginBottom: 12, padding: 16,
-    flexDirection: 'row', alignItems: 'center', borderLeftWidth: 5,
-    elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+    borderRadius: 16, marginBottom: 12, overflow: 'hidden',
+    elevation: 6, shadowColor: '#217346', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
   },
-  cardEmoji: { width: 50, height: 50, borderRadius: 13, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  cardGradient: {
+    flexDirection: 'row', alignItems: 'center', padding: 16,
+  },
+  cardGlow: {
+    position: 'absolute', top: -20, right: -20,
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: 'rgba(39,174,96,0.25)',
+  },
+  cardEmoji: { width: 50, height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 14, overflow: 'hidden' },
   cardEmojiText: { fontSize: 26 },
   cardInfo: { flex: 1 },
-  cardNome: { fontSize: 16, fontWeight: '700', color: '#222', marginBottom: 3 },
-  cardDescricao: { fontSize: 12, color: '#777', lineHeight: 17 },
+  cardNome: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 3 },
+  cardDescricao: { fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 17 },
   cardMeta: { alignItems: 'flex-end', marginLeft: 8 },
   badge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 6 },
   badgeTexto: { fontSize: 11, fontWeight: '700' },
-  cardSeta: { fontSize: 22, color: '#CCC' },
+  cardSeta: { fontSize: 22, color: 'rgba(255,255,255,0.7)' },
 
   vazio: { alignItems: 'center', marginTop: 60 },
   vazioEmoji: { fontSize: 40, marginBottom: 12 },

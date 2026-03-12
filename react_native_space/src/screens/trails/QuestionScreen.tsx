@@ -17,6 +17,7 @@ import { SpreadsheetWebView } from '../../components/SpreadsheetWebView';
 import DragDropQuestion from '../../components/DragDropQuestion';
 import ChartBuilderQuestion from '../../components/ChartBuilderQuestion';
 import { useSound } from '../../contexts/SoundContext';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 
 interface QuestionScreenProps {
@@ -139,7 +140,6 @@ export default function QuestionScreen({
   const handleMultipleChoice = (idx: number) => {
     if (answered) return;
     setSelected(idx);
-    submitAnswer(String(idx));
   };
 
   const goNext = () => {
@@ -317,6 +317,13 @@ ${question.description}
             </View>
           )}
 
+          {/* Botão Verificar para múltipla escolha */}
+          {question.type === 'MULTIPLE_CHOICE' && !answered && selected !== null && (
+            <TouchableOpacity style={styles.verifyBtn} onPress={() => submitAnswer(String(selected))}>
+              <Text style={styles.verifyBtnText}>Verificar</Text>
+            </TouchableOpacity>
+          )}
+
           {isInteractive && (
             <View style={styles.webviewContainer}>
               <SpreadsheetWebView
@@ -348,23 +355,18 @@ ${question.description}
 
           {/* Feedback */}
           {result && (
-            <View
-              style={[
-                styles.feedback,
-                result.isCorrect ? styles.feedbackOk : styles.feedbackFail,
-              ]}
-            >
-              <Text style={styles.feedbackIcon}>
-                {result.isCorrect ? '🎉' : '💡'}
-              </Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.feedbackTitle}>
-                  {result.isCorrect
-                    ? `+${result.xpEarned} XP ganhos!`
-                    : 'Quase lá!'}
+            <View style={[styles.feedbackCard, result.isCorrect ? styles.feedbackCardOk : styles.feedbackCardFail]}>
+              <View style={styles.feedbackHeader}>
+                <Ionicons
+                  name={result.isCorrect ? 'checkmark-circle' : 'close-circle'}
+                  size={32}
+                  color={result.isCorrect ? '#27AE60' : '#E74C3C'}
+                />
+                <Text style={[styles.feedbackTitle, { color: result.isCorrect ? '#27AE60' : '#E74C3C' }]}>
+                  {result.isCorrect ? `Correto! +${result.xpEarned} XP` : 'Incorreto'}
                 </Text>
-                <Text style={styles.feedbackText}>{result.explanation}</Text>
               </View>
+              <Text style={styles.feedbackText}>{result.explanation}</Text>
             </View>
           )}
 
@@ -503,32 +505,37 @@ const styles = StyleSheet.create({
   optionLetterText: { fontSize: 14, fontWeight: '700', color: '#333' },
   optionText: { flex: 1, fontSize: 14, color: '#333', lineHeight: 20 },
   webviewContainer: { flex: 1, minHeight: 320, marginBottom: 12 },
-  feedback: {
+  feedbackCard: {
+    padding: 20,
     borderRadius: 12,
-    padding: 14,
+    marginTop: 16,
+  },
+  feedbackCardOk: { backgroundColor: '#E8F5E9' },
+  feedbackCardFail: { backgroundColor: '#FFEBEE' },
+  feedbackHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
-    marginTop: 12,
+    marginBottom: 10,
   },
-  feedbackOk: {
-    backgroundColor: theme.colors.primaryLight,
-    borderWidth: 1.5,
-    borderColor: theme.colors.success,
-  },
-  feedbackFail: {
-    backgroundColor: theme.colors.amberLight,
-    borderWidth: 1.5,
-    borderColor: theme.colors.amber,
-  },
-  feedbackIcon: { fontSize: 24 },
   feedbackTitle: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#1A1A2E',
-    marginBottom: 2,
+    flex: 1,
   },
-  feedbackText: { fontSize: 13, color: '#555', lineHeight: 18 },
+  feedbackText: { fontSize: 14, color: theme.colors.text, lineHeight: 20 },
+  verifyBtn: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 16,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    elevation: 6,
+  },
+  verifyBtnText: { fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
   nextBtn: {
     backgroundColor: theme.colors.primary,
     borderRadius: 14,

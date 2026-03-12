@@ -87,11 +87,13 @@ export default function TrailsScreen() {
               activeOpacity={trail.isUnlocked ? 0.8 : 1}
             >
               <LinearGradient
-                colors={trail.isUnlocked ? ['#2E9E5B', '#27AE60'] : ['#B0BEC5', '#90A4AE']}
+                colors={trail.isUnlocked ? ['#0A1628', '#217346'] : ['#2C3E50', '#4A5568']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.cardGradient}
               >
+                {/* Glow canto superior direito */}
+                <View style={styles.cardGlow} />
                 {/* Level tag */}
                 <View style={[styles.levelTag, { backgroundColor: trail.isUnlocked ? levelTag.color + 'CC' : 'rgba(255,255,255,0.25)' }]}>
                   <Text style={styles.levelTagText}>
@@ -159,13 +161,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.14,
+    shadowColor: '#217346',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 6,
   },
   cardLocked: { opacity: 0.75 },
+  cardGlow: {
+    position: 'absolute', top: -20, right: -20,
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: 'rgba(39,174,96,0.25)',
+  },
   cardGradient: { padding: 18, paddingTop: 36, gap: 12 },
   levelTag: {
     position: 'absolute',
@@ -214,7 +221,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     width: '100%',
     height: 5,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 3,
     overflow: 'hidden',
   },
