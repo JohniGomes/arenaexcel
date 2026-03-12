@@ -55,6 +55,38 @@ const getAreaText = (area: string) => {
   return areaMap[area] || 'Outro';
 };
 
+const getPersonalizedMessage = (level: string, goals: string[], studyTime: string, area: string): string => {
+  const primaryGoal = goals?.[0] ?? '';
+  const goalMap: Record<string, string> = {
+    career: 'crescer na carreira',
+    job: 'conquistar um emprego melhor',
+    analysis: 'dominar análises de dados',
+    automation: 'automatizar suas tarefas',
+    learn: 'aprender do início',
+    expert: 'se tornar um especialista',
+  };
+  const areaMap: Record<string, string> = {
+    administrative: 'área administrativa',
+    financial: 'área financeira',
+    logistics: 'logística',
+    hr: 'gestão de pessoas',
+    sales: 'área comercial',
+    student: 'vida acadêmica',
+    other: 'sua área',
+  };
+  const goalText = goalMap[primaryGoal] ?? 'evoluir no Excel';
+  const areaText = areaMap[area ?? 'other'] ?? 'sua área';
+  const timeNum = parseInt(studyTime ?? '10');
+
+  if (level === 'beginner') {
+    return `Com ${timeNum} minutos por dia, você vai construir uma base sólida na ${areaText} e dar passos reais para ${goalText}.`;
+  } else if (level === 'intermediate') {
+    return `Você já tem uma base. Com ${timeNum} minutos diários focados na ${areaText}, vai dominar o que falta para ${goalText}.`;
+  } else {
+    return `Nível avançado, ${timeNum} minutos por dia e foco na ${areaText}. Os recursos certos para ${goalText} estão te esperando.`;
+  }
+};
+
 const OnboardingCompleteScreen: React.FC<Props> = ({ navigation, route }) => {
   const { level, goals, studyTime, area, challenges } = route?.params ?? {};
   const [loading, setLoading] = useState(false);
@@ -122,10 +154,8 @@ const OnboardingCompleteScreen: React.FC<Props> = ({ navigation, route }) => {
 
         <Card style={styles.messageCard}>
           <Text style={styles.mascotMessage}>
-            "Perfeito! Vou montar sua jornada personalizada.
-            Vamos transformar você em mestre das planilhas! 🐯📊"
+            {getPersonalizedMessage(level ?? 'beginner', goals ?? [], studyTime ?? '10', area ?? 'other')}
           </Text>
-          <Text style={styles.mascotSignature}>- Excelino</Text>
         </Card>
 
         <Button
@@ -150,8 +180,7 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 16, fontWeight: '600', color: theme.colors.primary, marginBottom: 4 },
   summaryValue: { fontSize: 16, color: theme.colors.text },
   messageCard: { padding: 20, backgroundColor: `${theme.colors.primary}10`, marginBottom: 32 },
-  mascotMessage: { fontSize: 16, color: theme.colors.text, fontStyle: 'italic', textAlign: 'center', marginBottom: 12, lineHeight: 24 },
-  mascotSignature: { fontSize: 14, fontWeight: '600', color: theme.colors.primary, textAlign: 'right' },
+  mascotMessage: { fontSize: 16, color: theme.colors.text, fontStyle: 'italic', textAlign: 'center', lineHeight: 24 },
   button: { marginTop: 'auto' },
 });
 

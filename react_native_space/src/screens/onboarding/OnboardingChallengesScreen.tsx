@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Image, ScrollView } from 'react-native';
-import { Text, Checkbox } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -19,12 +19,12 @@ interface Props {
 }
 
 const challenges = [
-  { id: 'formulas', label: '🧮 Fórmulas complexas' },
-  { id: 'tables', label: '📋 Tabelas dinâmicas' },
-  { id: 'charts', label: '📈 Gráficos avançados' },
-  { id: 'macros', label: '🤖 Macros e automação' },
-  { id: 'data', label: '🔍 Análise de dados' },
-  { id: 'productivity', label: '⚡ Produtividade' },
+  { id: 'formulas', label: 'Fórmulas complexas' },
+  { id: 'tables', label: 'Tabelas dinâmicas' },
+  { id: 'charts', label: 'Gráficos avançados' },
+  { id: 'macros', label: 'Macros e automação' },
+  { id: 'data', label: 'Análise de dados' },
+  { id: 'productivity', label: 'Produtividade' },
 ];
 
 const OnboardingChallengesScreen: React.FC<Props> = ({ navigation, route }) => {
@@ -60,7 +60,7 @@ const OnboardingChallengesScreen: React.FC<Props> = ({ navigation, route }) => {
           style={styles.mascot}
           resizeMode="contain"
         />
-        
+
         <Text style={styles.title}>Quais seus maiores desafios?</Text>
         <Text style={styles.subtitle}>Selecione um ou mais</Text>
 
@@ -68,15 +68,18 @@ const OnboardingChallengesScreen: React.FC<Props> = ({ navigation, route }) => {
           {challenges?.map((challenge) => (
             <Card
               key={challenge?.id}
-              style={styles.optionCard}
+              style={[
+                styles.optionCard,
+                selectedChallenges?.includes(challenge?.id ?? '') && styles.optionCardSelected,
+              ]}
               onPress={() => toggleChallenge(challenge?.id ?? '')}
             >
-              <Checkbox.Item
-                label={challenge?.label ?? ''}
-                status={selectedChallenges?.includes(challenge?.id ?? '') ? 'checked' : 'unchecked'}
-                onPress={() => toggleChallenge(challenge?.id ?? '')}
-                labelStyle={styles.checkboxLabel}
-              />
+              <Text style={[
+                styles.optionTitle,
+                selectedChallenges?.includes(challenge?.id ?? '') && styles.optionTitleSelected,
+              ]}>
+                {challenge?.label ?? ''}
+              </Text>
             </Card>
           ))}
         </ScrollView>
@@ -100,8 +103,10 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 24 },
   optionsContainer: { flex: 1, marginBottom: 16 },
   optionsContent: { paddingBottom: 16 },
-  optionCard: { marginBottom: 8, backgroundColor: theme.colors.surface },
-  checkboxLabel: { fontSize: 16 },
+  optionCard: { marginBottom: 8, padding: 16, backgroundColor: theme.colors.surface },
+  optionCardSelected: { backgroundColor: `${theme.colors.primary}15`, borderColor: theme.colors.primary, borderWidth: 2 },
+  optionTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.text },
+  optionTitleSelected: { color: theme.colors.primary },
   button: { marginTop: 8 },
 });
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Image, ScrollView } from 'react-native';
-import { Text, Checkbox } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -19,12 +19,12 @@ interface Props {
 }
 
 const goals = [
-  { id: 'career', label: '📈 Crescer na carreira' },
-  { id: 'job', label: '💼 Conseguir emprego melhor' },
-  { id: 'analysis', label: '📊 Dominar análises' },
-  { id: 'automation', label: '⚡ Automatizar tarefas' },
-  { id: 'learn', label: '📚 Aprender do zero' },
-  { id: 'expert', label: '🏆 Virar especialista' },
+  { id: 'career', label: 'Crescer na carreira' },
+  { id: 'job', label: 'Conseguir emprego melhor' },
+  { id: 'analysis', label: 'Dominar análises' },
+  { id: 'automation', label: 'Automatizar tarefas' },
+  { id: 'learn', label: 'Aprender do zero' },
+  { id: 'expert', label: 'Virar especialista' },
 ];
 
 const OnboardingGoalsScreen: React.FC<Props> = ({ navigation, route }) => {
@@ -54,11 +54,11 @@ const OnboardingGoalsScreen: React.FC<Props> = ({ navigation, route }) => {
           style={styles.mascot}
           resizeMode="contain"
         />
-        
+
         <Text style={styles.title}>Quais seus objetivos?</Text>
         <Text style={styles.subtitle}>Selecione um ou mais</Text>
 
-        <ScrollView 
+        <ScrollView
           style={styles.optionsContainer}
           contentContainerStyle={styles.optionsContent}
           showsVerticalScrollIndicator={true}
@@ -66,15 +66,18 @@ const OnboardingGoalsScreen: React.FC<Props> = ({ navigation, route }) => {
           {goals?.map((goal) => (
             <Card
               key={goal?.id}
-              style={styles.optionCard}
+              style={[
+                styles.optionCard,
+                selectedGoals?.includes(goal?.id ?? '') && styles.optionCardSelected,
+              ]}
               onPress={() => toggleGoal(goal?.id ?? '')}
             >
-              <Checkbox.Item
-                label={goal?.label ?? ''}
-                status={selectedGoals?.includes(goal?.id ?? '') ? 'checked' : 'unchecked'}
-                onPress={() => toggleGoal(goal?.id ?? '')}
-                labelStyle={styles.checkboxLabel}
-              />
+              <Text style={[
+                styles.optionTitle,
+                selectedGoals?.includes(goal?.id ?? '') && styles.optionTitleSelected,
+              ]}>
+                {goal?.label ?? ''}
+              </Text>
             </Card>
           ))}
         </ScrollView>
@@ -98,8 +101,10 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 24 },
   optionsContainer: { flex: 1, marginBottom: 16 },
   optionsContent: { paddingBottom: 16 },
-  optionCard: { marginBottom: 8, backgroundColor: theme.colors.surface },
-  checkboxLabel: { fontSize: 16 },
+  optionCard: { marginBottom: 8, padding: 16, backgroundColor: theme.colors.surface },
+  optionCardSelected: { backgroundColor: `${theme.colors.primary}15`, borderColor: theme.colors.primary, borderWidth: 2 },
+  optionTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.text },
+  optionTitleSelected: { color: theme.colors.primary },
   button: { marginTop: 8 },
 });
 

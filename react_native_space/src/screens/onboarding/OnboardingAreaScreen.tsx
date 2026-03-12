@@ -19,13 +19,13 @@ interface Props {
 }
 
 const areas = [
-  { id: 'administrative', label: '📋 Administrativo' },
-  { id: 'financial', label: '💰 Financeiro' },
-  { id: 'logistics', label: '🚚 Logística' },
-  { id: 'hr', label: '👥 RH' },
-  { id: 'sales', label: '💼 Comercial' },
-  { id: 'student', label: '🎓 Estudante' },
-  { id: 'other', label: '🔧 Outro' },
+  { id: 'administrative', label: 'Administrativo' },
+  { id: 'financial', label: 'Financeiro' },
+  { id: 'logistics', label: 'Logística' },
+  { id: 'hr', label: 'RH' },
+  { id: 'sales', label: 'Comercial' },
+  { id: 'student', label: 'Estudante' },
+  { id: 'other', label: 'Outro' },
 ];
 
 const OnboardingAreaScreen: React.FC<Props> = ({ navigation, route }) => {
