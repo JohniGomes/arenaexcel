@@ -56,7 +56,6 @@
     "scheme": "arenaexcel",
     "plugins": [
       "expo-web-browser",
-      "expo-print",
       [
         "expo-notifications",
         {
