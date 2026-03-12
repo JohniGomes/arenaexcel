@@ -170,7 +170,8 @@ const CertificateScreen = () => {
   // ===== TELA PARA USUÁRIOS GRATUITOS =====
   if (!isPremium) {
     return (
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      // backgroundColor matches gradient end so safe-area padding below has no white gap
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#1A5C35' }} edges={['top']}>
         <LinearGradient
           colors={['#0A1628', '#217346']}
           start={{ x: 0, y: 0 }}

@@ -239,14 +239,20 @@ const ProfileScreen = () => {
             </Card>
           )}
 
-          <View style={styles.achievementsGrid}>
-            {achievements?.slice(0, 9)?.map((achievement) => (
-              <View key={achievement?.id} style={[styles.achievementBadge, !achievement?.unlocked && styles.lockedBadge]}>
-                <Text style={styles.achievementIcon}>{achievement?.unlocked ? achievement?.icon : '🔒'}</Text>
-                <Text style={styles.achievementName} numberOfLines={2}>{achievement?.name ?? ''}</Text>
-              </View>
-            ))}
-          </View>
+          <ScrollView
+            style={styles.achievementsScroll}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
+            <View style={styles.achievementsGrid}>
+              {achievements?.map((achievement) => (
+                <View key={achievement?.id} style={[styles.achievementBadge, !achievement?.unlocked && styles.lockedBadge]}>
+                  <Text style={styles.achievementIcon}>{achievement?.unlocked ? achievement?.icon : '🔒'}</Text>
+                  <Text style={styles.achievementName} numberOfLines={2}>{achievement?.name ?? ''}</Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
         </Card>
 
         <Button title="Sair" onPress={handleLogout} variant="outline" style={styles.logoutButton} />
@@ -458,6 +464,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     textAlign: 'right',
   },
+  achievementsScroll: { maxHeight: 420 },
   achievementsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   achievementBadge: { width: '30%', alignItems: 'center', marginBottom: 16 },
   lockedBadge: { opacity: 0.4 },

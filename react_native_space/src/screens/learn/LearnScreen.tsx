@@ -166,7 +166,12 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
           return (
             <Card
               key={level?.id}
-              style={[styles.levelCard, (!unlocked || bloqueadoPremium) && styles.lockedCard]}
+              style={[
+                styles.levelCard,
+                unlocked && !bloqueadoPremium && styles.levelCardUnlocked,
+                !unlocked && !bloqueadoPremium && styles.levelCardLocked,
+                bloqueadoPremium && styles.levelCardPremium,
+              ]}
               onPress={() => handleLevelPress(level, index)}
               disabled={!unlocked && !bloqueadoPremium}
             >
@@ -176,21 +181,24 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.levelGradient}
               >
-                {/* Locked overlay - grey for progression-locked */}
+                {/* Locked overlay — grey for progression-locked */}
                 {!unlocked && !bloqueadoPremium && <View style={styles.lockedOverlay} />}
-                {/* Locked overlay - amber for premium-locked */}
-                {bloqueadoPremium && <View style={styles.premiumOverlay} />}
 
-                {/* Badge de nível no canto */}
-                {bloqueadoPremium && (
-                  <View style={styles.levelCornerBadge}>
-                    <Text style={styles.levelCornerBadgeText}>⭐ Premium</Text>
+                {/* Premium golden glow top-right */}
+                {bloqueadoPremium && <View style={styles.premiumGlow} />}
+
+                {/* Badge Bloqueado */}
+                {!unlocked && !bloqueadoPremium && (
+                  <View style={styles.badgeLocked}>
+                    <Ionicons name="lock-closed" size={10} color="#B0BEC5" />
+                    <Text style={styles.badgeLockedText}> Bloqueado</Text>
                   </View>
                 )}
-                {!unlocked && !bloqueadoPremium && (
-                  <View style={styles.levelCornerBadge}>
-                    <Ionicons name="lock-closed-outline" size={11} color="#fff" />
-                    <Text style={styles.levelCornerBadgeText}> Bloqueado</Text>
+
+                {/* Badge Premium */}
+                {bloqueadoPremium && (
+                  <View style={styles.badgePremium}>
+                    <Text style={styles.badgePremiumText}>⭐ Premium</Text>
                   </View>
                 )}
 
@@ -209,13 +217,24 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
                     )}
                   </View>
                   <View style={styles.levelTextContainer}>
-                    <Text style={styles.levelName}>{level?.name ?? ''}</Text>
-                    <Text style={styles.levelProgressText}>
+                    <Text style={[
+                      styles.levelName,
+                      !unlocked && !bloqueadoPremium && styles.levelNameDimmed,
+                    ]}>
+                      {level?.name ?? ''}
+                    </Text>
+                    <Text style={[
+                      styles.levelProgressText,
+                      !unlocked && !bloqueadoPremium && styles.levelProgressTextDimmed,
+                    ]}>
                       {level?.completed ?? 0}/{level?.total ?? 0} lições
                     </Text>
                   </View>
                   {unlocked && !bloqueadoPremium && (
                     <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.7)" />
+                  )}
+                  {!unlocked && !bloqueadoPremium && (
+                    <Ionicons name="lock-closed" size={24} color="rgba(255,255,255,0.35)" />
                   )}
                 </View>
 
@@ -341,30 +360,77 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  lockedCard: { opacity: 0.85 },
+  // Unlocked: prominent green left accent
+  levelCardUnlocked: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#27AE60',
+  },
+  // Locked by progression: subtle border
+  levelCardLocked: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    opacity: 0.85,
+  },
+  // Premium: amber border + amber shadow
+  levelCardPremium: {
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
   levelGradient: { padding: 16, paddingTop: 28 },
   lockedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(80,80,80,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     zIndex: 0,
   },
-  premiumOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(180,100,0,0.35)',
+  // Golden glow circle top-right for premium cards
+  premiumGlow: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(245,158,11,0.15)',
     zIndex: 0,
   },
-  levelCornerBadge: {
+  // Badge: Bloqueado
+  badgeLocked: {
     position: 'absolute',
     top: 10,
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 20,
   },
-  levelCornerBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  badgeLockedText: { fontSize: 11, fontWeight: '600', color: '#B0BEC5' },
+  // Badge: Premium
+  badgePremium: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  badgePremiumText: { fontSize: 11, fontWeight: '800', color: '#1A1A2E' },
+  // Dimmed text for locked cards
+  levelNameDimmed: { color: 'rgba(255,255,255,0.5)' },
+  levelProgressTextDimmed: { color: 'rgba(255,255,255,0.35)' },
   levelContent: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 12 },
   levelIconContainer: {
     width: 56,
