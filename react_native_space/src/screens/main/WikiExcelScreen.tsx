@@ -649,7 +649,7 @@ const WikiExcelScreen = () => {
 
               {/* Card de bloqueio para fórmulas/dicas */}
               {!isPremium && (
-                <TouchableOpacity style={styles.bloqueioCard} onPress={() => setShowPaywall(true)}>
+                <TouchableOpacity style={styles.bloqueioCard} onPress={() => { setAreaSelecionada(null); setTimeout(() => setShowPaywall(true), 350); }}>
                   <Text style={styles.bloqueioEmoji}>🔒</Text>
                   <Text style={styles.bloqueioTitulo}>
                     +{abaAtiva === 'formulas' 
