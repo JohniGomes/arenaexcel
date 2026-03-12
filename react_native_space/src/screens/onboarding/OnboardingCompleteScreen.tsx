@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet, Image, ScrollView } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -121,42 +121,48 @@ const OnboardingCompleteScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.container}>
-        <Image
-          source={require('../../../assets/excelino-celebrating.gif')}
-          style={styles.mascotImage}
-          resizeMode="contain"
-        />
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Image
+            source={require('../../../assets/excelino-celebrating.gif')}
+            style={styles.mascotImage}
+            resizeMode="contain"
+          />
 
-        <Text style={styles.title}>🏆 Tudo pronto!</Text>
-        <Text style={styles.subtitle}>Vamos começar sua jornada personalizada</Text>
+          <Text style={styles.title}>🏆 Tudo pronto!</Text>
+          <Text style={styles.subtitle}>Vamos começar sua jornada personalizada</Text>
 
-        <Card style={styles.summaryCard}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>🎯 Objetivo:</Text>
-            <Text style={styles.summaryValue}>{getGoalsText(goals ?? [])}</Text>
-          </View>
-          
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>🧠 Nível:</Text>
-            <Text style={styles.summaryValue}>{getLevelText(level ?? 'beginner')}</Text>
-          </View>
-          
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>🕒 Tempo diário:</Text>
-            <Text style={styles.summaryValue}>{studyTime} minutos</Text>
-          </View>
-          
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>🏢 Área:</Text>
-            <Text style={styles.summaryValue}>{getAreaText(area ?? 'other')}</Text>
-          </View>
-        </Card>
+          <Card style={styles.summaryCard}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>🎯 Objetivo:</Text>
+              <Text style={styles.summaryValue}>{getGoalsText(goals ?? [])}</Text>
+            </View>
 
-        <Card style={styles.messageCard}>
-          <Text style={styles.mascotMessage}>
-            {getPersonalizedMessage(level ?? 'beginner', goals ?? [], studyTime ?? '10', area ?? 'other')}
-          </Text>
-        </Card>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>🧠 Nível:</Text>
+              <Text style={styles.summaryValue}>{getLevelText(level ?? 'beginner')}</Text>
+            </View>
+
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>🕒 Tempo diário:</Text>
+              <Text style={styles.summaryValue}>{studyTime} minutos</Text>
+            </View>
+
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>🏢 Área:</Text>
+              <Text style={styles.summaryValue}>{getAreaText(area ?? 'other')}</Text>
+            </View>
+          </Card>
+
+          <Card style={styles.messageCard}>
+            <Text style={styles.mascotMessage}>
+              {getPersonalizedMessage(level ?? 'beginner', goals ?? [], studyTime ?? '10', area ?? 'other')}
+            </Text>
+          </Card>
+        </ScrollView>
 
         <Button
           title="🚀 Iniciar Arena"
@@ -171,7 +177,9 @@ const OnboardingCompleteScreen: React.FC<Props> = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background },
-  container: { flex: 1, padding: 24 },
+  container: { flex: 1, paddingHorizontal: 24, paddingBottom: 24 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingTop: 24, paddingBottom: 8 },
   mascotImage: { width: '100%', height: 120, marginBottom: 24 },
   title: { fontSize: 28, fontWeight: '700', color: theme.colors.text, textAlign: 'center', marginBottom: 8 },
   subtitle: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 32 },
@@ -181,7 +189,7 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 16, color: theme.colors.text },
   messageCard: { padding: 20, backgroundColor: `${theme.colors.primary}10`, marginBottom: 32 },
   mascotMessage: { fontSize: 16, color: theme.colors.text, fontStyle: 'italic', textAlign: 'center', lineHeight: 24 },
-  button: { marginTop: 'auto' },
+  button: { marginTop: 16 },
 });
 
 export default OnboardingCompleteScreen;
