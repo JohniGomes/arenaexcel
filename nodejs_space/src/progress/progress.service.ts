@@ -158,53 +158,75 @@ export class ProgressService {
     }
   }
 
-  private async checkAchievements(userId: string): Promise<any[]> {
-    const user = await this.prisma.users.findUnique({
-      where: { id: userId },
-      include: {
-        userprogress: { where: { status: 'completed' } },
-        userachievements: true,
-      },
-    });
+  async checkAchievements(userId: string): Promise<any[]> {
+    const [user, trailProgress] = await Promise.all([
+      this.prisma.users.findUnique({
+        where: { id: userId },
+        include: {
+          userprogress: { where: { status: 'completed' } },
+          userachievements: true,
+          useranswers: { include: { question: { select: { type: true } } } },
+        },
+      }),
+      this.prisma.usertrailprogress.findMany({ where: { userId } }),
+    ]);
 
-    if (!user) {
-      throw new Error('User not found');
-    }
+    if (!user) throw new Error('User not found');
 
     const allAchievements = await this.prisma.achievements.findMany();
-    const unlockedAchievementIds = user.userachievements.map(ua => ua.achievementid);
+    const unlockedIds = new Set(user.userachievements.map(ua => ua.achievementid));
     const newAchievements = [];
 
+    const trailAnswersCorrect = user.useranswers.filter(a => a.isCorrect);
+    const formulaCorrect = trailAnswersCorrect.filter(a =>
+      a.question?.type === 'SPREADSHEET_INPUT' || a.question?.type === 'FORMULA_BUILDER'
+    ).length;
+    const chartCorrect = trailAnswersCorrect.filter(a => a.question?.type === 'CHART_BUILDER').length;
+    const trailsCompleted = trailProgress.filter(tp => tp.completedAt !== null).length;
+
     for (const achievement of allAchievements) {
-      if (unlockedAchievementIds.includes(achievement.id)) continue;
+      if (unlockedIds.has(achievement.id)) continue;
 
       let unlock = false;
       const criteria = achievement.criteria as any;
+      const type = criteria?.type;
+      const value = criteria?.value ?? 0;
 
-      switch (achievement.name) {
-        case 'Primeira Lição':
-          unlock = user.userprogress.length >= 1;
+      switch (type) {
+        case 'lessons_completed':
+          unlock = user.userprogress.length >= value;
           break;
-        case 'Dedicado':
-          unlock = user.streak >= 7;
+        case 'streak':
+          unlock = user.streak >= value;
           break;
-        case 'Persistente':
-          unlock = user.streak >= 30;
+        case 'xp':
+          unlock = user.xp >= value;
           break;
-        case 'Estudioso':
-          unlock = user.xp >= 100;
+        case 'level':
+          unlock = user.level >= value;
           break;
-        case 'Expert':
-          unlock = user.xp >= 1000;
+        case 'trails_completed':
+          unlock = trailsCompleted >= value;
+          break;
+        case 'trail_questions':
+          unlock = trailAnswersCorrect.length >= value;
+          break;
+        case 'formula_correct':
+          unlock = formulaCorrect >= value;
+          break;
+        case 'chart_correct':
+          unlock = chartCorrect >= value;
+          break;
+        case 'premium':
+          unlock = user.isPremium;
           break;
       }
 
       if (unlock) {
-        await this.prisma.userachievements.create({
-          data: {
-            userid: userId,
-            achievementid: achievement.id,
-          },
+        await this.prisma.userachievements.upsert({
+          where: { userid_achievementid: { userid: userId, achievementid: achievement.id } },
+          update: {},
+          create: { userid: userId, achievementid: achievement.id },
         });
         newAchievements.push(achievement);
       }

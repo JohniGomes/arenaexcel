@@ -92,8 +92,8 @@ export default function TrailsScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.cardGradient}
               >
-                {/* Glow canto superior direito */}
-                <View style={styles.cardGlow} />
+                {/* Locked overlay */}
+                {!trail.isUnlocked && <View style={styles.lockedOverlay} />}
                 {/* Level tag */}
                 <View style={[styles.levelTag, { backgroundColor: trail.isUnlocked ? levelTag.color + 'CC' : 'rgba(255,255,255,0.25)' }]}>
                   <Text style={styles.levelTagText}>
@@ -167,11 +167,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  cardLocked: { opacity: 0.75 },
-  cardGlow: {
-    position: 'absolute', top: -20, right: -20,
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(39,174,96,0.25)',
+  cardLocked: { opacity: 0.85 },
+  lockedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(80,80,80,0.45)',
+    borderRadius: 16,
+    zIndex: 0,
   },
   cardGradient: { padding: 18, paddingTop: 36, gap: 12 },
   levelTag: {

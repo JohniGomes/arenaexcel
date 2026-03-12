@@ -143,14 +143,11 @@ export default function TrailDetailScreen() {
           <Text style={styles.trailName}>{trail?.name ?? ''}</Text>
           <Text style={styles.trailDesc}>{trail?.description ?? ''}</Text>
 
-          {/* Progresso */}
+          {/* Barra de progresso */}
           <View style={styles.progressSection}>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${percent}%` }]} />
             </View>
-            <Text style={styles.progressLabel}>
-              {completed} de {total} questões concluídas
-            </Text>
           </View>
         </LinearGradient>
 

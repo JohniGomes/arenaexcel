@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProgressService } from '../progress/progress.service';
 
 // XP acumulado para atingir cada nível (índice = nível - 1)
 const XP_THRESHOLDS = [0,100,250,450,700,1000,1350,1750,2200,2700,3250,3850,4500,5200,5950,6750,7600,8500,9500,10500];
@@ -13,7 +14,10 @@ function calculateLevel(xp: number): number {
 
 @Injectable()
 export class TrailsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private progressService: ProgressService,
+  ) {}
 
   async findAllWithProgress(userId: string) {
     const trails = await this.prisma.trails.findMany({
@@ -179,6 +183,9 @@ export class TrailsService {
           lastStudyAt: now,
         },
       });
+
+      // Verifica conquistas desbloqueadas
+      this.progressService.checkAchievements(userId).catch(() => {});
 
       // Verifica se é a última questão da trilha
       const totalQuestionsInTrail = await this.prisma.questions.count({

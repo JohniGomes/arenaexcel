@@ -7,6 +7,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -48,6 +49,8 @@ const HomeScreen = () => {
     }, [])
   );
 
+  const DAILY_XP_KEY = `dailyXpProgress_${new Date().toISOString().slice(0, 10)}`;
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -58,8 +61,18 @@ const HomeScreen = () => {
 
       setProfile(profileData ?? null);
       setMissions(missionsData?.missions ?? []);
-      setDailyXpProgress(missionsData?.dailyXpProgress ?? 0);
       setDailyXpGoal(missionsData?.dailyXpGoal ?? 65);
+
+      // Use server value if available, otherwise fallback to AsyncStorage cache
+      const serverXp = missionsData?.dailyXpProgress;
+      if (typeof serverXp === 'number' && serverXp > 0) {
+        setDailyXpProgress(serverXp);
+        await AsyncStorage.setItem(DAILY_XP_KEY, String(serverXp));
+      } else {
+        const cached = await AsyncStorage.getItem(DAILY_XP_KEY);
+        setDailyXpProgress(cached ? parseInt(cached, 10) : 0);
+      }
+
       await refreshProfile();
     } catch (error) {
       console.error('Error loading home data:', error);

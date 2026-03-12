@@ -5,7 +5,7 @@
     "buildCommand": "npm install"
   },
   "deploy": {
-    "startCommand": "npm run build && npx ts-node prisma/seed_trails.ts && node dist/src/main",
+    "startCommand": "npm run build && npx ts-node prisma/seed_trails.ts && npx ts-node prisma/seed_achievements.ts && npx ts-node prisma/seed_premium.ts && node dist/src/main",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }

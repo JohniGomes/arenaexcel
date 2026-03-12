@@ -122,6 +122,7 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.trailsDescription}>
                 Aprenda Excel com exercícios práticos e interativos
               </Text>
+              <Text style={styles.trailsLink}>Ver Trilhas →</Text>
             </View>
             <View style={[styles.bannerMascotWrap, MASCOT_SHADOW]}>
               <Image source={BANNER_IMAGE} style={styles.bannerMascot} resizeMode="cover" />
@@ -175,8 +176,10 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.levelGradient}
               >
-                {/* Glow canto superior direito */}
-                <View style={styles.levelGlow} />
+                {/* Locked overlay - grey for progression-locked */}
+                {!unlocked && !bloqueadoPremium && <View style={styles.lockedOverlay} />}
+                {/* Locked overlay - amber for premium-locked */}
+                {bloqueadoPremium && <View style={styles.premiumOverlay} />}
 
                 {/* Badge de nível no canto */}
                 {bloqueadoPremium && (
@@ -261,6 +264,7 @@ const styles = StyleSheet.create({
   trailsLeft: { flex: 1, gap: 8 },
   trailsTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
   trailsDescription: { fontSize: 13, color: 'rgba(255,255,255,0.9)', lineHeight: 18 },
+  trailsLink: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.95)', marginTop: 2 },
   bannerMascotWrap: {
     width: 120,
     height: 120,
@@ -337,12 +341,17 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  lockedCard: { opacity: 0.7 },
+  lockedCard: { opacity: 0.85 },
   levelGradient: { padding: 16, paddingTop: 28 },
-  levelGlow: {
-    position: 'absolute', top: -20, right: -20,
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(39,174,96,0.25)',
+  lockedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(80,80,80,0.45)',
+    zIndex: 0,
+  },
+  premiumOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(180,100,0,0.35)',
+    zIndex: 0,
   },
   levelCornerBadge: {
     position: 'absolute',

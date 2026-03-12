@@ -9,25 +9,41 @@ export class AchievementsService {
 
   async getAchievements(userId: string) {
     try {
-      const allAchievements = await this.prisma.achievements.findMany({
-        orderBy: { id: 'asc' },
-      });
-
-      const userAchievements = await this.prisma.userachievements.findMany({
-        where: { userid: userId },
-        include: { achievement: true },
-      });
-
-      const user = await this.prisma.users.findUnique({
-        where: { id: userId },
-        include: {
-          userprogress: {
-            where: { status: 'completed' },
+      const [allAchievements, userAchievements, user, trailProgress, trailAnswers] = await Promise.all([
+        this.prisma.achievements.findMany({ orderBy: { id: 'asc' } }),
+        this.prisma.userachievements.findMany({ where: { userid: userId }, include: { achievement: true } }),
+        this.prisma.users.findUnique({
+          where: { id: userId },
+          include: {
+            userprogress: { where: { status: 'completed' } },
+            useranswers: { include: { question: { select: { type: true } } } },
           },
-        },
-      });
+        }),
+        this.prisma.usertrailprogress.findMany({ where: { userId } }),
+        this.prisma.useranswers.findMany({ where: { userId, isCorrect: true }, include: { question: { select: { type: true } } } }),
+      ]);
 
       const unlockedAchievementIds = new Set(userAchievements.map(ua => ua.achievementid));
+      const trailsCompleted = trailProgress.filter(tp => tp.completedAt !== null).length;
+      const formulaCorrect = trailAnswers.filter(a =>
+        a.question?.type === 'SPREADSHEET_INPUT' || a.question?.type === 'FORMULA_BUILDER'
+      ).length;
+      const chartCorrect = trailAnswers.filter(a => a.question?.type === 'CHART_BUILDER').length;
+
+      const getProgress = (criteria: any): number => {
+        const type = criteria?.type;
+        switch (type) {
+          case 'lessons_completed': return user?.userprogress?.length || 0;
+          case 'streak': return user?.streak || 0;
+          case 'xp': return user?.xp || 0;
+          case 'level': return user?.level || 1;
+          case 'trails_completed': return trailsCompleted;
+          case 'trail_questions': return trailAnswers.length;
+          case 'formula_correct': return formulaCorrect;
+          case 'chart_correct': return chartCorrect;
+          default: return 0;
+        }
+      };
 
       const achievements = allAchievements.map(achievement => {
         const userAchievement = userAchievements.find(ua => ua.achievementid === achievement.id);
@@ -47,17 +63,8 @@ export class AchievementsService {
       for (const achievement of achievements) {
         if (!achievement.unlocked) {
           const criteria = achievement.criteria as any;
-          let currentProgress = 0;
-          let targetValue = criteria?.value || 1;
-
-          if (criteria?.type === 'lessons_completed') {
-            currentProgress = user?.userprogress?.length || 0;
-          } else if (criteria?.type === 'streak') {
-            currentProgress = user?.streak || 0;
-          } else if (criteria?.type === 'xp') {
-            currentProgress = user?.xp || 0;
-          }
-
+          const currentProgress = getProgress(criteria);
+          const targetValue = criteria?.value || 1;
           nextAchievement = {
             ...achievement,
             currentProgress,

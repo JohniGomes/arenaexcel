@@ -548,8 +548,6 @@ const WikiExcelScreen = () => {
               end={{ x: 1, y: 1 }}
               style={styles.cardGradient}
             >
-              {/* Glow no canto superior direito */}
-              <View style={styles.cardGlow} />
               <View style={styles.cardEmoji}>
                 <Text style={styles.cardEmojiText}>{item.emoji}</Text>
               </View>
@@ -703,11 +701,6 @@ const styles = StyleSheet.create({
   },
   cardGradient: {
     flexDirection: 'row', alignItems: 'center', padding: 16,
-  },
-  cardGlow: {
-    position: 'absolute', top: -20, right: -20,
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(39,174,96,0.25)',
   },
   cardEmoji: { width: 50, height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 14, overflow: 'hidden' },
   cardEmojiText: { fontSize: 26 },
