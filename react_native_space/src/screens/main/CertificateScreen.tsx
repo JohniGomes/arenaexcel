@@ -92,8 +92,8 @@ const generateCertificateHTML = (p: {
   courseId: string;
 }): string => {
   const dataFmt = p.data ? new Date(p.data).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
-  const barcodeText = encodeURIComponent(`${p.userId}-${p.courseId}`);
-  const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${barcodeText}&scale=2&height=10&backgroundcolor=ffffff`;
+  const validateUrl = `${PROD_URL}/certificado/${p.userId}/${p.courseId}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(validateUrl)}&color=217346&bgcolor=ffffff&margin=2`;
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -149,7 +149,7 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
   </svg>
 
   <!-- Medal Seal -->
-  <div style="position:absolute;top:18px;right:22px">
+  <div style="position:absolute;top:18px;right:22px;background:transparent;width:74px">
     <div style="width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#217346,#0A1628);border:2px solid #F59E0B;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(33,115,70,0.25),0 0 0 4px rgba(245,158,11,0.08)">
       <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
         <polygon points="18,3 21.8,13 33,13 24,19.6 27.2,30 18,24 8.8,30 12,19.6 3,13 14.2,13" fill="#F59E0B"/>
@@ -164,13 +164,13 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
   </div>
 
   <!-- Excel Icon -->
-  <div style="position:absolute;bottom:22px;left:22px;width:44px;height:44px;background:#217346;border-radius:8px;border:1px solid rgba(245,158,11,0.4);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(33,115,70,0.3)">
-    <span style="color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:22px;line-height:1">X</span>
+  <div style="position:absolute;bottom:22px;left:22px;width:44px;height:44px;background:rgba(33,115,70,0.08);border-radius:8px;border:1.5px solid #217346;display:flex;align-items:center;justify-content:center">
+    <span style="color:#217346;font-family:'Cinzel',serif;font-weight:700;font-size:22px;line-height:1">X</span>
   </div>
 
-  <!-- Barcode + CNPJ rente à borda inferior -->
-  <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);text-align:center;z-index:10">
-    <img src="${barcodeUrl}" alt="Código de barras" style="height:28px;width:auto;display:block;margin:0 auto"/>
+  <!-- QR Code + CNPJ rente à borda inferior -->
+  <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);text-align:center;z-index:10">
+    <img src="${qrUrl}" alt="QR Code" style="width:52px;height:52px;display:block;margin:0 auto"/>
     <p style="font-family:'EB Garamond',serif;font-size:9px;color:#ccc;margin-top:2px;letter-spacing:0.1em">CNPJ: 65.002.492/0001-08</p>
   </div>
 
@@ -198,7 +198,7 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
     </div>
 
     <!-- Presented to -->
-    <p style="font-family:'EB Garamond',serif;font-size:11px;letter-spacing:0.35em;color:#999;text-transform:uppercase;margin:0 0 18px">Este certificado é apresentado a</p>
+    <p style="font-family:'Cinzel',serif;font-weight:400;font-size:12px;letter-spacing:0.5em;color:#0A1628;text-transform:uppercase;margin:0 0 18px">Este certificado é apresentado a</p>
 
     <!-- Recipient name -->
     <h2 style="font-family:'Cormorant Garamond',serif;font-weight:500;font-style:italic;font-size:34px;color:#000000;margin:0 0 4px;line-height:1.25">${p.nomeAluno}</h2>
@@ -248,21 +248,17 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
     <!-- Signature -->
     <p style="font-family:'Dancing Script',cursive;font-weight:700;font-size:36px;color:#1a1a2e;margin:0 0 2px;letter-spacing:0.5px">Johni Michael</p>
     <div style="width:180px;height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,0.4),transparent);margin:2px auto 3px"></div>
-    <p style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:0.35em;color:#999;text-transform:uppercase;margin:0">Professor e Fundador | Arena Excel</p>
+    <p style="font-family:'Cinzel',serif;font-weight:400;font-size:12px;letter-spacing:0.5em;color:#0A1628;text-transform:uppercase;margin:0">Professor e Fundador | Arena Excel</p>
 
     <!-- Info row -->
-    <div style="margin-top:36px;display:flex;justify-content:center;gap:40px">
-      <div style="text-align:center">
-        <p style="font-family:'EB Garamond',serif;font-size:9px;letter-spacing:0.2em;color:#bbb;text-transform:uppercase;margin:0 0 4px">Data</p>
-        <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0A1628;margin:0">${dataFmt}</p>
-      </div>
-      <div style="text-align:center">
-        <p style="font-family:'EB Garamond',serif;font-size:9px;letter-spacing:0.2em;color:#bbb;text-transform:uppercase;margin:0 0 4px">Carga horária</p>
-        <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0A1628;margin:0">${p.horas}h</p>
-      </div>
+    <div style="margin-top:36px;display:flex;justify-content:center;gap:60px">
       <div style="text-align:center">
         <p style="font-family:'EB Garamond',serif;font-size:9px;letter-spacing:0.2em;color:#bbb;text-transform:uppercase;margin:0 0 4px">Lições</p>
         <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0A1628;margin:0">${p.licoesConcluidas}</p>
+      </div>
+      <div style="text-align:center">
+        <p style="font-family:'EB Garamond',serif;font-size:9px;letter-spacing:0.2em;color:#bbb;text-transform:uppercase;margin:0 0 4px">Data</p>
+        <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0A1628;margin:0">${dataFmt}</p>
       </div>
     </div>
 
