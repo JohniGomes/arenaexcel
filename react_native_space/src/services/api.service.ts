@@ -263,6 +263,12 @@ class ApiService {
     return response?.data?.texto ?? '';
   }
 
+  // Certificate data
+  async getCertificateData(): Promise<any> {
+    const response = await this.api.get('users/certificate-data');
+    return response?.data ?? null;
+  }
+
   // Badges e Certificados
   async getMeusBadges(): Promise<any[]> {
     const response = await this.api.get('api/badges/meus');

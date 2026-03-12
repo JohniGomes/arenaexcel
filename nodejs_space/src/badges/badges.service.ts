@@ -1,22 +1,43 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-const BADGES_CONFIG = {
-  nivel_fundamentos: { nome: 'Mestre dos Fundamentos', tipo: 'certificado', emoji: '🥉' },
-  nivel_basico:      { nome: 'Planilheiro Básico',     tipo: 'certificado', emoji: '🥈' },
-  nivel_intermediario: { nome: 'Analista Excel',       tipo: 'certificado', emoji: '🥇' },
-  nivel_avancado:    { nome: 'Expert Excel',           tipo: 'certificado', emoji: '🏆' },
-  nivel_especialista:{ nome: 'Mestre Excel',           tipo: 'certificado', emoji: '👑' },
-  streak_7:          { nome: 'Sequência de Fogo',      tipo: 'badge',       emoji: '🔥' },
-  streak_30:         { nome: 'Mês Dedicado',           tipo: 'badge',       emoji: '💎' },
-  streak_100:        { nome: 'Lendário',               tipo: 'badge',       emoji: '⚡' },
-  exercicios_50:     { nome: 'Praticante',             tipo: 'badge',       emoji: '📝' },
-  exercicios_100:    { nome: 'Veterano',               tipo: 'badge',       emoji: '🎯' },
-  exercicios_250:    { nome: 'Elite',                  tipo: 'badge',       emoji: '🚀' },
-  ia_10:             { nome: 'Analista IA',            tipo: 'badge',       emoji: '🤖' },
-  ia_50:             { nome: 'Cientista de Dados',     tipo: 'badge',       emoji: '🧠' },
-  dias_7:            { nome: 'Uma Semana',             tipo: 'badge',       emoji: '📅' },
-  dias_30:           { nome: 'Um Mês',                 tipo: 'badge',       emoji: '🗓️' },
+export const BADGES_CONFIG: Record<string, { nome: string; categoria: string; descricao: string; icone: string }> = {
+  // ── Sequência & Dedicação ──────────────────────────────────
+  streak_7:          { nome: 'Uma Semana',          categoria: 'sequencia',       icone: '🔥', descricao: 'Estude 7 dias consecutivos sem falhar' },
+  streak_15:         { nome: 'Sequência de Fogo',   categoria: 'sequencia',       icone: '🚀', descricao: 'Mantenha 15 dias seguidos de estudo' },
+  streak_30:         { nome: 'Um Mês',              categoria: 'sequencia',       icone: '📅', descricao: 'Complete 30 dias consecutivos estudando' },
+  streak_60:         { nome: 'Maratonista',         categoria: 'sequencia',       icone: '🏃', descricao: '60 dias seguidos — sua determinação é impressionante!' },
+  streak_100:        { nome: 'Imparável',           categoria: 'sequencia',       icone: '⚡', descricao: '100 dias consecutivos de estudo diário' },
+  streak_365:        { nome: 'Lendário',            categoria: 'sequencia',       icone: '👑', descricao: '365 dias seguidos — você é uma lenda do Excel!' },
+
+  // ── Progresso de Aprendizado ───────────────────────────────
+  licoes_10:         { nome: 'Praticante',          categoria: 'progresso',       icone: '📖', descricao: 'Complete suas primeiras 10 lições no app' },
+  licoes_30:         { nome: 'Veterano',            categoria: 'progresso',       icone: '🎖️', descricao: 'Complete 30 lições e mostre sua evolução' },
+  licoes_50:         { nome: 'Elite',               categoria: 'progresso',       icone: '💎', descricao: '50 lições concluídas — você é da elite!' },
+  trilhas_10:        { nome: 'Mestre das Trilhas',  categoria: 'progresso',       icone: '🗺️', descricao: 'Conclua todas as 10 trilhas interativas' },
+  completista:       { nome: 'Completista',         categoria: 'progresso',       icone: '✅', descricao: 'Conclua todas as lições clássicas E todas as trilhas' },
+  wiki_explorador:   { nome: 'Explorador',          categoria: 'progresso',       icone: '🔍', descricao: 'Acesse todas as 11 áreas profissionais da Wiki' },
+
+  // ── Desempenho ─────────────────────────────────────────────
+  primeira_vitoria:  { nome: 'Primeira Vitória',    categoria: 'desempenho',      icone: '🏆', descricao: 'Acerte sua primeira questão no app — o início de tudo!' },
+  precisao_10:       { nome: 'Precisão Cirúrgica',  categoria: 'desempenho',      icone: '🎯', descricao: 'Acerte 10 questões consecutivas sem errar nenhuma' },
+  trilha_sem_erro:   { nome: 'Sem Erros',           categoria: 'desempenho',      icone: '⭐', descricao: 'Complete uma trilha inteira sem errar nenhuma questão' },
+  velocista:         { nome: 'Velocista',           categoria: 'desempenho',      icone: '💨', descricao: 'Conclua uma lição completa em menos de 2 minutos' },
+  mes_dedicado:      { nome: 'Mês Dedicado',        categoria: 'desempenho',      icone: '📆', descricao: 'Estude pelo menos 20 dias diferentes em um mesmo mês' },
+  nota_10:           { nome: 'Nota 10',             categoria: 'desempenho',      icone: '💯', descricao: 'Termine uma trilha com 100% de precisão nas respostas' },
+
+  // ── Funcionalidades ────────────────────────────────────────
+  ia_analista:       { nome: 'Analista IA',         categoria: 'funcionalidades', icone: '🤖', descricao: 'Use o Excelino IA para analisar sua primeira planilha' },
+  cientista_dados:   { nome: 'Cientista de Dados',  categoria: 'funcionalidades', icone: '🔬', descricao: 'Aprenda e use 5 fórmulas avançadas nas trilhas' },
+  consultor_ia:      { nome: 'Consultor',           categoria: 'funcionalidades', icone: '📊', descricao: 'Envie 10 planilhas diferentes para análise com IA' },
+  wiki_master:       { nome: 'Wiki Master',         categoria: 'funcionalidades', icone: '📚', descricao: 'Leia conteúdo de todas as 11 áreas da Wiki do Excel' },
+
+  // ── Especiais ──────────────────────────────────────────────
+  pioneiro:          { nome: 'Pioneiro',            categoria: 'especiais',       icone: '🌟', descricao: 'Você está entre os primeiros usuários do Arena Excel!' },
+  embaixador:        { nome: 'Embaixador',          categoria: 'especiais',       icone: '🤝', descricao: 'Indique 3 amigos que se cadastrarem no Arena Excel' },
+  premium_badge:     { nome: 'Premium',             categoria: 'especiais',       icone: '💫', descricao: 'Assine o plano Premium e desbloqueie todo o potencial' },
+  certificado_badge: { nome: 'Certificado',         categoria: 'especiais',       icone: '🎓', descricao: 'Emita seu primeiro certificado oficial do Arena Excel' },
+  excel_supreme:     { nome: 'Excel Supreme',       categoria: 'especiais',       icone: '👾', descricao: 'Atinja o nível máximo 20 — Excel Supreme!' },
 };
 
 @Injectable()
@@ -29,95 +50,83 @@ export class BadgesService {
     try {
       const user = await this.prisma.users.findUnique({
         where: { id: userId },
-        include: { 
-          badges: true, 
-          userprogress: true 
+        include: {
+          badges: true,
+          userprogress: { where: { status: 'completed' } },
+          useranswers: { orderBy: { createdAt: 'desc' } },
         },
       });
 
       if (!user) return [];
 
-      const badgesJaTem = user?.badges?.map((b: any) => b?.badgeId) ?? [];
+      const badgesJaTem = user.badges.map((b: any) => b.badgeId);
       const novosBadges: string[] = [];
 
-      // ── Streak ──
-      const streak = user?.streak ?? 0;
-      if (streak >= 7   && !badgesJaTem.includes('streak_7'))   novosBadges.push('streak_7');
-      if (streak >= 30  && !badgesJaTem.includes('streak_30'))  novosBadges.push('streak_30');
-      if (streak >= 100 && !badgesJaTem.includes('streak_100')) novosBadges.push('streak_100');
-
-      // ── Exercícios ──
-      const totalEx = user?.totalExercicios ?? 0;
-      if (totalEx >= 50  && !badgesJaTem.includes('exercicios_50'))  novosBadges.push('exercicios_50');
-      if (totalEx >= 100 && !badgesJaTem.includes('exercicios_100')) novosBadges.push('exercicios_100');
-      if (totalEx >= 250 && !badgesJaTem.includes('exercicios_250')) novosBadges.push('exercicios_250');
-
-      // ── Uso da IA ──
-      const totalIA = user?.totalIaUsos ?? 0;
-      if (totalIA >= 10 && !badgesJaTem.includes('ia_10')) novosBadges.push('ia_10');
-      if (totalIA >= 50 && !badgesJaTem.includes('ia_50')) novosBadges.push('ia_50');
-
-      // ── Dias consecutivos ──
-      const diasConsecutivos = user?.diasConsecutivos ?? 0;
-      if (diasConsecutivos >= 7  && !badgesJaTem.includes('dias_7'))  novosBadges.push('dias_7');
-      if (diasConsecutivos >= 30 && !badgesJaTem.includes('dias_30')) novosBadges.push('dias_30');
-
-      // ── Níveis concluídos ──
-      // Vou verificar se todos os exercícios de um nível foram concluídos
-      const levels = await this.prisma.levels.findMany({
-        include: {
-          lessons: {
-            include: {
-              exercises: true
-            }
-          }
-        },
-        orderBy: { order: 'asc' }
-      });
-
-      const mapaNiveis: Record<string, string> = {
-        'Fundamentos': 'nivel_fundamentos',
-        'Básico': 'nivel_basico',
-        'Intermediário': 'nivel_intermediario',
-        'Avançado': 'nivel_avancado',
-        'Especialista': 'nivel_especialista',
+      const push = (id: string) => {
+        if (!badgesJaTem.includes(id)) novosBadges.push(id);
       };
 
-      for (const level of levels) {
-        const badgeId = mapaNiveis[level?.name];
-        if (!badgeId || badgesJaTem.includes(badgeId)) continue;
+      // ── Streak ──────────────────────────────────────────
+      const streak = user.streak ?? 0;
+      if (streak >= 7)   push('streak_7');
+      if (streak >= 15)  push('streak_15');
+      if (streak >= 30)  push('streak_30');
+      if (streak >= 60)  push('streak_60');
+      if (streak >= 100) push('streak_100');
+      if (streak >= 365) push('streak_365');
 
-        // Verificar se completou todos os exercícios do nível
-        const exerciciosDoNivel = level?.lessons?.flatMap(l => l?.exercises ?? []) ?? [];
-        const exerciciosIds = exerciciosDoNivel.map(e => e?.id).filter(Boolean);
+      // ── Lições (clássicas + trilhas) ─────────────────────
+      const licoesConcluidas = user.userprogress.length;
+      const trailAnswers = user.useranswers.filter((a: any) => a.isCorrect).length;
+      const totalLicoes = licoesConcluidas + trailAnswers;
+      if (totalLicoes >= 10) push('licoes_10');
+      if (totalLicoes >= 30) push('licoes_30');
+      if (totalLicoes >= 50) push('licoes_50');
 
-        if (exerciciosIds.length === 0) continue;
+      // ── Trilhas concluídas ───────────────────────────────
+      const trilhasConcluidas = await this.prisma.usertrailprogress.count({
+        where: { userId, completedAt: { not: null } },
+      });
+      if (trilhasConcluidas >= 10) push('trilhas_10');
+      if (trilhasConcluidas >= 10 && totalLicoes >= 50) push('completista');
 
-        const exerciciosCompletos = await this.prisma.userexerciseattempts.findMany({
-          where: {
-            userid: userId,
-            exerciseid: { in: exerciciosIds },
-            correct: true
-          },
-          distinct: ['exerciseid']
-        });
+      // ── Primeira vitória ─────────────────────────────────
+      const totalAcertos = (user.totalExercicios ?? 0) + trailAnswers;
+      if (totalAcertos >= 1) push('primeira_vitoria');
 
-        if (exerciciosCompletos.length === exerciciosIds.length) {
-          novosBadges.push(badgeId);
+      // ── Precisão cirúrgica (10 consecutivas corretas) ────
+      if (!badgesJaTem.includes('precisao_10')) {
+        const ultimas10 = user.useranswers.slice(0, 10);
+        if (ultimas10.length === 10 && ultimas10.every((a: any) => a.isCorrect)) {
+          push('precisao_10');
         }
       }
 
-      // Salvar novos badges no banco
+      // ── IA ───────────────────────────────────────────────
+      const totalIA = user.totalIaUsos ?? 0;
+      if (totalIA >= 1)  push('ia_analista');
+      if (totalIA >= 10) push('consultor_ia');
+
+      // ── Premium ──────────────────────────────────────────
+      if ((user as any).isPremium) push('premium_badge');
+
+      // ── Certificado emitido ──────────────────────────────
+      const temCertificado = user.badges.some((b: any) => b.tipo === 'certificado');
+      if (temCertificado) push('certificado_badge');
+
+      // ── Excel Supreme ─────────────────────────────────────
+      if ((user.level ?? 1) >= 20) push('excel_supreme');
+
+      // Salvar novos badges
       if (novosBadges.length > 0) {
         await this.prisma.badges.createMany({
           data: novosBadges.map(badgeId => ({
             userId,
             badgeId,
-            tipo: (BADGES_CONFIG as any)[badgeId]?.tipo ?? 'badge',
+            tipo: 'badge',
           })),
           skipDuplicates: true,
         });
-
         this.logger.log(`Novos badges concedidos para ${userId}: ${novosBadges.join(', ')}`);
       }
 
@@ -129,33 +138,30 @@ export class BadgesService {
   }
 
   async getBadgesUsuario(userId: string) {
-    const badges = await this.prisma.badges.findMany({
+    const badgesGanhos = await this.prisma.badges.findMany({
       where: { userId },
       orderBy: { criadoEm: 'asc' },
     });
 
-    // Retornar todos os badges com status (conquistado ou não)
     return Object.entries(BADGES_CONFIG).map(([id, config]) => {
-      const conquistado = badges.find((b: any) => b?.badgeId === id);
+      const conquistado = badgesGanhos.find((b: any) => b.badgeId === id);
       return {
         id,
-        ...config,
+        nome: config.nome,
+        icone: config.icone,
+        categoria: config.categoria,
+        descricao: config.descricao,
         conquistado: !!conquistado,
         dataConquista: conquistado?.criadoEm ?? null,
       };
     });
   }
 
-  async gerarCertificado(userId: string, badgeId: string, nomeAluno: string) {
-    const config = (BADGES_CONFIG as any)[badgeId];
-    if (!config || config.tipo !== 'certificado') {
-      throw new Error('Badge não é um certificado');
-    }
-
+  async gerarCertificado(userId: string, tipo: string, nomeAluno: string) {
     return this.prisma.badges.upsert({
-      where: { userId_badgeId: { userId, badgeId } },
+      where: { userId_badgeId: { userId, badgeId: tipo } },
       update: { nomeAluno },
-      create: { userId, badgeId, tipo: 'certificado', nomeAluno },
+      create: { userId, badgeId: tipo, tipo: 'certificado', nomeAluno },
     });
   }
 
@@ -165,17 +171,15 @@ export class BadgesService {
       include: { user: { select: { name: true } } },
     });
 
-    if (!cert || cert?.tipo !== 'certificado') return null;
+    if (!cert || cert.tipo !== 'certificado') return null;
 
-    const config = (BADGES_CONFIG as any)[cert?.badgeId];
     return {
       valido: true,
-      id: cert?.id,
-      nomeAluno: cert?.nomeAluno ?? cert?.user?.name,
-      curso: config?.nome ?? 'Excel',
-      nivel: cert?.badgeId,
-      emoji: config?.emoji,
-      dataConquista: cert?.criadoEm,
+      id: cert.id,
+      nomeAluno: cert.nomeAluno ?? cert.user?.name,
+      curso: cert.badgeId,
+      nivel: cert.badgeId,
+      dataConquista: cert.criadoEm,
       emissor: 'Arena Excel',
     };
   }

@@ -157,6 +157,52 @@ export class UserService {
     }
   }
 
+  async getCertificateData(userId: string) {
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        xp: true,
+        level: true,
+        createdat: true,
+      },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    const [totalAnswered, totalCorrect, licoesConcluidas, trilhasConcluidas] = await Promise.all([
+      this.prisma.useranswers.count({ where: { userId } }),
+      this.prisma.useranswers.count({ where: { userId, isCorrect: true } }),
+      this.prisma.userprogress.count({ where: { userid: userId, status: 'completed' } }),
+      this.prisma.usertrailprogress.count({ where: { userId, completedAt: { not: null } } }),
+    ]);
+
+    const precisao = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+    const horasDedicadas = Math.round((totalAnswered * 3 / 60) * 10) / 10;
+    const nivel = user.level ?? 1;
+
+    return {
+      userId: user.id,
+      nome: user.name,
+      nivel,
+      nivelNome: this.getNivelNome(nivel),
+      horasDedicadas,
+      dataInicio: user.createdat,
+      precisao,
+      licoesConcluidas,
+      trilhasConcluidas,
+    };
+  }
+
+  private getNivelNome(level: number): string {
+    if (level <= 3) return 'Iniciante';
+    if (level <= 7) return 'Básico';
+    if (level <= 12) return 'Intermediário';
+    if (level <= 17) return 'Avançado';
+    return 'Excel Supreme';
+  }
+
   async selectMascot(userId: string, mascotId: string) {
     try {
       // Validate mascot ID
