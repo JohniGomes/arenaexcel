@@ -58,11 +58,20 @@ export default function QuestionScreen({
   const [result, setResult] = useState<{
     isCorrect: boolean;
     explanation: string;
+    correctAnswer?: string;
     xpEarned: number;
   } | null>(null);
+  const [cooldownSec, setCooldownSec] = useState(0);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const { playSuccess, playError } = useSound();
   const [lives, setLives] = useState(5);
+
+  // Countdown tick for wrong-answer cooldown
+  useEffect(() => {
+    if (cooldownSec <= 0) return;
+    const t = setTimeout(() => setCooldownSec(s => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [cooldownSec]);
 
   useEffect(() => {
     loadTrailInfo();
@@ -85,11 +94,20 @@ export default function QuestionScreen({
     }
   };
 
+  const retryQuestion = () => {
+    setSelected(null);
+    setAnswered(false);
+    setResult(null);
+    setCooldownSec(0);
+    loadQuestion();
+  };
+
   const loadQuestion = async () => {
     setQuestion(null);
     setSelected(null);
     setAnswered(false);
     setResult(null);
+    setCooldownSec(0);
     try {
       const data = await ApiService.getQuestion(slug, order);
       setQuestion(data);
@@ -133,7 +151,12 @@ export default function QuestionScreen({
           timeSpentMs: 0,
         });
         setResult(res);
-        if (res.isCorrect) playSuccess(); else playError();
+        if (res.isCorrect) {
+          playSuccess();
+        } else {
+          playError();
+          setCooldownSec(600); // 10 min cooldown
+        }
       } catch (error) {
         Alert.alert('Erro', 'Não foi possível enviar a resposta');
         setAnswered(false);
@@ -192,8 +215,10 @@ export default function QuestionScreen({
   const isDragDrop = question.type === 'DRAG_AND_DROP';
   const isChartBuilder = question.type === 'CHART_BUILDER';
 
+  const wrongBg = result && !result.isCorrect;
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, wrongBg && styles.safeWrong]}>
       <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
         {/* Header */}
         <View style={styles.header}>
@@ -367,22 +392,50 @@ ${question.description}
                 <Ionicons
                   name={result.isCorrect ? 'checkmark-circle' : 'close-circle'}
                   size={32}
-                  color={result.isCorrect ? '#27AE60' : '#E74C3C'}
+                  color={result.isCorrect ? '#27AE60' : '#EF4444'}
                 />
-                <Text style={[styles.feedbackTitle, { color: result.isCorrect ? '#27AE60' : '#E74C3C' }]}>
-                  {result.isCorrect ? `Correto! +${result.xpEarned} XP` : 'Incorreto'}
+                <Text style={[styles.feedbackTitle, { color: result.isCorrect ? '#27AE60' : '#EF4444' }]}>
+                  {result.isCorrect ? `Correto! +${result.xpEarned} XP` : 'Resposta incorreta!'}
                 </Text>
               </View>
-              <Text style={styles.feedbackText}>{result.explanation}</Text>
+              {result.isCorrect ? (
+                <Text style={styles.feedbackText}>{result.explanation}</Text>
+              ) : (
+                <>
+                  {result.correctAnswer ? (
+                    <Text style={styles.feedbackText}>
+                      A resposta correta é: <Text style={styles.correctAnswerText}>{result.correctAnswer}</Text>
+                    </Text>
+                  ) : (
+                    <Text style={styles.feedbackText}>{result.explanation}</Text>
+                  )}
+                </>
+              )}
             </View>
           )}
 
-          {/* Próxima questão */}
-          {answered && (
+          {/* Wrong: countdown + retry */}
+          {result && !result.isCorrect && (
+            <View style={styles.cooldownBox}>
+              {cooldownSec > 0 ? (
+                <Text style={styles.cooldownText}>
+                  🕐 Próxima tentativa em{' '}
+                  {String(Math.floor(cooldownSec / 60)).padStart(2, '0')}:{String(cooldownSec % 60).padStart(2, '0')}
+                </Text>
+              ) : (
+                <TouchableOpacity style={styles.retryBtn} onPress={retryQuestion}>
+                  <Text style={styles.retryBtnText}>Tentar novamente</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Próxima questão — only on correct answer */}
+          {answered && result?.isCorrect && (
             <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
               <Text style={styles.nextBtnText}>
-                {trailInfo && order >= trailInfo.totalQuestions 
-                  ? '🎉 Finalizar Trilha' 
+                {trailInfo && order >= trailInfo.totalQuestions
+                  ? '🎉 Finalizar Trilha'
                   : 'Próxima Questão →'}
               </Text>
             </TouchableOpacity>
@@ -397,6 +450,7 @@ ${question.description}
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
+  safeWrong: { backgroundColor: 'rgba(239,68,68,0.06)' },
   container: { flex: 1 },
   scrollContent: { padding: 20 },
   header: {
@@ -515,11 +569,12 @@ const styles = StyleSheet.create({
   webviewContainer: { flex: 1, minHeight: 320, marginBottom: 12 },
   feedbackCard: {
     padding: 20,
-    borderRadius: 12,
+    borderRadius: 14,
     marginTop: 16,
+    borderWidth: 1.5,
   },
-  feedbackCardOk: { backgroundColor: '#E8F5E9' },
-  feedbackCardFail: { backgroundColor: '#FFEBEE' },
+  feedbackCardOk: { backgroundColor: '#DCFCE7', borderColor: '#27AE60' },
+  feedbackCardFail: { backgroundColor: '#FEE2E2', borderColor: '#EF4444' },
   feedbackHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -531,7 +586,30 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flex: 1,
   },
-  feedbackText: { fontSize: 14, color: theme.colors.text, lineHeight: 20 },
+  feedbackText: { fontSize: 14, color: '#1A1A2E', lineHeight: 20 },
+  correctAnswerText: { fontWeight: '700', color: '#EF4444' },
+  cooldownBox: {
+    marginTop: 12,
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  cooldownText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#EF4444',
+  },
+  retryBtn: {
+    backgroundColor: '#EF4444',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    elevation: 5,
+  },
+  retryBtnText: { fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
   verifyBtn: {
     backgroundColor: theme.colors.primary,
     borderRadius: 14,

@@ -158,6 +158,20 @@ export class TrailsService {
     });
     if (!question) throw new NotFoundException('Questão não encontrada');
 
+    // Block re-submission of already-correct answers (anti-XP farm)
+    const existingCorrect = await this.prisma.useranswers.findFirst({
+      where: { userId, questionId, isCorrect: true },
+    });
+    if (existingCorrect) {
+      return {
+        isCorrect: true,
+        explanation: question.explanation ?? '',
+        correctAnswer: '',
+        xpEarned: 0,
+        alreadyCompleted: true,
+      };
+    }
+
     const isCorrect = this.checkAnswer(question, value);
 
     await this.prisma.useranswers.create({
@@ -225,9 +239,19 @@ export class TrailsService {
       });
     }
 
+    // Compute correct answer text for wrong-answer display on frontend
+    let correctAnswer = '';
+    if (!isCorrect && question.type === 'MULTIPLE_CHOICE') {
+      try {
+        const options = question.options ? JSON.parse(question.options) : [];
+        correctAnswer = options[question.correctOption ?? 0] ?? '';
+      } catch {}
+    }
+
     return {
       isCorrect,
-      explanation: question.explanation,
+      explanation: question.explanation ?? '',
+      correctAnswer,
       xpEarned: isCorrect ? question.xpReward : 0,
     };
   }

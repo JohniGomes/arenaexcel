@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const ESQUADRAO = require('../../assets/mascots/esquadrao_excelino.png');
+const ESQUADRAO = require('../../assets/mascots/esquadrao_excelino_atualizado.png');
 import { PurchasesPackage } from 'react-native-purchases';
 import PurchasesService from '../services/purchases.service';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,7 +31,7 @@ const BENEFITS = [
   'Vidas ILIMITADAS - nunca pare de aprender',
   'Sem espera! Tente novamente imediatamente ao errar',
   'Chat ilimitado com o Excelino',
-  '20 vídeos completos na Wiki Excel',
+  'Aprenda através de vídeos curtos',
   'Todas as fórmulas e dicas desbloqueadas',
   'Análise de Planilhas com o Excelino Pró',
   'Certificado de conclusão',

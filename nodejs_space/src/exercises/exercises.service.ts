@@ -120,7 +120,7 @@ export class ExercisesService {
       // Regenerate lives based on time passed
       const timeDiff = now.getTime() - user.liveslastupdated.getTime();
       const minutesPassed = Math.floor(timeDiff / 60000);
-      const livesToRegenerate = Math.floor(minutesPassed / 10); // 1 life every 10 minutes
+      const livesToRegenerate = Math.floor(minutesPassed / 6); // 1 life every 6 min = 5 lives in 30 min
 
       let currentLives = user.lives;
       if (livesToRegenerate > 0 && currentLives < 5) {

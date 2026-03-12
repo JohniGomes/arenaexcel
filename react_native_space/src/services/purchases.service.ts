@@ -49,6 +49,10 @@ class PurchasesService {
 
   async getOfferings(): Promise<PurchasesPackage[]> {
     try {
+      // Ensure configured before calling — prevents "no singleton instance" crash
+      if (!this.initialized) {
+        await this.initializeAnonymous();
+      }
       const offerings = await Purchases.getOfferings();
       
       if (offerings?.current?.availablePackages) {

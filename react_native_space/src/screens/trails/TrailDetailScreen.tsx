@@ -8,15 +8,19 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import ApiService from '../../services/api.service';
 import { theme } from '../../constants/theme';
 import { TRAIL_IMAGES, MASCOT_SHADOW } from '../../constants/mascotImages';
 import { LearnStackParamList } from '../../navigation/types';
+import PaywallModal from '../../components/PaywallModal';
+import { useSnackbar } from '../../contexts/SnackbarContext';
 
 type TrailDetailRouteProp = RouteProp<LearnStackParamList, 'TrailDetail'>;
 
@@ -28,6 +32,8 @@ const TYPE_LABELS: Record<string, string> = {
   DRAG_AND_DROP:    'Seleção',
   FILL_IN_BLANK:    'Completar',
 };
+
+const LIVES_RECHARGE_KEY = 'livesRechargeEndTime';
 
 interface TrailDetail {
   id: string;
@@ -52,13 +58,31 @@ interface TrailDetail {
   };
 }
 
+const formatMmSs = (totalSeconds: number): string => {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
 export default function TrailDetailScreen() {
   const [trail, setTrail] = useState<TrailDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [lives, setLives] = useState(5);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [showLivesModal, setShowLivesModal] = useState(false);
+  const [livesRechargeEnd, setLivesRechargeEnd] = useState<number>(0);
+  const [livesCountdown, setLivesCountdown] = useState(0);
   const navigation = useNavigation<any>();
   const route = useRoute<TrailDetailRouteProp>();
   const { slug } = route?.params ?? {};
+  const { showError } = useSnackbar();
+
+  // Tick countdown for lives
+  useEffect(() => {
+    if (livesCountdown <= 0) return;
+    const t = setTimeout(() => setLivesCountdown(s => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [livesCountdown]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -73,7 +97,24 @@ export default function TrailDetailScreen() {
         ApiService.getProfile(),
       ]);
       setTrail(data ?? null);
-      setLives(profile?.lives ?? 5);
+      const profileLives = profile?.lives ?? 5;
+      setLives(profileLives);
+
+      if (profileLives === 0) {
+        // Ensure recharge timer is set
+        const stored = await AsyncStorage.getItem(LIVES_RECHARGE_KEY);
+        let rechargeEnd: number;
+        if (stored && parseInt(stored) > Date.now()) {
+          rechargeEnd = parseInt(stored);
+        } else {
+          rechargeEnd = Date.now() + 30 * 60 * 1000;
+          await AsyncStorage.setItem(LIVES_RECHARGE_KEY, String(rechargeEnd));
+        }
+        setLivesRechargeEnd(rechargeEnd);
+        setLivesCountdown(Math.ceil((rechargeEnd - Date.now()) / 1000));
+      } else {
+        await AsyncStorage.removeItem(LIVES_RECHARGE_KEY);
+      }
     } catch (error) {
       console.error('Erro ao carregar trilha:', error);
     } finally {
@@ -82,6 +123,13 @@ export default function TrailDetailScreen() {
   };
 
   const handleQuestionPress = (question: any) => {
+    // Block completed questions
+    if (question?.status === 'completed') {
+      showError('Questão já concluída! ✅');
+      return;
+    }
+
+    // Block if cooldown (timed lock)
     if (question?.status === 'locked' && question?.unlocksAt) {
       const unlockDate = new Date(question.unlocksAt);
       const now = new Date();
@@ -93,7 +141,20 @@ export default function TrailDetailScreen() {
       );
       return;
     }
+
+    // Block sequential lock
     if (question?.status === 'locked') return;
+
+    // Block if no lives
+    if (lives === 0) {
+      const secsLeft = livesCountdown > 0
+        ? livesCountdown
+        : Math.ceil((livesRechargeEnd - Date.now()) / 1000);
+      setLivesCountdown(Math.max(0, secsLeft));
+      setShowLivesModal(true);
+      return;
+    }
+
     navigation.navigate('Question', { slug: slug ?? '', order: question?.order ?? 1 });
   };
 
@@ -189,7 +250,7 @@ export default function TrailDetailScreen() {
                   isLocked && styles.qCardLocked,
                 ]}
                 onPress={() => handleQuestionPress(question)}
-                activeOpacity={isLocked ? 1 : 0.75}
+                activeOpacity={isLocked ? 1 : isCompleted ? 0.9 : 0.75}
               >
                 {/* Left accent bar */}
                 <View style={[
@@ -266,6 +327,44 @@ export default function TrailDetailScreen() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* No Lives Modal */}
+      <Modal visible={showLivesModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.livesModal}>
+            <Text style={styles.livesModalEmoji}>💔</Text>
+            <Text style={styles.livesModalTitle}>Vidas Esgotadas!</Text>
+            <Text style={styles.livesModalSub}>
+              Suas vidas estão recarregando. Aguarde ou seja Premium para vidas ilimitadas.
+            </Text>
+            {livesCountdown > 0 && (
+              <View style={styles.livesCountdownBox}>
+                <Text style={styles.livesCountdownText}>
+                  🕐 Disponível em {formatMmSs(livesCountdown)}
+                </Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.premiumBtn}
+              onPress={() => { setShowLivesModal(false); setShowPaywall(true); }}
+            >
+              <Text style={styles.premiumBtnText}>⭐ Seja Premium — Vidas Ilimitadas</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.waitBtn}
+              onPress={() => setShowLivesModal(false)}
+            >
+              <Text style={styles.waitBtnText}>Aguardar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <PaywallModal
+        visivel={showPaywall}
+        onFechar={() => setShowPaywall(false)}
+        onSuccess={() => setShowPaywall(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -351,7 +450,7 @@ const styles = StyleSheet.create({
   typeBadgeAvailable: { backgroundColor: 'rgba(245,158,11,0.15)' },
   typeBadgeTextAvailable: { color: '#B45309' },
 
-  // -- LOCKED (timed cooldown) --
+  // -- LOCKED --
   qCardLocked: {
     backgroundColor: 'rgba(0,0,0,0.04)',
     shadowColor: 'transparent',
@@ -384,4 +483,56 @@ const styles = StyleSheet.create({
   },
 
   errorText: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', marginTop: 32 },
+
+  // Lives modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  livesModal: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 28,
+    width: '100%',
+    alignItems: 'center',
+    gap: 12,
+  },
+  livesModalEmoji: { fontSize: 48 },
+  livesModalTitle: { fontSize: 22, fontWeight: '800', color: '#1A1A2E' },
+  livesModalSub: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  livesCountdownBox: {
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)',
+  },
+  livesCountdownText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#EF4444',
+  },
+  premiumBtn: {
+    width: '100%',
+    backgroundColor: '#F59E0B',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  premiumBtnText: { fontSize: 15, fontWeight: '800', color: '#1A1A2E' },
+  waitBtn: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  waitBtnText: { fontSize: 14, color: '#999', textDecorationLine: 'underline' },
 });
