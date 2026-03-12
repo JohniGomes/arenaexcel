@@ -10,6 +10,7 @@ import {
   TextInput,
   FlatList,
   Dimensions,
+  Image,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +19,19 @@ import PaywallModal from '../../components/PaywallModal';
 import { theme } from '../../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const WIKI_IMAGES: Record<string, any> = {
+  financeiro: require('../../../assets/mascots/Wiki/excelino_financa.png'),
+  administrativo: require('../../../assets/mascots/Wiki/excelino_adm.png'),
+  rh: require('../../../assets/mascots/Wiki/excelino_rh.png'),
+  vendas: require('../../../assets/mascots/Wiki/excelino_comercial.png'),
+  logistica: require('../../../assets/mascots/Wiki/excelino_logistica.png'),
+  empreendedores: require('../../../assets/mascots/Wiki/excelino_empreendedor.png'),
+  contabilidade: require('../../../assets/mascots/Wiki/excelino_contador.png'),
+  educacao: require('../../../assets/mascots/Wiki/excelino_professor.png'),
+  marketing: require('../../../assets/mascots/Wiki/excelino_marketing.png'),
+  engenharia: require('../../../assets/mascots/Wiki/excelino_engenharia.png'),
+};
 
 // ─── TIPOS ───────────────────────────────────────────────────────────────────
 interface Formula {
@@ -497,7 +511,7 @@ const WikiExcelScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitulo}>📚 Wiki do Excel</Text>
+        <Text style={styles.headerTitulo}>Wiki do Excel</Text>
         <Text style={styles.headerSubtitulo}>Fórmulas e dicas por área profissional</Text>
       </View>
 
@@ -548,9 +562,7 @@ const WikiExcelScreen = () => {
               end={{ x: 1, y: 1 }}
               style={styles.cardGradient}
             >
-              <View style={styles.cardEmoji}>
-                <Text style={styles.cardEmojiText}>{item.emoji}</Text>
-              </View>
+              <Image source={WIKI_IMAGES[item.id]} style={styles.cardEmojiImg} />
               <View style={styles.cardInfo}>
                 <Text style={styles.cardNome}>{item.nome}</Text>
                 <Text style={styles.cardDescricao} numberOfLines={2}>{item.descricao}</Text>
@@ -572,14 +584,19 @@ const WikiExcelScreen = () => {
         {areaSelecionada && (
           <SafeAreaView style={styles.modalContainer}>
             {/* Header do Modal */}
-            <View style={[styles.modalHeader, { backgroundColor: areaSelecionada.cor }]}>
+            <LinearGradient
+              colors={['#0A1628', '#217346']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.modalHeader}
+            >
               <TouchableOpacity style={styles.backBtn} onPress={() => setAreaSelecionada(null)}>
                 <Text style={styles.backBtnTexto}>‹ Voltar</Text>
               </TouchableOpacity>
-              <Text style={styles.modalEmoji}>{areaSelecionada.emoji}</Text>
+              <Image source={WIKI_IMAGES[areaSelecionada.id]} style={styles.modalEmojiImg} />
               <Text style={styles.modalTitulo}>{areaSelecionada.nome}</Text>
               <Text style={styles.modalSubtitulo}>{areaSelecionada.descricao}</Text>
-            </View>
+            </LinearGradient>
 
             {/* Abas */}
             <View style={styles.abas}>
@@ -702,8 +719,7 @@ const styles = StyleSheet.create({
   cardGradient: {
     flexDirection: 'row', alignItems: 'center', padding: 16,
   },
-  cardEmoji: { width: 50, height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 14, overflow: 'hidden' },
-  cardEmojiText: { fontSize: 26 },
+  cardEmojiImg: { width: 52, height: 52, borderRadius: 12, marginRight: 14 },
   cardInfo: { flex: 1 },
   cardNome: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 3 },
   cardDescricao: { fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 17 },
@@ -744,7 +760,7 @@ const styles = StyleSheet.create({
   // ── Modal ──
   modalContainer: { flex: 1, backgroundColor: '#F5F5F5' },
   modalHeader: { padding: 20, paddingTop: 16, paddingBottom: 20 },
-  modalEmoji: { fontSize: 44, marginBottom: 8 },
+  modalEmojiImg: { width: 72, height: 72, borderRadius: 16, marginBottom: 8 },
   modalTitulo: { fontSize: 26, fontWeight: '800', color: '#FFF' },
   modalSubtitulo: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 6, lineHeight: 19 },
   modalStats: { flexDirection: 'row', alignItems: 'center', marginTop: 16, backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: 12, padding: 12 },

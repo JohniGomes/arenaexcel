@@ -148,13 +148,9 @@ const PaywallModal = ({ visivel, onFechar, onSuccess }: PaywallModalProps) => {
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
           >
-            {/* Hero image com overlay + botão fechar */}
+            {/* Hero image + botão fechar */}
             <View style={styles.heroSection}>
-              <Image source={ESQUADRAO} style={styles.heroImage} resizeMode="cover" />
-              <LinearGradient
-                colors={['transparent', '#0A1628']}
-                style={styles.heroOverlay}
-              />
+              <Image source={ESQUADRAO} style={styles.heroImage} resizeMode="contain" />
               <TouchableOpacity onPress={onFechar} style={styles.fecharBtn}>
                 <Text style={styles.fecharTexto}>✕</Text>
               </TouchableOpacity>
@@ -309,13 +305,11 @@ const styles = StyleSheet.create({
     height: 180,
     marginBottom: 20,
     position: 'relative',
+    backgroundColor: '#0A1628',
   },
   heroImage: {
     width: '100%',
     height: 180,
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
   },
   fecharBtn: {
     position: 'absolute',
