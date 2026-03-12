@@ -182,8 +182,7 @@ export default function QuestionScreen({
           {
             text: 'Ver Certificado',
             onPress: () => {
-              // TODO: Implementar tela de certificado de conclusão
-              navigation.navigate('Trails');
+              navigation.getParent()?.navigate('Certificate');
             },
           },
           {

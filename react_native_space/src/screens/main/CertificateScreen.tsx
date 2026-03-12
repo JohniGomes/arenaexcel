@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -91,7 +92,7 @@ const generateCertificateHTML = (p: {
   courseId: string;
 }): string => {
   const validateUrl = `${PROD_URL}/certificado/${p.userId}/${p.courseId}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(validateUrl)}&color=145A32&bgcolor=ffffff`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(validateUrl)}&color=F59E0B&bgcolor=0A1628`;
   const dataFmt = p.data ? new Date(p.data).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
 
   return `<!DOCTYPE html>
@@ -101,11 +102,13 @@ const generateCertificateHTML = (p: {
 <meta name="viewport" content="width=900">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:wght@700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@400;500;600;700&display=swap');
+  @page { size: A4 landscape; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #fff; font-family: 'Montserrat', Arial, sans-serif; }
+  body { background: #0A1628; font-family: 'Montserrat', Arial, sans-serif; }
   .cw {
     width: 900px; height: 636px; position: relative;
-    background: #fff; overflow: hidden;
+    background: linear-gradient(135deg, #0A1628 0%, #0d2a1a 50%, #0A1628 100%);
+    overflow: hidden;
   }
   .corner-tl {
     position: absolute; top: 0; left: 0; width: 280px; height: 200px;
@@ -114,13 +117,13 @@ const generateCertificateHTML = (p: {
   .corner-tl::before {
     content: ''; position: absolute; top: -60px; left: -100px;
     width: 400px; height: 250px;
-    background: linear-gradient(135deg, #145A32 0%, #1B7A3D 40%, #1B5E20 70%);
+    background: linear-gradient(135deg, #217346 0%, #2a8f5a 40%, #1a5e38 70%);
     border-radius: 0 0 60% 0; transform: rotate(-5deg);
   }
   .corner-tl::after {
     content: ''; position: absolute; top: -30px; left: -80px;
     width: 350px; height: 200px;
-    background: linear-gradient(135deg, rgba(212,160,23,0.3) 0%, transparent 60%);
+    background: linear-gradient(135deg, rgba(245,159,11,0.25) 0%, transparent 60%);
     border-radius: 0 0 50% 0; transform: rotate(-8deg);
   }
   .corner-br {
@@ -130,13 +133,13 @@ const generateCertificateHTML = (p: {
   .corner-br::before {
     content: ''; position: absolute; bottom: -70px; right: -110px;
     width: 420px; height: 270px;
-    background: linear-gradient(315deg, #145A32 0%, #1B7A3D 40%, #1B5E20 70%);
+    background: linear-gradient(315deg, #217346 0%, #2a8f5a 40%, #1a5e38 70%);
     border-radius: 60% 0 0 0; transform: rotate(-5deg);
   }
   .corner-br::after {
     content: ''; position: absolute; bottom: -40px; right: -90px;
     width: 370px; height: 220px;
-    background: linear-gradient(315deg, rgba(212,160,23,0.35) 0%, transparent 60%);
+    background: linear-gradient(315deg, rgba(245,159,11,0.3) 0%, transparent 60%);
     border-radius: 50% 0 0 0; transform: rotate(-8deg);
   }
   .gold-tl {
@@ -146,7 +149,7 @@ const generateCertificateHTML = (p: {
   .gold-tl::before {
     content: ''; position: absolute; top: -50px; left: -70px;
     width: 350px; height: 200px;
-    border: 3px solid rgba(212,160,23,0.5);
+    border: 3px solid rgba(245,159,11,0.4);
     border-radius: 0 0 55% 0; transform: rotate(-5deg); background: transparent;
   }
   .gold-br {
@@ -156,65 +159,67 @@ const generateCertificateHTML = (p: {
   .gold-br::before {
     content: ''; position: absolute; bottom: -60px; right: -80px;
     width: 380px; height: 230px;
-    border: 3px solid rgba(212,160,23,0.5);
+    border: 3px solid rgba(245,159,11,0.4);
     border-radius: 55% 0 0 0; transform: rotate(-5deg); background: transparent;
   }
   .inner-border {
     position: absolute; top: 16px; left: 16px; right: 16px; bottom: 16px;
-    border: 1px solid #d0d0d0; z-index: 1;
+    border: 1px solid rgba(245,159,11,0.25); z-index: 1;
   }
   .ornament-tr {
     position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
-    border-top: 2px solid #888; border-right: 2px solid #888;
-    border-radius: 0 8px 0 0; z-index: 4; opacity: 0.3;
+    border-top: 2px solid rgba(245,159,11,0.4); border-right: 2px solid rgba(245,159,11,0.4);
+    border-radius: 0 8px 0 0; z-index: 4;
   }
   .ornament-bl {
     position: absolute; bottom: 20px; left: 20px; width: 40px; height: 40px;
-    border-bottom: 2px solid #888; border-left: 2px solid #888;
-    border-radius: 0 0 0 8px; z-index: 4; opacity: 0.3;
+    border-bottom: 2px solid rgba(245,159,11,0.4); border-left: 2px solid rgba(245,159,11,0.4);
+    border-radius: 0 0 0 8px; z-index: 4;
   }
   .medal {
     position: absolute; top: 36px; right: 60px; z-index: 6; width: 90px; height: 110px;
   }
   .medal-circle {
     width: 80px; height: 80px; border-radius: 50%;
-    background: radial-gradient(ellipse at 35% 35%, #f5d96b 0%, #d4a017 40%, #b8860b 70%, #a67c00 100%);
-    box-shadow: 0 4px 15px rgba(180,130,0,0.4), inset 0 -3px 8px rgba(0,0,0,0.15), inset 0 3px 8px rgba(255,255,255,0.3);
+    background: radial-gradient(circle, #217346 0%, #0A1628 100%);
+    border: 2px solid #F59E0B;
+    box-shadow: 0 4px 20px rgba(245,159,11,0.4), 0 0 30px rgba(33,115,70,0.3);
     display: flex; align-items: center; justify-content: center; margin: 0 auto;
-    font-size: 30px; color: rgba(255,255,255,0.25);
+    font-size: 30px; color: #F59E0B;
     position: relative;
   }
   .medal-circle::after {
     content: ''; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px;
-    border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 50%; border: 1px solid rgba(245,159,11,0.3);
   }
   .medal-rl { position: absolute; bottom: 0; left: 14px; width: 0; height: 0; z-index: -1;
-    border-left: 18px solid #1B5E20; border-right: 18px solid transparent;
-    border-top: 30px solid #1B5E20; border-bottom: 12px solid transparent; }
+    border-left: 18px solid #217346; border-right: 18px solid transparent;
+    border-top: 30px solid #217346; border-bottom: 12px solid transparent; }
   .medal-rr { position: absolute; bottom: 0; right: 14px; width: 0; height: 0; z-index: -1;
-    border-left: 18px solid transparent; border-right: 18px solid #1B5E20;
-    border-top: 30px solid #1B5E20; border-bottom: 12px solid transparent; }
+    border-left: 18px solid transparent; border-right: 18px solid #217346;
+    border-top: 30px solid #217346; border-bottom: 12px solid transparent; }
   .excel-icon {
     position: absolute; bottom: 36px; left: 50px; z-index: 6;
-    width: 44px; height: 44px; background: #1B7A3D; border-radius: 6px;
+    width: 44px; height: 44px; background: #217346; border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-family: 'Montserrat', sans-serif;
     font-weight: 700; font-size: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 12px rgba(33,115,70,0.5);
   }
   .meta-info {
     position: absolute; bottom: 40px; right: 60px; z-index: 6; text-align: right;
   }
   .meta-info p {
-    font-family: 'Montserrat', sans-serif; font-size: 11px; color: #666; line-height: 1.6;
+    font-family: 'Montserrat', sans-serif; font-size: 11px; color: rgba(255,255,255,0.55); line-height: 1.6;
   }
-  .meta-info strong { color: #333; font-weight: 600; }
+  .meta-info strong { color: rgba(255,255,255,0.9); font-weight: 600; }
   .qr-block {
-    position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
     z-index: 6; text-align: center;
   }
-  .qr-block img { width: 60px; height: 60px; }
-  .qr-label { font-size: 8px; color: #999; margin-top: 2px; letter-spacing: 0.3px; }
+  .qr-block img { width: 56px; height: 56px; border-radius: 4px; }
+  .qr-label { font-size: 8px; color: rgba(255,255,255,0.5); margin-top: 2px; letter-spacing: 0.3px; }
+  .qr-cnpj { font-size: 7px; color: rgba(255,255,255,0.35); margin-top: 1px; letter-spacing: 0.2px; }
   .content {
     position: relative; z-index: 5;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -222,37 +227,34 @@ const generateCertificateHTML = (p: {
   }
   .title-main {
     font-family: 'Playfair Display', Georgia, serif; font-weight: 900; font-size: 48px;
-    color: #1A237E; letter-spacing: 6px; line-height: 1; text-transform: uppercase;
+    color: #F59E0B; letter-spacing: 6px; line-height: 1; text-transform: uppercase;
+    text-shadow: 0 0 30px rgba(245,159,11,0.3);
   }
   .title-sub {
     font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 16px;
-    color: #1A237E; letter-spacing: 12px; text-transform: uppercase; margin-top: 4px;
+    color: rgba(255,255,255,0.75); letter-spacing: 12px; text-transform: uppercase; margin-top: 4px;
   }
   .presented-to {
     font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 13px;
-    color: #1B5E20; letter-spacing: 5px; text-transform: uppercase; margin: 20px 0 10px;
+    color: rgba(245,159,11,0.7); letter-spacing: 5px; text-transform: uppercase; margin: 20px 0 10px;
   }
   .recipient-name {
     font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 38px;
-    color: #1a1a1a; line-height: 1.2; margin-bottom: 4px;
+    color: #fff; line-height: 1.2; margin-bottom: 4px;
   }
   .description {
-    font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px; color: #444;
+    font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px; color: rgba(255,255,255,0.8);
     line-height: 1.7; max-width: 520px; margin: 12px auto 0;
   }
-  .description strong { font-weight: 600; color: #1a1a1a; }
+  .description strong { font-weight: 600; color: #fff; }
   .signature-section { margin-top: 24px; display: flex; flex-direction: column; align-items: center; }
   .sig-cursive {
-    font-family: 'Dancing Script', cursive; font-size: 34px; color: #1a1a1a; margin-bottom: -2px;
+    font-family: 'Dancing Script', cursive; font-size: 34px; color: #fff; margin-bottom: -2px;
   }
-  .sig-line { width: 200px; height: 1px; background: #333; margin: 4px 0; }
-  .sig-name {
-    font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 12px;
-    color: #1a1a1a; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px;
-  }
+  .sig-line { width: 200px; height: 1px; background: rgba(255,255,255,0.3); margin: 4px 0; }
   .sig-role {
-    font-family: 'Cormorant Garamond', Georgia, serif; font-size: 13px;
-    color: #1B5E20; font-style: italic; margin-top: 2px;
+    font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600;
+    color: #F59E0B; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 6px;
   }
 </style>
 </head>
@@ -283,6 +285,7 @@ const generateCertificateHTML = (p: {
   <div class="qr-block">
     <img src="${qrUrl}" alt="QR Code" />
     <div class="qr-label">Escaneie para validar</div>
+    <div class="qr-cnpj">CNPJ: 65.002.492/0001-08</div>
   </div>
 
   <div class="content">
@@ -302,8 +305,7 @@ const generateCertificateHTML = (p: {
     <div class="signature-section">
       <div class="sig-cursive">Johni Michael</div>
       <div class="sig-line"></div>
-      <div class="sig-name">Johni Michael</div>
-      <div class="sig-role">Professor e Mentor</div>
+      <div class="sig-role">Professor e Fundador | Arena Excel</div>
     </div>
   </div>
 </div>
@@ -480,6 +482,10 @@ const CertModal: React.FC<CertModalProps> = ({ visible, target, certData, isPrem
 
     setGerando(true);
     try {
+      // Registra certificado e verifica badges (Fix 6)
+      await ApiService.gerarCertificado(target.courseId, nome.trim()).catch(() => {});
+      ApiService.verificarBadges().catch(() => {});
+
       const html = generateCertificateHTML({
         nomeAluno: nome.trim(),
         curso: target.name,
@@ -490,7 +496,11 @@ const CertModal: React.FC<CertModalProps> = ({ visible, target, certData, isPrem
         courseId: target.courseId,
       });
 
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const { uri } = await Print.printToFileAsync({
+        html,
+        base64: false,
+        orientation: Print.Orientation.Landscape,
+      });
 
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
@@ -647,9 +657,11 @@ const CertificateScreen = () => {
   const [certData, setCertData] = useState<CertData | null>(null);
   const [certTarget, setCertTarget] = useState<CertTarget | null>(null);
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      carregarDados();
+    }, [])
+  );
 
   const carregarDados = async () => {
     try {

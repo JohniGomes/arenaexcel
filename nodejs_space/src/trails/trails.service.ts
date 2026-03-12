@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProgressService } from '../progress/progress.service';
+import { BadgesService } from '../badges/badges.service';
 
 // XP acumulado para atingir cada nível (índice = nível - 1)
 const XP_THRESHOLDS = [0,100,250,450,700,1000,1350,1750,2200,2700,3250,3850,4500,5200,5950,6750,7600,8500,9500,10500];
@@ -17,6 +18,7 @@ export class TrailsService {
   constructor(
     private prisma: PrismaService,
     private progressService: ProgressService,
+    private badgesService: BadgesService,
   ) {}
 
   async findAllWithProgress(userId: string) {
@@ -212,12 +214,24 @@ export class TrailsService {
 
       // Verifica conquistas desbloqueadas
       this.progressService.checkAchievements(userId).catch(() => {});
+      this.badgesService.verificarEConcederBadges(userId).catch(() => {});
 
       // Verifica se é a última questão da trilha
       const totalQuestionsInTrail = await this.prisma.questions.count({
         where: { trailId: question.trailId, isActive: true },
       });
       const isLastQuestion = question.order >= totalQuestionsInTrail;
+
+      // Calcula precisão acumulada nesta trilha
+      const [trailCorrect, trailTotal] = await Promise.all([
+        this.prisma.useranswers.count({
+          where: { userId, question: { trailId: question.trailId }, isCorrect: true },
+        }),
+        this.prisma.useranswers.count({
+          where: { userId, question: { trailId: question.trailId } },
+        }),
+      ]);
+      const accuracy = trailTotal > 0 ? trailCorrect / trailTotal : 0;
 
       // Atualiza progresso na trilha
       await this.prisma.usertrailprogress.upsert({
@@ -229,11 +243,13 @@ export class TrailsService {
           trailId: question.trailId,
           currentQuestion: question.order,
           xpEarned: question.xpReward,
+          accuracy,
           completedAt: isLastQuestion ? new Date() : null,
         },
         update: {
           currentQuestion: { set: Math.max(question.order, 0) },
           xpEarned: { increment: question.xpReward },
+          accuracy,
           completedAt: isLastQuestion ? new Date() : undefined,
         },
       });
