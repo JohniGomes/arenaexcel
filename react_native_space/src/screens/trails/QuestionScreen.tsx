@@ -62,6 +62,7 @@ export default function QuestionScreen({
   } | null>(null);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const { playSuccess, playError } = useSound();
+  const [lives, setLives] = useState(5);
 
   useEffect(() => {
     loadTrailInfo();
@@ -73,8 +74,12 @@ export default function QuestionScreen({
 
   const loadTrailInfo = async () => {
     try {
-      const trail = await ApiService.getTrailDetails(slug);
+      const [trail, profile] = await Promise.all([
+        ApiService.getTrailDetails(slug),
+        ApiService.getProfile(),
+      ]);
       setTrailInfo({ totalQuestions: trail?.questions?.length ?? 10 });
+      setLives(profile?.lives ?? 5);
     } catch (error) {
       console.error('Erro ao carregar info da trilha:', error);
     }
@@ -211,8 +216,10 @@ export default function QuestionScreen({
               </TouchableOpacity>
             )}
           </View>
-          <View style={styles.xpBadge}>
-            <Text style={styles.xpText}>+{question.xpReward} XP</Text>
+          <View style={styles.livesRow}>
+            {[...Array(5)].map((_, i) => (
+              <Text key={i} style={{ fontSize: 16, opacity: i < lives ? 1 : 0.2 }}>❤️</Text>
+            ))}
           </View>
         </View>
 
@@ -431,6 +438,7 @@ const styles = StyleSheet.create({
     borderColor: '#FDD835',
   },
   xpText: { fontSize: 13, fontWeight: '700', color: '#F57F17' },
+  livesRow: { flexDirection: 'row', gap: 2, alignItems: 'center' },
   hintBox: {
     backgroundColor: '#FFF8E1',
     borderRadius: 12,

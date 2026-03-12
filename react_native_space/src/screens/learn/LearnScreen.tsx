@@ -169,8 +169,7 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
               style={[
                 styles.levelCard,
                 unlocked && !bloqueadoPremium && styles.levelCardUnlocked,
-                !unlocked && !bloqueadoPremium && styles.levelCardLocked,
-                bloqueadoPremium && styles.levelCardPremium,
+                (!unlocked || bloqueadoPremium) && styles.levelCardLocked,
               ]}
               onPress={() => handleLevelPress(level, index)}
               disabled={!unlocked && !bloqueadoPremium}
@@ -181,11 +180,8 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.levelGradient}
               >
-                {/* Locked overlay — grey for progression-locked */}
-                {!unlocked && !bloqueadoPremium && <View style={styles.lockedOverlay} />}
-
-                {/* Premium golden glow top-right */}
-                {bloqueadoPremium && <View style={styles.premiumGlow} />}
+                {/* Same dark overlay for both progression-locked and premium-locked */}
+                {(!unlocked || bloqueadoPremium) && <View style={styles.lockedOverlay} />}
 
                 {/* Badge Bloqueado */}
                 {!unlocked && !bloqueadoPremium && (
@@ -219,13 +215,13 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
                   <View style={styles.levelTextContainer}>
                     <Text style={[
                       styles.levelName,
-                      !unlocked && !bloqueadoPremium && styles.levelNameDimmed,
+                      (!unlocked || bloqueadoPremium) && styles.levelNameDimmed,
                     ]}>
                       {level?.name ?? ''}
                     </Text>
                     <Text style={[
                       styles.levelProgressText,
-                      !unlocked && !bloqueadoPremium && styles.levelProgressTextDimmed,
+                      (!unlocked || bloqueadoPremium) && styles.levelProgressTextDimmed,
                     ]}>
                       {level?.completed ?? 0}/{level?.total ?? 0} lições
                     </Text>
@@ -233,7 +229,7 @@ const LearnScreen: React.FC<Props> = ({ navigation }) => {
                   {unlocked && !bloqueadoPremium && (
                     <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.7)" />
                   )}
-                  {!unlocked && !bloqueadoPremium && (
+                  {(!unlocked || bloqueadoPremium) && (
                     <Ionicons name="lock-closed" size={24} color="rgba(255,255,255,0.35)" />
                   )}
                 </View>
@@ -371,30 +367,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
     opacity: 0.85,
   },
-  // Premium: amber border + amber shadow
+  // Premium: same visual as locked
   levelCardPremium: {
-    borderWidth: 1.5,
-    borderColor: '#F59E0B',
-    shadowColor: '#F59E0B',
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    opacity: 0.85,
   },
   levelGradient: { padding: 16, paddingTop: 28 },
   lockedOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.35)',
-    zIndex: 0,
-  },
-  // Golden glow circle top-right for premium cards
-  premiumGlow: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(245,158,11,0.15)',
     zIndex: 0,
   },
   // Badge: Bloqueado

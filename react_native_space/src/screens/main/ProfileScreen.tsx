@@ -249,6 +249,7 @@ const ProfileScreen = () => {
                 <View key={achievement?.id} style={[styles.achievementBadge, !achievement?.unlocked && styles.lockedBadge]}>
                   <Text style={styles.achievementIcon}>{achievement?.unlocked ? achievement?.icon : '🔒'}</Text>
                   <Text style={styles.achievementName} numberOfLines={2}>{achievement?.name ?? ''}</Text>
+                  <Text style={styles.achievementDesc} numberOfLines={3}>{achievement?.description ?? ''}</Text>
                 </View>
               ))}
             </View>
@@ -470,6 +471,7 @@ const styles = StyleSheet.create({
   lockedBadge: { opacity: 0.4 },
   achievementIcon: { fontSize: 32, marginBottom: 4 },
   achievementName: { fontSize: 10, textAlign: 'center', color: theme.colors.textSecondary },
+  achievementDesc: { fontSize: 9, textAlign: 'center', color: theme.colors.textSecondary, lineHeight: 13, marginTop: 2, opacity: 0.8 },
   logoutButton: { marginTop: 16 },
   modalOverlay: {
     flex: 1,

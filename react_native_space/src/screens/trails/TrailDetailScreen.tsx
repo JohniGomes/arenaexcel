@@ -20,13 +20,13 @@ import { LearnStackParamList } from '../../navigation/types';
 
 type TrailDetailRouteProp = RouteProp<LearnStackParamList, 'TrailDetail'>;
 
-const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  MULTIPLE_CHOICE:  { label: 'Múltipla Escolha', color: '#1565C0' },
-  SPREADSHEET_INPUT:{ label: 'Fórmula',          color: '#217346' },
-  FORMULA_BUILDER:  { label: 'Fórmula',          color: '#217346' },
-  CHART_BUILDER:    { label: 'Gráfico',           color: '#E65100' },
-  DRAG_AND_DROP:    { label: 'Seleção',           color: '#00695C' },
-  FILL_IN_BLANK:    { label: 'Completar',         color: '#4A148C' },
+const TYPE_LABELS: Record<string, string> = {
+  MULTIPLE_CHOICE:  'Múltipla Escolha',
+  SPREADSHEET_INPUT:'Fórmula',
+  FORMULA_BUILDER:  'Fórmula',
+  CHART_BUILDER:    'Gráfico',
+  DRAG_AND_DROP:    'Seleção',
+  FILL_IN_BLANK:    'Completar',
 };
 
 interface TrailDetail {
@@ -55,6 +55,7 @@ interface TrailDetail {
 export default function TrailDetailScreen() {
   const [trail, setTrail] = useState<TrailDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lives, setLives] = useState(5);
   const navigation = useNavigation<any>();
   const route = useRoute<TrailDetailRouteProp>();
   const { slug } = route?.params ?? {};
@@ -67,8 +68,12 @@ export default function TrailDetailScreen() {
 
   const loadTrailDetail = async () => {
     try {
-      const data = await ApiService.getTrailDetails(slug ?? '');
+      const [data, profile] = await Promise.all([
+        ApiService.getTrailDetails(slug ?? ''),
+        ApiService.getProfile(),
+      ]);
       setTrail(data ?? null);
+      setLives(profile?.lives ?? 5);
     } catch (error) {
       console.error('Erro ao carregar trilha:', error);
     } finally {
@@ -88,6 +93,7 @@ export default function TrailDetailScreen() {
       );
       return;
     }
+    if (question?.status === 'locked') return;
     navigation.navigate('Question', { slug: slug ?? '', order: question?.order ?? 1 });
   };
 
@@ -114,11 +120,16 @@ export default function TrailDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header com botão voltar */}
+      {/* Top bar: back + lives */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
+        <View style={styles.livesRow}>
+          {[...Array(5)].map((_, i) => (
+            <Text key={i} style={{ fontSize: 18, opacity: i < lives ? 1 : 0.25 }}>❤️</Text>
+          ))}
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -143,21 +154,22 @@ export default function TrailDetailScreen() {
           <Text style={styles.trailName}>{trail?.name ?? ''}</Text>
           <Text style={styles.trailDesc}>{trail?.description ?? ''}</Text>
 
-          {/* Barra de progresso */}
+          {/* Progress bar */}
           <View style={styles.progressSection}>
             <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${percent}%` }]} />
+              <View style={[styles.progressFill, { width: `${percent}%` as any }]} />
             </View>
           </View>
         </LinearGradient>
 
-        {/* Lista de questões */}
+        {/* Question list */}
         <View style={styles.questionsContainer}>
           {trail?.questions?.map((question, index) => {
             const status = question?.status ?? 'available';
             const isCompleted = status === 'completed';
             const isLocked = status === 'locked';
-            const typeInfo = TYPE_LABELS[question.type] ?? { label: question.type, color: theme.colors.primary };
+            const isAvailable = status === 'available';
+            const typeLabel = TYPE_LABELS[question.type] ?? question.type;
 
             let timeLeftText = '';
             if (isLocked && question?.unlocksAt) {
@@ -172,65 +184,81 @@ export default function TrailDetailScreen() {
                 key={question?.id ?? index}
                 style={[
                   styles.questionCard,
-                  isCompleted && styles.questionCardCompleted,
-                  isLocked && styles.questionCardLocked,
+                  isCompleted && styles.qCardCompleted,
+                  isAvailable && styles.qCardAvailable,
+                  isLocked && styles.qCardLocked,
                 ]}
                 onPress={() => handleQuestionPress(question)}
-                activeOpacity={0.7}
+                activeOpacity={isLocked ? 1 : 0.75}
               >
-                {/* Barra de status lateral */}
+                {/* Left accent bar */}
                 <View style={[
-                  styles.statusBar,
-                  isCompleted && { backgroundColor: theme.colors.success },
-                  isLocked && { backgroundColor: theme.colors.error },
-                  !isCompleted && !isLocked && { backgroundColor: trailColor },
+                  styles.accentBar,
+                  isCompleted && styles.accentCompleted,
+                  isAvailable && styles.accentAvailable,
+                  isLocked && styles.accentLocked,
                 ]} />
 
-                <View style={styles.questionLeft}>
-                  {/* Número / ícone de status */}
-                  <View style={[
-                    styles.questionNumber,
-                    isCompleted && { backgroundColor: theme.colors.success },
-                    isLocked && { backgroundColor: theme.colors.error },
-                    !isCompleted && !isLocked && { backgroundColor: trailColor },
-                  ]}>
-                    {isCompleted ? (
-                      <Ionicons name="checkmark" size={18} color="#fff" />
-                    ) : isLocked ? (
-                      <Ionicons name="time-outline" size={18} color="#fff" />
-                    ) : (
-                      <Text style={styles.questionNumberText}>{question?.order ?? 0}</Text>
-                    )}
-                  </View>
-
-                  {/* Título e badge de tipo */}
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={styles.questionTitle} numberOfLines={2}>
-                      {question?.title ?? ''}
+                {/* Number/status circle */}
+                <View style={[
+                  styles.questionCircle,
+                  isCompleted && styles.circleCompleted,
+                  isAvailable && styles.circleAvailable,
+                  isLocked && styles.circleLocked,
+                ]}>
+                  {isCompleted ? (
+                    <Ionicons name="checkmark" size={18} color="#fff" />
+                  ) : isLocked ? (
+                    <Ionicons name="lock-closed" size={15} color="#fff" />
+                  ) : (
+                    <Text style={[styles.circleNumber, isAvailable && styles.circleNumberAvailable]}>
+                      {question?.order ?? 0}
                     </Text>
+                  )}
+                </View>
 
-                    <View style={styles.typeBadgeRow}>
-                      <View style={[styles.typeBadge, { backgroundColor: typeInfo.color + '18' }]}>
-                        <Text style={styles.typeBadgeText}>
-                          {typeInfo.label}
-                        </Text>
-                      </View>
-                      {isLocked && timeLeftText && (
-                        <Text style={styles.lockTimeText}>⏳ {timeLeftText}</Text>
-                      )}
+                {/* Content */}
+                <View style={styles.questionContent}>
+                  <Text
+                    style={[
+                      styles.questionTitle,
+                      isCompleted && styles.titleCompleted,
+                      isLocked && styles.titleLocked,
+                      isAvailable && styles.titleAvailable,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {question?.title ?? ''}
+                  </Text>
+                  <View style={styles.typeBadgeRow}>
+                    <View style={[
+                      styles.typeBadge,
+                      isCompleted && styles.typeBadgeCompleted,
+                      isAvailable && styles.typeBadgeAvailable,
+                      isLocked && styles.typeBadgeLocked,
+                    ]}>
+                      <Text style={[
+                        styles.typeBadgeText,
+                        isCompleted && styles.typeBadgeTextCompleted,
+                        isAvailable && styles.typeBadgeTextAvailable,
+                        isLocked && styles.typeBadgeTextLocked,
+                      ]}>
+                        {typeLabel}
+                      </Text>
                     </View>
+                    {isLocked && timeLeftText !== '' && (
+                      <Text style={styles.lockTimeText}>⏳ {timeLeftText}</Text>
+                    )}
                   </View>
                 </View>
 
-                <Ionicons
-                  name={isCompleted ? 'checkmark-circle' : isLocked ? 'lock-closed' : 'chevron-forward'}
-                  size={22}
-                  color={
-                    isCompleted ? theme.colors.success
-                    : isLocked ? theme.colors.error
-                    : theme.colors.border
-                  }
-                />
+                {/* Right icon */}
+                {isCompleted && (
+                  <Ionicons name="checkmark-circle" size={22} color="#27AE60" style={styles.rightIcon} />
+                )}
+                {isAvailable && (
+                  <Text style={styles.arrowAvailable}>›</Text>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -244,7 +272,12 @@ export default function TrailDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  topBar: { paddingHorizontal: 16, paddingVertical: 10 },
+
+  // Top bar
+  topBar: {
+    paddingHorizontal: 16, paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
   backButton: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: theme.colors.surface,
@@ -252,82 +285,103 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08, shadowRadius: 4, elevation: 3,
   },
+  livesRow: { flexDirection: 'row', gap: 4, alignItems: 'center' },
+
+  // Trail header
   trailHeader: {
     marginHorizontal: 16, padding: 24, borderRadius: 20,
     marginBottom: 20, alignItems: 'center', gap: 8,
   },
   trailIcon: { fontSize: 60, marginBottom: 4 },
   trailIconWrap: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.7)',
-    marginBottom: 12,
+    width: 100, height: 100, borderRadius: 12, overflow: 'hidden',
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.7)', marginBottom: 12,
   },
   trailIconImg: { width: 100, height: 100 },
-  trailName: {
-    fontSize: 26, fontWeight: '800', color: '#fff',
-    textAlign: 'center',
-  },
-  trailDesc: {
-    fontSize: 14, color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center', lineHeight: 20,
-  },
-  progressSection: { width: '100%', gap: 6, marginTop: 4 },
+  trailName: { fontSize: 26, fontWeight: '800', color: '#fff', textAlign: 'center' },
+  trailDesc: { fontSize: 14, color: 'rgba(255,255,255,0.9)', textAlign: 'center', lineHeight: 20 },
+  progressSection: { width: '100%', marginTop: 4 },
   progressTrack: {
     width: '100%', height: 6,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 3, overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, overflow: 'hidden',
   },
-  progressFill: {
-    height: '100%', backgroundColor: '#fff', borderRadius: 3,
-  },
-  progressLabel: {
-    fontSize: 12, color: 'rgba(255,255,255,0.85)',
-    fontWeight: '600', textAlign: 'center',
-  },
+  progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 3 },
+
+  // Questions container
   questionsContainer: { paddingHorizontal: 16, gap: 10 },
+
+  // Base question card
   questionCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 14, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07, shadowRadius: 4, elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 0,
   },
-  questionCardCompleted: { backgroundColor: '#F0FAF4' },
-  questionCardLocked: { backgroundColor: '#FFF5F5' },
-  statusBar: { width: 4, alignSelf: 'stretch' },
-  questionLeft: {
-    flexDirection: 'row', alignItems: 'center',
-    flex: 1, padding: 14, gap: 12,
+
+  // -- COMPLETED --
+  qCardCompleted: {
+    backgroundColor: 'rgba(33,115,70,0.12)',
+    shadowColor: 'transparent',
+    elevation: 0,
   },
-  questionNumber: {
-    width: 36, height: 36, borderRadius: 18,
+  accentCompleted: { backgroundColor: '#27AE60' },
+  circleCompleted: { backgroundColor: '#27AE60' },
+  titleCompleted: { color: 'rgba(0,0,0,0.45)', fontWeight: '400' as any },
+  typeBadgeCompleted: { backgroundColor: 'rgba(39,174,96,0.15)' },
+  typeBadgeTextCompleted: { color: '#217346' },
+
+  // -- AVAILABLE (next to do) --
+  qCardAvailable: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  accentAvailable: { backgroundColor: '#F59E0B' },
+  circleAvailable: {
+    backgroundColor: '#F59E0B',
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+  },
+  circleNumberAvailable: { color: '#1A1A2E', fontWeight: '800' as any },
+  titleAvailable: { color: '#1A1A2E', fontWeight: '700' as any, fontSize: 15 },
+  typeBadgeAvailable: { backgroundColor: 'rgba(245,158,11,0.15)' },
+  typeBadgeTextAvailable: { color: '#B45309' },
+
+  // -- LOCKED (timed cooldown) --
+  qCardLocked: {
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    shadowColor: 'transparent',
+    elevation: 0,
+  },
+  accentLocked: { backgroundColor: '#B0BEC5' },
+  circleLocked: { backgroundColor: '#B0BEC5' },
+  titleLocked: { color: 'rgba(0,0,0,0.3)' },
+  typeBadgeLocked: { backgroundColor: 'rgba(0,0,0,0.06)' },
+  typeBadgeTextLocked: { color: 'rgba(0,0,0,0.3)' },
+
+  // Shared card internals
+  accentBar: { width: 4, alignSelf: 'stretch' },
+  questionCircle: {
+    width: 38, height: 38, borderRadius: 19,
     justifyContent: 'center', alignItems: 'center',
-    flexShrink: 0,
+    marginLeft: 14, flexShrink: 0,
   },
-  questionNumberText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  questionTitle: {
-    fontSize: 14, fontWeight: '600',
-    color: theme.colors.text, lineHeight: 20,
+  circleNumber: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  questionContent: { flex: 1, paddingVertical: 12, paddingHorizontal: 12, gap: 5 },
+  questionTitle: { fontSize: 14, lineHeight: 20 },
+  typeBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  typeBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
+  typeBadgeText: { fontSize: 11, fontWeight: '600' },
+  lockTimeText: { fontSize: 11, color: theme.colors.error, fontWeight: '600' },
+  rightIcon: { marginRight: 14 },
+  arrowAvailable: {
+    fontSize: 24, fontWeight: '800', color: '#F59E0B',
+    marginRight: 14, lineHeight: 24,
   },
-  typeBadgeRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-  },
-  typeBadge: {
-    paddingHorizontal: 8, paddingVertical: 2,
-    borderRadius: 10,
-  },
-  typeBadgeText: {
-    fontSize: 11, fontWeight: '600', color: theme.colors.textSecondary,
-  },
-  lockTimeText: {
-    fontSize: 11, color: theme.colors.error, fontWeight: '600',
-  },
-  errorText: {
-    fontSize: 16, color: theme.colors.textSecondary,
-    textAlign: 'center', marginTop: 32,
-  },
+
+  errorText: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', marginTop: 32 },
 });

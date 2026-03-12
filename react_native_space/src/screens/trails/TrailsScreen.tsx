@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import ApiService from '../../services/api.service';
 import { theme } from '../../constants/theme';
 import { TRAIL_IMAGES, MASCOT_SHADOW } from '../../constants/mascotImages';
+import { usePremium } from '../../hooks/usePremium';
+import PaywallModal from '../../components/PaywallModal';
 
 interface Trail {
   id: string;
@@ -28,6 +30,9 @@ interface Trail {
   progress: any;
 }
 
+// Only the first trail is free; the rest require premium or progression
+const FREE_TRAIL_SLUG = 'excel-do-zero';
+
 function getLevelTag(index: number): { label: string; color: string } {
   if (index < 3) return { label: 'Iniciante',     color: '#27AE60' };
   if (index < 6) return { label: 'Intermediário', color: '#F59E0B' };
@@ -37,7 +42,9 @@ function getLevelTag(index: number): { label: string; color: string } {
 export default function TrailsScreen() {
   const [trails, setTrails] = useState<Trail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPaywall, setShowPaywall] = useState(false);
   const navigation = useNavigation<any>();
+  const { isPremium } = usePremium();
 
   useEffect(() => {
     loadTrails();
@@ -76,66 +83,116 @@ export default function TrailsScreen() {
           const percent = total > 0 ? Math.min((completed / total) * 100, 100) : 0;
           const levelTag = getLevelTag(index);
 
+          // Determine status:
+          // - First trail (excel-do-zero): always unlocked for everyone
+          // - Free user + other trails: premium-locked
+          // - Premium user: progressive (unlocked only if previous trail completed)
+          const isFirstTrail = trail.slug === FREE_TRAIL_SLUG || index === 0;
+          const previousCompleted = index > 0 && trails[index - 1]?.progress?.completedAt != null;
+
+          let trailStatus: 'unlocked' | 'locked' | 'premium';
+          if (isFirstTrail) {
+            trailStatus = 'unlocked';
+          } else if (!isPremium) {
+            trailStatus = 'premium';
+          } else if (previousCompleted) {
+            trailStatus = 'unlocked';
+          } else {
+            trailStatus = 'locked';
+          }
+
+          const isUnlocked = trailStatus === 'unlocked';
+          const isPremiumLocked = trailStatus === 'premium';
+          const isProgressionLocked = trailStatus === 'locked';
+          const isBlocked = isPremiumLocked || isProgressionLocked;
+
+          const handlePress = () => {
+            if (isUnlocked) {
+              navigation.navigate('TrailDetail', { slug: trail.slug });
+            } else if (isPremiumLocked) {
+              setShowPaywall(true);
+            }
+            // progression-locked: no action
+          };
+
           return (
             <TouchableOpacity
               key={trail.id}
-              style={[styles.card, !trail.isUnlocked && styles.cardLocked]}
-              onPress={() =>
-                trail.isUnlocked &&
-                navigation.navigate('TrailDetail', { slug: trail.slug })
-              }
-              activeOpacity={trail.isUnlocked ? 0.8 : 1}
+              style={[
+                styles.card,
+                isUnlocked && styles.cardUnlocked,
+                isBlocked && styles.cardBlocked,
+              ]}
+              onPress={handlePress}
+              activeOpacity={isUnlocked ? 0.8 : 0.95}
             >
               <LinearGradient
-                colors={trail.isUnlocked ? ['#0A1628', '#217346'] : ['#2C3E50', '#4A5568']}
+                colors={['#0A1628', '#217346']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.cardGradient}
               >
-                {/* Locked overlay */}
-                {!trail.isUnlocked && <View style={styles.lockedOverlay} />}
-                {/* Level tag */}
-                <View style={[styles.levelTag, { backgroundColor: trail.isUnlocked ? levelTag.color + 'CC' : 'rgba(255,255,255,0.25)' }]}>
-                  <Text style={styles.levelTagText}>
-                    {trail.isUnlocked ? levelTag.label : 'Bloqueado'}
-                  </Text>
-                </View>
+                {/* Dark overlay for all locked/premium */}
+                {isBlocked && <View style={styles.lockedOverlay} />}
+
+                {/* Level tag / status badge */}
+                {isUnlocked && (
+                  <View style={[styles.levelTag, { backgroundColor: levelTag.color + 'CC' }]}>
+                    <Text style={styles.levelTagText}>{levelTag.label}</Text>
+                  </View>
+                )}
+                {isProgressionLocked && (
+                  <View style={styles.badgeLocked}>
+                    <Ionicons name="lock-closed" size={10} color="#B0BEC5" />
+                    <Text style={styles.badgeLockedText}> Bloqueado</Text>
+                  </View>
+                )}
+                {isPremiumLocked && (
+                  <View style={styles.badgePremium}>
+                    <Text style={styles.badgePremiumText}>⭐ Premium</Text>
+                  </View>
+                )}
 
                 <View style={styles.cardTop}>
-                  <View style={[styles.cardIconWrap, MASCOT_SHADOW]}>
+                  <View style={[styles.cardIconWrap, MASCOT_SHADOW, isBlocked && { borderColor: 'rgba(255,255,255,0.2)' }]}>
                     {TRAIL_IMAGES[trail.slug] ? (
                       <Image
                         source={TRAIL_IMAGES[trail.slug]}
-                        style={styles.cardIconImg}
+                        style={[styles.cardIconImg, isBlocked && { opacity: 0.5 }]}
                         resizeMode="cover"
                       />
                     ) : (
                       <Text style={styles.cardIconFallback}>
-                        {trail.isUnlocked ? trail.icon : '🔒'}
+                        {isBlocked ? '🔒' : trail.icon}
                       </Text>
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.cardName}>{trail.name}</Text>
-                    <Text style={styles.cardDesc} numberOfLines={2}>
+                    <Text style={[styles.cardName, isBlocked && styles.cardNameDimmed]}>
+                      {trail.name}
+                    </Text>
+                    <Text style={[styles.cardDesc, isBlocked && styles.cardDescDimmed]} numberOfLines={2}>
                       {trail.description}
                     </Text>
                   </View>
-                  {trail.isUnlocked ? (
+                  {isUnlocked && (
                     <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.8)" />
-                  ) : (
-                    <Ionicons name="lock-closed-outline" size={20} color="#B0BEC5" />
+                  )}
+                  {isBlocked && (
+                    <Ionicons name="lock-closed" size={20} color="rgba(255,255,255,0.35)" />
                   )}
                 </View>
 
-                <View style={styles.cardFooter}>
-                  <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${percent}%` as any }]} />
+                {isUnlocked && (
+                  <View style={styles.cardFooter}>
+                    <View style={styles.progressTrack}>
+                      <View style={[styles.progressFill, { width: `${percent}%` as any }]} />
+                    </View>
+                    <Text style={styles.progressLabel}>
+                      {completed}/{total} questões
+                    </Text>
                   </View>
-                  <Text style={styles.progressLabel}>
-                    {completed}/{total} questões
-                  </Text>
-                </View>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           );
@@ -143,6 +200,12 @@ export default function TrailsScreen() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      <PaywallModal
+        visivel={showPaywall}
+        onFechar={() => setShowPaywall(false)}
+        onSuccess={() => setShowPaywall(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -151,11 +214,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { padding: 24, paddingTop: 16, paddingBottom: 12 },
   headerTitle: { fontSize: 28, fontWeight: '800', color: theme.colors.text },
-  headerSub: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-  },
+  headerSub: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
+
   card: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -167,73 +227,61 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  cardLocked: { opacity: 0.85 },
+  cardUnlocked: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#27AE60',
+  },
+  cardBlocked: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    opacity: 0.85,
+  },
   lockedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(80,80,80,0.45)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     zIndex: 0,
   },
   cardGradient: { padding: 18, paddingTop: 36, gap: 12 },
+
+  // Status badges
   levelTag: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
+    position: 'absolute', top: 12, right: 12,
+    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20,
   },
-  levelTagText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 0.3,
+  levelTagText: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
+  badgeLocked: {
+    position: 'absolute', top: 10, right: 12,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
   },
-  cardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+  badgeLockedText: { fontSize: 11, fontWeight: '600', color: '#B0BEC5' },
+  badgePremium: {
+    position: 'absolute', top: 10, right: 12,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
+    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4, shadowRadius: 6, elevation: 4,
   },
+  badgePremiumText: { fontSize: 11, fontWeight: '800', color: '#1A1A2E' },
+
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   cardIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: '#217346',
-    flexShrink: 0,
+    width: 56, height: 56, borderRadius: 12,
+    overflow: 'hidden', borderWidth: 1.5, borderColor: '#217346', flexShrink: 0,
   },
   cardIconImg: { width: 56, height: 56 },
   cardIconFallback: { fontSize: 32, textAlign: 'center', lineHeight: 56 },
-  cardName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 3,
-  },
-  cardDesc: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.88)',
-    lineHeight: 18,
-  },
-  cardFooter: {
-    gap: 6,
-  },
+  cardName: { fontSize: 17, fontWeight: '700', color: '#fff', marginBottom: 3 },
+  cardNameDimmed: { color: 'rgba(255,255,255,0.5)' },
+  cardDesc: { fontSize: 13, color: 'rgba(255,255,255,0.88)', lineHeight: 18 },
+  cardDescDimmed: { color: 'rgba(255,255,255,0.35)' },
+  cardFooter: { gap: 6 },
   progressTrack: {
-    width: '100%',
-    height: 5,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 3,
-    overflow: 'hidden',
+    width: '100%', height: 5,
+    backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden',
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#27AE60',
-    borderRadius: 3,
-  },
-  progressLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '600',
-  },
+  progressFill: { height: '100%', backgroundColor: '#27AE60', borderRadius: 3 },
+  progressLabel: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
 });
