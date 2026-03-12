@@ -222,7 +222,7 @@ const CertificateScreen = () => {
                 'Valide suas habilidades em Excel',
               ].map((text, i) => (
                 <View key={i} style={styles.benefitCard}>
-                  <Text style={styles.benefitCheck}>✅</Text>
+                  <Ionicons name="checkmark-circle" size={22} color="#10B981" />
                   <Text style={styles.benefitText}>{text}</Text>
                 </View>
               ))}

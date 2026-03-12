@@ -13,6 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 const ESQUADRAO = require('../../assets/mascots/esquadrao_excelino_atualizado.png');
 import { PurchasesPackage } from 'react-native-purchases';
@@ -159,7 +160,7 @@ const PaywallModal = ({ visivel, onFechar, onSuccess }: PaywallModalProps) => {
             <View style={styles.beneficiosContainer}>
               {BENEFITS.map((text, index) => (
                 <View key={index} style={styles.beneficioItem}>
-                  <Text style={styles.beneficioIcon}>✅</Text>
+                  <Ionicons name="checkmark-circle" size={18} color="#34D399" />
                   <Text style={styles.beneficioTexto}>{text}</Text>
                 </View>
               ))}
