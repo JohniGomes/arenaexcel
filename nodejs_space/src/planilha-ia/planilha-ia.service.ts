@@ -79,7 +79,7 @@ Faça uma análise completa e forneça:
 Seja direto, use emojis para facilitar a leitura e explique de forma que qualquer pessoa entenda.`;
 
       const response = await this.client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-6',
         system: 'Você é o Excelino, especialista em Excel e análise de dados.',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 1500,
@@ -109,7 +109,7 @@ ${dados.substring(0, 6000)}
 Responda de forma clara, objetiva e didática. Use emojis quando apropriado.`;
 
       const response = await this.client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-6',
         system: systemPrompt,
         messages: mensagens.map((m) => ({
           role: m.role as 'user' | 'assistant',
@@ -134,7 +134,7 @@ Responda de forma clara, objetiva e didática. Use emojis quando apropriado.`;
   async extrairDaImagem(userId: string, base64: string) {
     try {
       const response = await this.client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-6',
         messages: [
           {
             role: 'user',
