@@ -33,6 +33,26 @@ export class PlanilhaIAService {
     });
   }
 
+  // ── Tratamento de erros Anthropic ─────────────────────────
+  private handleAnthropicError(error: any, context: string): never {
+    this.logger.error(`${context}: ${error.message} | status: ${error.status} | type: ${error.error?.type}`, error.stack);
+
+    if (error instanceof HttpException) throw error;
+
+    const msg: string = error?.error?.error?.message ?? error?.message ?? '';
+    if (error?.status === 400 && msg.includes('credit balance')) {
+      throw new HttpException(
+        'Serviço de IA temporariamente indisponível. Tente novamente mais tarde.',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
+    throw new HttpException(
+      'Erro ao processar sua solicitação. Tente novamente.',
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+  }
+
   // ── Analisar planilha ─────────────────────────────────────
   async analisar(userId: string, dados: string, nomeArquivo: string) {
     try {
@@ -59,7 +79,7 @@ Faça uma análise completa e forneça:
 Seja direto, use emojis para facilitar a leitura e explique de forma que qualquer pessoa entenda.`;
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-haiku-4-5-20251001',
         system: 'Você é o Excelino, especialista em Excel e análise de dados.',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 1500,
@@ -74,8 +94,7 @@ Seja direto, use emojis para facilitar a leitura e explique de forma que qualque
       this.logger.log(`✅ Planilha analisada para usuário ${userId}`);
       return { insights, analisesRestantes };
     } catch (error) {
-      this.logger.error(`Erro ao analisar planilha: ${error.message}`, error.stack);
-      throw new HttpException('Não foi possível analisar a planilha', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.handleAnthropicError(error, 'Erro ao analisar planilha');
     }
   }
 
@@ -90,7 +109,7 @@ ${dados.substring(0, 6000)}
 Responda de forma clara, objetiva e didática. Use emojis quando apropriado.`;
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-haiku-4-5-20251001',
         system: systemPrompt,
         messages: mensagens.map((m) => ({
           role: m.role as 'user' | 'assistant',
@@ -107,8 +126,7 @@ Responda de forma clara, objetiva e didática. Use emojis quando apropriado.`;
 
       return { resposta };
     } catch (error) {
-      this.logger.error(`Erro no chat: ${error.message}`, error.stack);
-      throw new HttpException('Não foi possível processar sua mensagem', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.handleAnthropicError(error, 'Erro no chat da planilha');
     }
   }
 
@@ -116,7 +134,7 @@ Responda de forma clara, objetiva e didática. Use emojis quando apropriado.`;
   async extrairDaImagem(userId: string, base64: string) {
     try {
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-haiku-4-5-20251001',
         messages: [
           {
             role: 'user',
@@ -144,8 +162,7 @@ Responda de forma clara, objetiva e didática. Use emojis quando apropriado.`;
 
       return { texto };
     } catch (error) {
-      this.logger.error(`Erro ao extrair imagem: ${error.message}`, error.stack);
-      throw new HttpException('Não foi possível processar a imagem', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.handleAnthropicError(error, 'Erro ao extrair imagem');
     }
   }
 }

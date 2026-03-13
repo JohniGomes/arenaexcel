@@ -249,7 +249,7 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
     <!-- Signature -->
     <p style="font-family:'Dancing Script',cursive;font-weight:700;font-size:36px;color:#1a1a2e;margin:0 0 2px;letter-spacing:0.5px">Johni Michael</p>
     <div style="width:180px;height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,0.4),transparent);margin:2px auto 3px"></div>
-    <p style="font-family:'Cinzel',serif;font-weight:400;font-size:12px;letter-spacing:0.5em;color:#0A1628;text-transform:uppercase;margin:0">Professor e Fundador | Arena Excel</p>
+    <p style="font-family:'Cinzel',serif;font-weight:400;font-size:9px;letter-spacing:0.3em;color:#0A1628;text-transform:uppercase;margin:0 0 20px">Professor e Fundador | Arena Excel</p>
 
   </div>
 </div>

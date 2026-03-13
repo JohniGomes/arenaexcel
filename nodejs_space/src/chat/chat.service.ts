@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import { ChatMessageDto } from './dto/chat.dto';
 
@@ -41,7 +41,7 @@ Sempre:
       ];
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-haiku-4-5-20251001',
         system: systemPrompt,
         messages,
         max_tokens: 500,
@@ -58,8 +58,22 @@ Sempre:
       this.logger.log(`Chat message processed successfully`);
       return { response: assistantMessage };
     } catch (error) {
-      this.logger.error(`Chat error: ${error.message}`, error.stack);
-      throw error;
+      this.logger.error(`Chat error: ${error.message} | status: ${error.status} | type: ${error.error?.type}`, error.stack);
+
+      if (error instanceof HttpException) throw error;
+
+      const msg: string = error?.error?.error?.message ?? error?.message ?? '';
+      if (error?.status === 400 && msg.includes('credit balance')) {
+        throw new HttpException(
+          'Serviço de IA temporariamente indisponível. Tente novamente mais tarde.',
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
+
+      throw new HttpException(
+        'Erro ao processar sua solicitação. Tente novamente.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
