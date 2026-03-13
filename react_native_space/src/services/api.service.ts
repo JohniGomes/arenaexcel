@@ -285,6 +285,11 @@ class ApiService {
     return response?.data ?? null;
   }
 
+  async getCertificadosEmitidos(): Promise<string[]> {
+    const response = await this.api.get('api/badges/certificados/emitidos');
+    return response?.data ?? [];
+  }
+
   // Trilhas de Aprendizado
   async getTrails(): Promise<any[]> {
     const response = await this.api.get('trails');

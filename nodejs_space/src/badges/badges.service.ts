@@ -157,6 +157,14 @@ export class BadgesService {
     });
   }
 
+  async getCertificadosEmitidos(userId: string): Promise<string[]> {
+    const certs = await this.prisma.badges.findMany({
+      where: { userId, tipo: 'certificado' },
+      select: { badgeId: true },
+    });
+    return certs.map((c: any) => c.badgeId);
+  }
+
   async gerarCertificado(userId: string, tipo: string, nomeAluno: string) {
     return this.prisma.badges.upsert({
       where: { userId_badgeId: { userId, badgeId: tipo } },

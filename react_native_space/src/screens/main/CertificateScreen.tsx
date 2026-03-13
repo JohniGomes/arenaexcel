@@ -78,7 +78,10 @@ interface CertTarget {
   name: string;
   completedAt: string | null;
   horas: number;
+  questoes: number;
+  precisao: number;
   courseId: string;
+  alreadyIssued: boolean;
 }
 
 // ── Certificate HTML Generator ────────────────────────────────
@@ -260,13 +263,13 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
 // ── Trail Card ────────────────────────────────────────────────
 const TrailCard: React.FC<{
   trail: TrailItem;
-  onGenerate: (target: CertTarget) => void;
-}> = ({ trail, onGenerate }) => {
+  alreadyIssued: boolean;
+  onGenerate: (courseId: string, name: string, completedAt: string | null, type: 'trail' | 'level') => void;
+}> = ({ trail, alreadyIssued, onGenerate }) => {
   const completed = !!trail.progress?.completedAt;
   const inProgress = !completed && (trail.progress?.currentQuestion ?? 0) > 0;
   const progress = trail.progress;
   const pct = completed ? 100 : Math.round(((progress?.currentQuestion ?? 0) / Math.max(trail.totalQuestions, 1)) * 100);
-  const horas = Math.round((trail.totalQuestions * 3 / 60) * 10) / 10;
 
   return (
     <View style={[styles.itemCard, completed && styles.itemCardDone, inProgress && styles.itemCardProgress]}>
@@ -299,18 +302,12 @@ const TrailCard: React.FC<{
         </View>
         {completed && (
           <TouchableOpacity
-            style={styles.certBtn}
-            onPress={() => onGenerate({
-              type: 'trail',
-              name: trail.name,
-              completedAt: progress?.completedAt ?? null,
-              horas,
-              courseId: trail.slug,
-            })}
+            style={[styles.certBtn, alreadyIssued && styles.certBtnIssued]}
+            onPress={() => onGenerate(trail.slug, trail.name, progress?.completedAt ?? null, 'trail')}
             activeOpacity={0.8}
           >
-            <Ionicons name="ribbon-outline" size={14} color="#fff" />
-            <Text style={styles.certBtnText}>Certificado</Text>
+            <Ionicons name={alreadyIssued ? 'ribbon' : 'ribbon-outline'} size={14} color="#fff" />
+            <Text style={styles.certBtnText}>{alreadyIssued ? 'Ver certificado' : 'Certificado'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -321,12 +318,12 @@ const TrailCard: React.FC<{
 // ── Level Card ────────────────────────────────────────────────
 const LevelCard: React.FC<{
   level: LevelItem;
-  onGenerate: (target: CertTarget) => void;
-}> = ({ level, onGenerate }) => {
+  alreadyIssued: boolean;
+  onGenerate: (courseId: string, name: string, completedAt: string | null, type: 'trail' | 'level') => void;
+}> = ({ level, alreadyIssued, onGenerate }) => {
   const completed = level.total > 0 && level.completed === level.total;
   const inProgress = !completed && level.completed > 0;
   const pct = level.total > 0 ? Math.round((level.completed / level.total) * 100) : 0;
-  const horas = Math.round((level.completed * 3 / 60) * 10) / 10;
 
   return (
     <View style={[styles.itemCard, completed && styles.itemCardDone, inProgress && styles.itemCardProgress]}>
@@ -357,18 +354,12 @@ const LevelCard: React.FC<{
         </View>
         {completed && (
           <TouchableOpacity
-            style={styles.certBtn}
-            onPress={() => onGenerate({
-              type: 'level',
-              name: `${level.name} — Lições Clássicas`,
-              completedAt: null,
-              horas,
-              courseId: `nivel-${level.id}`,
-            })}
+            style={[styles.certBtn, alreadyIssued && styles.certBtnIssued]}
+            onPress={() => onGenerate(`nivel-${level.id}`, `${level.name} — Lições Clássicas`, null, 'level')}
             activeOpacity={0.8}
           >
-            <Ionicons name="ribbon-outline" size={14} color="#fff" />
-            <Text style={styles.certBtnText}>Certificado</Text>
+            <Ionicons name={alreadyIssued ? 'ribbon' : 'ribbon-outline'} size={14} color="#fff" />
+            <Text style={styles.certBtnText}>{alreadyIssued ? 'Ver certificado' : 'Certificado'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -426,15 +417,14 @@ const CertModal: React.FC<CertModalProps> = ({ visible, target, certData, isPrem
 
     setGerando(true);
     try {
-      // Registra certificado e verifica badges (Fix 6)
       await ApiService.gerarCertificado(target.courseId, nome.trim()).catch(() => {});
       ApiService.verificarBadges().catch(() => {});
 
       const html = generateCertificateHTML({
         nomeAluno: nome.trim(),
         curso: target.name,
-        horas: target.horas + certData.horasDedicadas,
-        licoesConcluidas: certData.licoesConcluidas,
+        horas: target.horas,
+        licoesConcluidas: target.questoes,
         data: target.completedAt ?? new Date().toISOString(),
         userId: certData.userId,
         courseId: target.courseId,
@@ -495,15 +485,15 @@ const CertModal: React.FC<CertModalProps> = ({ visible, target, certData, isPrem
 
             <View style={styles.modalStats}>
               <View style={styles.modalStat}>
-                <Text style={styles.modalStatVal}>{(target?.horas ?? 0) + (certData?.horasDedicadas ?? 0)}h</Text>
+                <Text style={styles.modalStatVal}>{target?.horas ?? 0}h</Text>
                 <Text style={styles.modalStatLabel}>Horas</Text>
               </View>
               <View style={styles.modalStat}>
-                <Text style={styles.modalStatVal}>{certData?.licoesConcluidas ?? 0}</Text>
-                <Text style={styles.modalStatLabel}>Lições</Text>
+                <Text style={styles.modalStatVal}>{target?.questoes ?? 0}</Text>
+                <Text style={styles.modalStatLabel}>Questões</Text>
               </View>
               <View style={styles.modalStat}>
-                <Text style={styles.modalStatVal}>{certData?.precisao ?? 0}%</Text>
+                <Text style={styles.modalStatVal}>{target?.precisao ?? 0}%</Text>
                 <Text style={styles.modalStatLabel}>Precisão</Text>
               </View>
             </View>
@@ -600,6 +590,7 @@ const CertificateScreen = () => {
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [certData, setCertData] = useState<CertData | null>(null);
   const [certTarget, setCertTarget] = useState<CertTarget | null>(null);
+  const [issuedCerts, setIssuedCerts] = useState<string[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -609,16 +600,18 @@ const CertificateScreen = () => {
 
   const carregarDados = async () => {
     try {
-      const [trailsResp, progressResp, certResp, badgesResp] = await Promise.all([
+      const [trailsResp, progressResp, certResp, badgesResp, issuedResp] = await Promise.all([
         ApiService.getTrails(),
         ApiService.getProgress(),
         ApiService.getCertificateData().catch(() => null),
         ApiService.getMeusBadges().catch(() => []),
+        ApiService.getCertificadosEmitidos().catch(() => []),
       ]);
       setTrails(trailsResp ?? []);
       setLevels(progressResp?.levels ?? []);
       setCertData(certResp);
       setBadges(badgesResp ?? []);
+      setIssuedCerts(issuedResp ?? []);
     } catch (e) {
       console.error('Erro ao carregar dados:', e);
     } finally {
@@ -626,8 +619,14 @@ const CertificateScreen = () => {
     }
   };
 
-  const handleGenerateCert = (target: CertTarget) => {
-    setCertTarget(target);
+  const handleGenerateCert = (courseId: string, name: string, completedAt: string | null, type: 'trail' | 'level') => {
+    const completedTrails = trails.filter(t => t.progress?.completedAt);
+    const horas = Math.round(completedTrails.reduce((sum, t) => sum + t.totalQuestions * 3 / 60, 0) * 10) / 10;
+    const questoes = completedTrails.reduce((sum, t) => sum + t.totalQuestions, 0);
+    const precisao = completedTrails.length > 0
+      ? Math.round(completedTrails.reduce((sum, t) => sum + (t.progress?.accuracy ?? 0), 0) / completedTrails.length * 100)
+      : 0;
+    setCertTarget({ type, name, completedAt, horas, questoes, precisao, courseId, alreadyIssued: issuedCerts.includes(courseId) });
   };
 
   if (!isPremium) {
@@ -666,7 +665,7 @@ const CertificateScreen = () => {
         </View>
         {trails.length === 0
           ? <Text style={styles.emptyMsg}>Nenhuma trilha disponível</Text>
-          : trails.map(t => <TrailCard key={t.id} trail={t} onGenerate={handleGenerateCert} />)
+          : trails.map(t => <TrailCard key={t.id} trail={t} alreadyIssued={issuedCerts.includes(t.slug)} onGenerate={handleGenerateCert} />)
         }
 
         {/* ── LIÇÕES CLÁSSICAS ── */}
@@ -676,7 +675,7 @@ const CertificateScreen = () => {
         </View>
         {levels.length === 0
           ? <Text style={styles.emptyMsg}>Nenhum módulo disponível</Text>
-          : levels.map(l => <LevelCard key={l.id} level={l} onGenerate={handleGenerateCert} />)
+          : levels.map(l => <LevelCard key={l.id} level={l} alreadyIssued={issuedCerts.includes(`nivel-${l.id}`)} onGenerate={handleGenerateCert} />)
         }
 
         {/* ── BADGES ── */}
@@ -793,6 +792,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#217346', borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 7,
     flexShrink: 0,
+  },
+  certBtnIssued: {
+    backgroundColor: '#1a5c38',
   },
   certBtnText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 

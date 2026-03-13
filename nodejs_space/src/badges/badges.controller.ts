@@ -21,6 +21,12 @@ export class BadgesController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('certificados/emitidos')
+  async getCertificadosEmitidos(@Request() req: any) {
+    return this.badgesService.getCertificadosEmitidos(req?.user?.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('certificado/gerar')
   async gerarCertificado(@Request() req: any, @Body() body: { badgeId: string; nomeAluno: string }) {
     return this.badgesService.gerarCertificado(req?.user?.id, body?.badgeId, body?.nomeAluno);
